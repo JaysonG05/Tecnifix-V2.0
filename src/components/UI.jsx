@@ -1,0 +1,238 @@
+import { useState } from 'react'
+import { useApp } from '../context/AppContext.jsx'
+
+// ── Avatar ─────────────────────────────────────────────────
+export function Avatar({ photo, name, size = 48, online = false }) {
+  const { th } = useApp()
+  const [err, setErr] = useState(false)
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      {photo && !err ? (
+        <img src={photo} alt={name} onError={() => setErr(true)}
+          style={{ width: size, height: size, borderRadius: size / 2, objectFit: 'cover', border: `2px solid ${th.border}` }} />
+      ) : (
+        <div style={{ width: size, height: size, borderRadius: size / 2, background: th.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.floor(size * 0.38), fontWeight: 700, color: th.primaryText, border: `2px solid ${th.border}` }}>
+          {(name || '?').charAt(0).toUpperCase()}
+        </div>
+      )}
+      {online !== undefined && (
+        <div style={{ position: 'absolute', bottom: 1, right: 1, width: Math.max(size * 0.22, 8), height: Math.max(size * 0.22, 8), background: online ? '#22c55e' : '#94a3b8', borderRadius: '50%', border: `2px solid ${th.surface}` }} />
+      )}
+    </div>
+  )
+}
+
+// ── Stars ──────────────────────────────────────────────────
+export function StarRating({ rating, size = 14, interactive = false, onChange }) {
+  const [hovered, setHovered] = useState(0)
+  return (
+    <span style={{ display: 'inline-flex', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i}
+          onClick={() => interactive && onChange?.(i)}
+          onMouseEnter={() => interactive && setHovered(i)}
+          onMouseLeave={() => interactive && setHovered(0)}
+          style={{ fontSize: size, color: i <= (hovered || Math.round(rating)) ? '#fbbf24' : '#d1d5db', cursor: interactive ? 'pointer' : 'default', transition: 'color 0.1s' }}>★</span>
+      ))}
+    </span>
+  )
+}
+
+// ── Badge ──────────────────────────────────────────────────
+export function Badge({ children, color, textColor }) {
+  const { th } = useApp()
+  return (
+    <span style={{ background: color || th.primaryLight, color: textColor || th.primaryText, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' }}>
+      {children}
+    </span>
+  )
+}
+
+// ── Toggle ─────────────────────────────────────────────────
+export function Toggle({ value, onChange }) {
+  const { th } = useApp()
+  return (
+    <button onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: value ? th.primary : th.border, position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+      <div style={{ width: 18, height: 18, borderRadius: 9, background: '#fff', position: 'absolute', top: 3, left: value ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+    </button>
+  )
+}
+
+// ── Skeleton ───────────────────────────────────────────────
+export function SkeletonCard() {
+  const { th } = useApp()
+  const p = { animation: 'pulse 1.5s infinite', background: th.border, borderRadius: 8 }
+  return (
+    <div style={{ background: th.surface, borderRadius: 16, padding: 16, border: `1px solid ${th.border}`, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+        <div style={{ width: 60, height: 60, borderRadius: 30, ...p }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 16, marginBottom: 8, width: '70%', ...p }} />
+          <div style={{ height: 12, width: '50%', ...p }} />
+        </div>
+      </div>
+      <div style={{ height: 12, marginBottom: 8, ...p }} />
+      <div style={{ height: 40, borderRadius: 12, ...p }} />
+    </div>
+  )
+}
+
+// ── Input ──────────────────────────────────────────────────
+export function Input({ label, value, onChange, placeholder, type = 'text', icon, error, rows }) {
+  const { th } = useApp()
+  const base = {
+    width: '100%', boxSizing: 'border-box', borderRadius: 12,
+    border: `1.5px solid ${error ? th.red : th.inputBorder}`,
+    fontSize: 14, outline: 'none', background: th.inputBg, color: th.text,
+    transition: 'border-color 0.2s', fontFamily: 'inherit',
+  }
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {label && <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>{label}</label>}
+      <div style={{ position: 'relative' }}>
+        {icon && <span style={{ position: 'absolute', left: 12, top: rows ? 12 : '50%', transform: rows ? 'none' : 'translateY(-50%)', fontSize: 16, zIndex: 1 }}>{icon}</span>}
+        {rows ? (
+          <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+            style={{ ...base, padding: icon ? '12px 14px 12px 38px' : '12px 14px', resize: 'vertical' }}
+            onFocus={e => e.target.style.borderColor = error ? th.red : th.primary}
+            onBlur={e => e.target.style.borderColor = error ? th.red : th.inputBorder}
+          />
+        ) : (
+          <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+            style={{ ...base, padding: icon ? '12px 14px 12px 38px' : '12px 14px' }}
+            onFocus={e => e.target.style.borderColor = error ? th.red : th.primary}
+            onBlur={e => e.target.style.borderColor = error ? th.red : th.inputBorder}
+          />
+        )}
+      </div>
+      {error && <p style={{ margin: '4px 0 0', fontSize: 12, color: th.red }}>{error}</p>}
+    </div>
+  )
+}
+
+// ── Button ─────────────────────────────────────────────────
+export function Btn({ children, onClick, variant = 'primary', disabled, loading: isLoading, style: s = {}, size = 'md' }) {
+  const { th } = useApp()
+  const variants = {
+    primary:   { background: disabled || isLoading ? th.textSec : th.primary, color: '#fff', border: 'none' },
+    outline:   { background: 'transparent', color: th.primary, border: `2px solid ${th.primary}` },
+    danger:    { background: 'transparent', color: th.red, border: `2px solid ${th.red}` },
+    ghost:     { background: th.surface2, color: th.text, border: `1px solid ${th.border}` },
+    whatsapp:  { background: '#25d366', color: '#fff', border: 'none' },
+    dark:      { background: '#0f172a', color: '#fff', border: 'none' },
+  }
+  const sizes = {
+    sm: { padding: '8px 16px', fontSize: 13, borderRadius: 10 },
+    md: { padding: '13px 0',   fontSize: 15, borderRadius: 14 },
+    lg: { padding: '16px 0',   fontSize: 17, borderRadius: 16 },
+  }
+  return (
+    <button onClick={onClick} disabled={disabled || isLoading} style={{
+      width: '100%', fontWeight: 700, cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      transition: 'opacity 0.15s, transform 0.1s', opacity: disabled || isLoading ? 0.7 : 1,
+      fontFamily: 'inherit',
+      ...variants[variant], ...sizes[size], ...s,
+    }}
+    onMouseEnter={e => { if (!disabled && !isLoading) e.currentTarget.style.opacity = '0.88' }}
+    onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+    onMouseDown={e => { if (!disabled && !isLoading) e.currentTarget.style.transform = 'scale(0.98)' }}
+    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+    >
+      {isLoading ? <Spinner size={18} color="#fff" /> : children}
+    </button>
+  )
+}
+
+// ── Spinner ────────────────────────────────────────────────
+export function Spinner({ size = 24, color }) {
+  const { th } = useApp()
+  return (
+    <div style={{ width: size, height: size, borderRadius: size / 2, border: `3px solid ${color || th.border}`, borderTopColor: color || th.primary, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+  )
+}
+
+// ── Toast ──────────────────────────────────────────────────
+export function Toast({ message, type = 'success', onClose }) {
+  const { th } = useApp()
+  const colors = { success: th.primary, error: th.red, info: th.blue }
+  return (
+    <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: colors[type] || th.primary, color: '#fff', padding: '12px 20px', borderRadius: 14, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', maxWidth: 320, textAlign: 'center', cursor: 'pointer', animation: 'slideDown 0.3s ease' }}
+      onClick={onClose}>
+      {type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ '}{message}
+    </div>
+  )
+}
+
+// ── Modal ──────────────────────────────────────────────────
+export function Modal({ title, children, onClose }) {
+  const { th } = useApp()
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: th.surface, borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', maxWidth: 430, maxHeight: '85vh', overflowY: 'auto', animation: 'slideUp 0.3s ease' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ flex: 1, margin: 0, fontSize: 17, fontWeight: 800, color: th.text }}>{title}</h3>
+          <button onClick={onClose} style={{ background: th.surface2, border: 'none', borderRadius: 20, width: 32, height: 32, fontSize: 18, cursor: 'pointer', color: th.textSec }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ── PageHeader ─────────────────────────────────────────────
+export function PageHeader({ title, onBack, right }) {
+  const { th, goBack } = useApp()
+  return (
+    <div style={{ background: th.surface, padding: '14px 16px', borderBottom: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+      <button onClick={onBack || goBack} style={{ background: th.surface2, border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: th.text, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+      <h2 style={{ flex: 1, margin: 0, fontSize: 17, fontWeight: 800, color: th.text }}>{title}</h2>
+      {right}
+    </div>
+  )
+}
+
+// ── SettingsRow ────────────────────────────────────────────
+export function SettingsRow({ label, sub, right, onClick }) {
+  const { th } = useApp()
+  return (
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: `1px solid ${th.border}`, cursor: onClick ? 'pointer' : 'default' }}>
+      <div style={{ flex: 1 }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: th.text }}>{label}</p>
+        {sub && <p style={{ margin: '2px 0 0', fontSize: 12, color: th.textSec }}>{sub}</p>}
+      </div>
+      {right}
+    </div>
+  )
+}
+
+// ── EmptyState ─────────────────────────────────────────────
+export function EmptyState({ emoji, title, sub, action }) {
+  const { th } = useApp()
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>{emoji}</div>
+      <p style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: th.text }}>{title}</p>
+      {sub && <p style={{ fontSize: 14, margin: '0 0 24px', color: th.textSec }}>{sub}</p>}
+      {action}
+    </div>
+  )
+}
+
+// ── StatusBadge ────────────────────────────────────────────
+export function StatusBadge({ status, t }) {
+  const map = {
+    pending:          { bg: '#fef3c7', text: '#92400e', label: t?.pending || 'Pendiente' },
+    accepted:         { bg: '#dbeafe', text: '#1e40af', label: t?.accepted || 'Aceptado' },
+    in_progress:      { bg: '#ede9fe', text: '#5b21b6', label: t?.inProgress || 'En progreso' },
+    completed:        { bg: '#dcfce7', text: '#166534', label: t?.completed || 'Completado' },
+    cancelled:        { bg: '#fee2e2', text: '#991b1b', label: t?.cancelled || 'Cancelado' },
+    disputed:         { bg: '#fef9c3', text: '#854d0e', label: t?.disputed || 'En disputa' },
+    verified:         { bg: '#dcfce7', text: '#166534', label: t?.verified || 'Verificado' },
+    pending_review:   { bg: '#fef3c7', text: '#92400e', label: 'En revisión' },
+    paid:             { bg: '#dcfce7', text: '#166534', label: t?.paymentCompleted || 'Pagado' },
+    unpaid:           { bg: '#fee2e2', text: '#991b1b', label: t?.paymentPending || 'Sin pagar' },
+  }
+  const s = map[status] || { bg: '#f1f5f9', text: '#64748b', label: status }
+  return <Badge color={s.bg} textColor={s.text}>{s.label}</Badge>
+}
