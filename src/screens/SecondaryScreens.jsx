@@ -15,7 +15,7 @@ import {
   serviceRequests, archiveApi, receiptsApi, admin, notifications
 } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
-import { receiptActions } from '../lib/payments.js'
+import { receiptActions, disputeActions } from '../lib/payments.js'
 
 // ─────────────────────────────────────────────────────────────
 // FAVORITES
@@ -1414,6 +1414,8 @@ export function AdminScreen() {
   const [techs, setTechs] = useState([])
   const [revs, setRevs] = useState([])
   const [certs, setCerts] = useState([])
+  const [disputes, setDisputes] = useState([])
+  const [resolvingId, setResolvingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tabLoad, setTabLoad] = useState(false)
   const [toast, setToast] = useState(null)
@@ -1460,6 +1462,9 @@ export function AdminScreen() {
           .eq('is_verified', false)
           .order('created_at', { ascending: false })
         setCerts(data ?? [])
+      } else if (newTab === 'disputes') {
+        const d = await disputeActions.listAll()
+        setDisputes(d)
       }
     } catch (err) {
       showToast('Error al cargar datos: ' + (err?.message ?? ''), 'error')
@@ -1477,6 +1482,7 @@ export function AdminScreen() {
     { id: 'techs', icon: '🛠️', label: 'Técnicos' },
     { id: 'reviews', icon: '⭐', label: 'Reseñas' },
     { id: 'certs', icon: '📜', label: 'Certificados' },
+    { id: 'disputes', icon: '⚠️', label: 'Disputas' },
   ]
 
   const filterBySearch = (list, fields) => {
@@ -2059,6 +2065,234 @@ export function AdminScreen() {
                               ✗
                             </button>
                           </div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ────── DISPUTAS ────── */}
+            {tab === 'disputes' && (
+              <div>
+                {disputes.length === 0 ? (
+                  <EmptyState emoji="⚠️" title="Sin disputas"
+                    sub="No hay disputas abiertas en este momento." />
+                ) : (
+                  <>
+                    <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
+                      {disputes.length} disputa{disputes.length !== 1 ? 's' : ''}
+                    </p>
+                    {disputes.map(d => {
+                      const isResolving = resolvingId === d.id
+                      const STATUS_INFO = {
+                        open: { label: '🔴 Abierta', bg: '#fee2e2', text: '#991b1b' },
+                        under_review: { label: '🟡 En revisión', bg: '#fef3c7', text: '#92400e' },
+                        resolved_client: { label: '✅ A favor del cliente', bg: '#dbeafe', text: '#1e40af' },
+                        resolved_tech: { label: '✅ A favor del técnico', bg: '#dcfce7', text: '#166534' },
+                        closed: { label: '🔒 Cerrada', bg: '#f1f5f9', text: '#475569' },
+                      }
+                      const si = STATUS_INFO[d.status] ?? STATUS_INFO.open
+                      const isFinal = ['resolved_client', 'resolved_tech', 'closed'].includes(d.status)
+
+                      const handleResolve = async (resolution) => {
+                        const labels = {
+                          resolved_client: 'a favor del CLIENTE',
+                          resolved_tech: 'a favor del TÉCNICO',
+                          closed: 'cerrando sin responsabilidad',
+                        }
+                        if (!window.confirm(`¿Resolver esta disputa ${labels[resolution]}?\n\nEsto actualizará el estado de la solicitud y notificará a ambas partes.`)) return
+                        setResolvingId(d.id)
+                        try {
+                          await disputeActions.resolve(d.id, d.service_request_id, resolution, d.resolution_notes, user.id)
+                          setDisputes(prev => prev.map(x => x.id === d.id
+                            ? { ...x, status: resolution, resolved_at: new Date().toISOString() } : x))
+                          showToast('✅ Disputa resuelta correctamente')
+                        } catch (err) {
+                          showToast(err?.message ?? 'Error al resolver', 'error')
+                        } finally { setResolvingId(null) }
+                      }
+
+                      const handleUnderReview = async () => {
+                        setResolvingId(d.id)
+                        try {
+                          await disputeActions.markUnderReview(d.id, user.id)
+                          setDisputes(prev => prev.map(x => x.id === d.id
+                            ? { ...x, status: 'under_review' } : x))
+                          showToast('Marcada como en revisión')
+                        } catch (err) {
+                          showToast(err?.message ?? 'Error', 'error')
+                        } finally { setResolvingId(null) }
+                      }
+
+                      const handleDismiss = async () => {
+                        if (!window.confirm('¿Eliminar esta disputa? La solicitud volverá a estado "Completada" y se notificará a ambas partes.')) return
+                        setResolvingId(d.id)
+                        try {
+                          await disputeActions.dismiss(d.id, d.service_request_id)
+                          setDisputes(prev => prev.filter(x => x.id !== d.id))
+                          showToast('Disputa eliminada')
+                        } catch (err) {
+                          showToast(err?.message ?? 'Error al eliminar', 'error')
+                        } finally { setResolvingId(null) }
+                      }
+
+                      return (
+                        <div key={d.id} style={{
+                          background: th.surface, borderRadius: 14,
+                          padding: 16, marginBottom: 12, border: `1px solid ${th.border}`,
+                          opacity: isResolving ? 0.6 : 1, transition: 'opacity 0.2s'
+                        }}>
+
+                          {/* Header: estado + fecha */}
+                          <div style={{
+                            display: 'flex', justifyContent: 'space-between',
+                            alignItems: 'center', marginBottom: 10
+                          }}>
+                            <span style={{
+                              fontSize: 12, fontWeight: 700, padding: '3px 10px',
+                              borderRadius: 20, background: si.bg, color: si.text
+                            }}>
+                              {si.label}
+                            </span>
+                            <span style={{ fontSize: 11, color: th.textSec }}>
+                              {new Date(d.created_at).toLocaleDateString('es-PA', {
+                                day: '2-digit', month: 'short', year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+
+                          {/* Servicio relacionado */}
+                          <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 14, color: th.text }}>
+                            {d.request?.title ?? 'Solicitud eliminada'}
+                          </p>
+                          {d.request?.agreed_price && (
+                            <p style={{ margin: '0 0 8px', fontSize: 12, color: th.textSec }}>
+                              💲 Monto acordado: ${Number(d.request.agreed_price).toFixed(2)} ·{' '}
+                              {d.request.payment_status === 'paid' ? '✓ Pagado' : 'Sin pagar'}
+                            </p>
+                          )}
+
+                          {/* Partes involucradas */}
+                          <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Avatar photo={d.client?.avatar_url} name={d.client?.full_name} size={28} />
+                              <div>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: th.text }}>
+                                  {d.client?.full_name ?? 'Cliente'}
+                                </p>
+                                <p style={{ margin: 0, fontSize: 10, color: th.textSec }}>Cliente</p>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Avatar photo={d.technician?.avatar_url} name={d.technician?.full_name} size={28} />
+                              <div>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: th.text }}>
+                                  {d.technician?.full_name ?? 'Técnico'}
+                                </p>
+                                <p style={{ margin: 0, fontSize: 10, color: th.textSec }}>Técnico</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quién abrió la disputa */}
+                          <p style={{ margin: '0 0 6px', fontSize: 12, color: th.textSec }}>
+                            🚩 Abierta por: <strong style={{ color: th.text }}>{d.opener?.full_name ?? '—'}</strong>
+                          </p>
+
+                          {/* Motivo y descripción */}
+                          <div style={{
+                            background: th.surface2, borderRadius: 10,
+                            padding: '10px 12px', marginBottom: 10, border: `1px solid ${th.border}`
+                          }}>
+                            <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: th.text }}>
+                              Motivo: {d.reason}
+                            </p>
+                            {d.description && (
+                              <p style={{
+                                margin: 0, fontSize: 12, color: th.textSec,
+                                lineHeight: 1.5, fontStyle: 'italic'
+                              }}>
+                                "{d.description}"
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Notas de resolución (si ya fue resuelta) */}
+                          {isFinal && d.resolution_notes && (
+                            <div style={{
+                              background: '#f0fdf4', borderRadius: 10,
+                              padding: '10px 12px', marginBottom: 10, border: '1px solid #bbf7d0'
+                            }}>
+                              <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#166534' }}>
+                                Notas de resolución:
+                              </p>
+                              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
+                                {d.resolution_notes}
+                              </p>
+                            </div>
+                          )}
+
+                          {isFinal && (
+                            <p style={{ margin: '0 0 10px', fontSize: 11, color: th.textSec }}>
+                              Resuelta el {new Date(d.resolved_at).toLocaleDateString('es-PA')}
+                            </p>
+                          )}
+
+                          {/* Botones de acción — solo si no está resuelta */}
+                          {!isFinal && (
+                            <>
+                              {d.status === 'open' && (
+                                <button onClick={handleUnderReview} disabled={isResolving}
+                                  style={{
+                                    width: '100%', padding: '9px', marginBottom: 8,
+                                    background: '#fef3c7', color: '#92400e',
+                                    border: '1px solid #fde68a', borderRadius: 10,
+                                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    fontFamily: 'inherit'
+                                  }}>
+                                  🔍 Marcar como en revisión
+                                </button>
+                              )}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                                <button onClick={() => handleResolve('resolved_client')} disabled={isResolving}
+                                  style={{
+                                    padding: '9px', background: '#dbeafe', color: '#1e40af',
+                                    border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 12,
+                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                                  }}>
+                                  👤 A favor del cliente
+                                </button>
+                                <button onClick={() => handleResolve('resolved_tech')} disabled={isResolving}
+                                  style={{
+                                    padding: '9px', background: '#dcfce7', color: '#166534',
+                                    border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 12,
+                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                                  }}>
+                                  🛠️ A favor del técnico
+                                </button>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <button onClick={() => handleResolve('closed')} disabled={isResolving}
+                                  style={{
+                                    padding: '9px', background: th.surface2, color: th.textSec,
+                                    border: `1px solid ${th.border}`, borderRadius: 10, fontSize: 12,
+                                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                  }}>
+                                  🔒 Cerrar sin culpa
+                                </button>
+                                <button onClick={handleDismiss} disabled={isResolving}
+                                  style={{
+                                    padding: '9px', background: '#fee2e2', color: '#991b1b',
+                                    border: '1px solid #fca5a5', borderRadius: 10, fontSize: 12,
+                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                                  }}>
+                                  🗑️ Eliminar (inválida)
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )
                     })}
