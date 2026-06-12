@@ -523,16 +523,21 @@ export const disputeActions = {
 
   /** ADMIN: eliminar disputa (casos inválidos/spam) y devolver la solicitud a su estado anterior */
   async dismiss(disputeId, requestId) {
+    // 1. Primero quitar la referencia dispute_id de la solicitud
+    //    (FK service_requests_dispute_id_fkey impide borrar la disputa mientras esté referenciada)
+    if (requestId) {
+      const { error: srErr } = await supabase
+        .from('service_requests')
+        .update({ status: 'completed', dispute_id: null })
+        .eq('id', requestId)
+      if (srErr) throw srErr
+    }
+
+    // 2. Ahora sí se puede borrar la disputa
     const { error: delErr } = await supabase
       .from('disputes')
       .delete()
       .eq('id', disputeId)
     if (delErr) throw delErr
-
-    if (requestId) {
-      await supabase.from('service_requests')
-        .update({ status: 'completed', dispute_id: null })
-        .eq('id', requestId)
-    }
   },
 }
