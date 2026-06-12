@@ -26,6 +26,16 @@ export function AppProvider({ children }) {
 
   // ── Navegación ─────────────────────────────────────────
   const [screen, setScreen] = useState('home')
+
+  // ── Detección de tamaño de pantalla (responsive desktop/mobile) ──
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 900 : false
+  )
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 900)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const [selectedTech, setSelectedTech] = useState(null)
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -134,6 +144,7 @@ export function AppProvider({ children }) {
     favoriteIds, toggleFavorite,
     // Notificaciones
     notifs, setNotifs, unreadCount, setUnreadCount, loadNotifs,
+    isDesktop,
     markNotifsRead: async () => {
       if (!user) return
       await notifications.markAllRead(user.id)
