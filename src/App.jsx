@@ -8,6 +8,7 @@ import { RequestDetailScreen } from './screens/RequestDetailScreen.jsx'
 import { CertificatesScreen } from './screens/CertificatesScreen.jsx'
 import { MyReceiptsScreen } from './screens/MyReceiptsScreen.jsx'
 import { ServiceCatalogScreen } from './screens/ServiceCatalogScreen.jsx'
+import { LegalScreen } from './screens/LegalScreen.jsx'
 import {
   FavoritesScreen, ProfileScreen,
   LoginScreen, RegisterScreen,
@@ -38,12 +39,13 @@ function Router() {
     certificates: <CertificatesScreen />,
     'my-receipts': <MyReceiptsScreen />,
     'service-catalog': <ServiceCatalogScreen />,
+    legal: <LegalScreen />,
   }
 
   const noNav = [
     'login', 'register', 'tech-profile', 'edit-profile',
     'edit-tech-profile', 'settings', 'notifications',
-    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog',
+    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog', 'legal',
   ]
 
   return (
