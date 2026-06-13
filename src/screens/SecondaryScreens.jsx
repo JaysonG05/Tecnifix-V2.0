@@ -262,6 +262,8 @@ export function RegisterScreen() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [termsError, setTermsError] = useState(false)
 
   const F = (k) => ({
     value: form[k],
@@ -281,6 +283,8 @@ export function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!validate()) return
+    if (!acceptedTerms) { setTermsError(true); return }
+    setTermsError(false)
     setLoading(true)
     try {
       await auth.signUp({ email: form.email.trim(), password: form.password, fullName: form.name.trim(), role: form.role })
@@ -324,6 +328,39 @@ export function RegisterScreen() {
       <Input label={t.confirmPassword} placeholder="Repite tu contraseña" type="password" {...F('confirm')} />
 
       <div style={{ height: 8 }} />
+
+      {/* Aceptación de términos */}
+      <div onClick={() => { setAcceptedTerms(v => !v); setTermsError(false) }}
+        style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
+          cursor: 'pointer', padding: '10px 12px', borderRadius: 12,
+          background: termsError ? '#fee2e2' : th.surface2,
+          border: `1px solid ${termsError ? '#fca5a5' : th.border}`
+        }}>
+        <div style={{
+          width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+          border: `2px solid ${acceptedTerms ? th.primary : th.border}`,
+          background: acceptedTerms ? th.primary : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 13, fontWeight: 900
+        }}>
+          {acceptedTerms && '✓'}
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: termsError ? '#991b1b' : th.textSec, lineHeight: 1.6 }}>
+          Acepto los{' '}
+          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
+            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
+            Términos y Condiciones
+          </span>{' '}
+          y la{' '}
+          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
+            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
+            Política de Privacidad
+          </span>{' '}
+          de Changuinola Pro.
+        </p>
+      </div>
+
       <Btn onClick={handleRegister} loading={loading}>{t.create}</Btn>
     </div>
   )
@@ -686,6 +723,22 @@ export function EditTechProfileScreen() {
           )}
         </div>
 
+        {/* Precios */}
+        <div style={sectionStyle}>
+          <p style={sectionTitle}>💰 Precios</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Input label="Precio mín. ($)" type="number" {...field('min_price')} />
+            <Input label="Precio máx. ($)" type="number" {...field('max_price')} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>Unidad de precio</label>
+            <select value={form.price_unit} onChange={e => setForm(f => ({ ...f, price_unit: e.target.value }))}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, background: th.inputBg, color: th.text, outline: 'none', fontFamily: 'inherit' }}>
+              {['por visita', 'por hora', 'por metro', 'por servicio', 'por equipo'].map(u => <option key={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>{/* fin Precios */}
+
         {/* Ubicación y zona */}
         <div style={sectionStyle}>
           <p style={sectionTitle}>📍 Ubicación y zona</p>
@@ -843,8 +896,8 @@ export function SettingsScreen() {
         <div style={ss}>
           <p style={sh}>{t.about}</p>
           <SettingsRow label={t.version} right={<span style={{ fontSize: 13, color: th.textSec }}>2.0.0</span>} />
-          <SettingsRow label={t.terms} onClick={() => window.open('https://changuinolapro.com/terms')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
-          <SettingsRow label={t.privacyPolicy} onClick={() => window.open('https://changuinolapro.com/privacy')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
+          <SettingsRow label={t.terms} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
+          <SettingsRow label={t.privacyPolicy} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
           <SettingsRow label={t.contactSupport} onClick={() => window.open('mailto:soporte@changuinolapro.com')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
         </div>
       </div>
@@ -1142,17 +1195,42 @@ Se descargará el recibo automáticamente.`)) return
     } finally { setDeleting(null) }
   }
 
-  const downloadReceipt = async (requestId) => {
+  const downloadReceipt = async (req) => {
+    // req puede venir como string (id) o como objeto completo de la solicitud
+    const requestId = typeof req === 'string' ? req : req.id
     try {
-      const { data: receipt } = await supabase
+      let { data: receipt } = await supabase
         .from('receipts').select('*').eq('service_request_id', requestId).single()
-      if (receipt) {
-        await receiptActions.downloadPDF(receipt)
-        showToast('Recibo descargado')
-      } else {
-        showToast('No hay recibo generado aún.', 'error')
+
+      // Si no existe el recibo (p.ej. servicio completado sin pago confirmado
+      // en la app, pago en efectivo acordado fuera de línea, etc.), generarlo
+      // ahora mismo con los datos disponibles de la solicitud.
+      if (!receipt) {
+        const full = typeof req === 'object' ? req : null
+        const { data: r } = await supabase
+          .from('service_requests').select('*').eq('id', requestId).single()
+        const sr = full ?? r
+        if (!sr) { showToast('Solicitud no encontrada.', 'error'); return }
+
+        receipt = await receiptActions.generate({
+          requestId: sr.id,
+          clientId: sr.client_id,
+          technicianId: sr.technician_id,
+          serviceTitle: sr.title,
+          serviceDescription: sr.description,
+          amount: sr.agreed_price ?? 0,
+          paymentMethod: sr.payment_method || 'cash',
+          paymentReference: sr.payment_ref || null,
+          clientName: sr.client_name ?? 'Cliente',
+          technicianName: sr.technician_name ?? 'Técnico',
+        })
       }
-    } catch { showToast('Error al descargar', 'error') }
+
+      await receiptActions.downloadPDF(receipt)
+      showToast('Recibo descargado')
+    } catch (err) {
+      showToast('Error al descargar: ' + (err?.message ?? ''), 'error')
+    }
   }
 
   const STATUS_COLORS = {
@@ -1351,7 +1429,7 @@ Se descargará el recibo automáticamente.`)) return
 
               {tab === 'completed' && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => downloadReceipt(r.id)}
+                  <button onClick={() => downloadReceipt(r)}
                     style={{
                       flex: 2, padding: '8px', background: th.primaryLight,
                       color: th.primaryText, border: `1px solid ${th.primary}`,
@@ -1375,7 +1453,7 @@ Se descargará el recibo automáticamente.`)) return
 
               {tab === 'archived' && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => downloadReceipt(r.id)}
+                  <button onClick={() => downloadReceipt(r)}
                     style={{
                       flex: 2, padding: '8px', background: th.primaryLight,
                       color: th.primaryText, border: `1px solid ${th.primary}`,
