@@ -190,7 +190,11 @@ export const paymentActions = {
     return data ?? []
   },
 
-  /** Registrar pago Yappy */
+  /**
+   * Registrar pago Yappy — el CLIENTE reporta que pagó.
+   * Queda en 'pending_confirmation' hasta que el TÉCNICO confirme
+   * haber recibido el dinero en su cuenta Yappy.
+   */
   async recordYappy(requestId, payerId, technicianId, amount, yappyPhone, reference) {
     await supabase.from('payments').insert({
       service_request_id: requestId,
@@ -200,17 +204,28 @@ export const paymentActions = {
       method: 'yappy',
       yappy_phone: yappyPhone,
       yappy_reference: reference || null,
-      status: 'completed',
+      status: 'pending_confirmation',
       paid_at: new Date().toISOString(),
     })
     await supabase.from('service_requests').update({
-      payment_status: 'paid',
+      payment_status: 'pending_confirmation',
       payment_method: 'yappy',
       payment_ref: reference || null,
     }).eq('id', requestId)
+
+    // Notificar al técnico
+    supabase.from('notifications').insert({
+      user_id: technicianId, type: 'payment',
+      title: '💚 El cliente reportó un pago por Yappy',
+      body: `Monto: $${amount}. Verifica tu app Yappy y confirma la recepción.`,
+      data: JSON.stringify({ request_id: requestId }),
+    }).then(() => { }).catch(() => { })
   },
 
-  /** Registrar pago efectivo */
+  /**
+   * Registrar pago en efectivo — el CLIENTE reporta que pagó.
+   * Igual que Yappy, requiere confirmación del TÉCNICO.
+   */
   async recordCash(requestId, payerId, technicianId, amount) {
     await supabase.from('payments').insert({
       service_request_id: requestId,
@@ -218,13 +233,76 @@ export const paymentActions = {
       technician_id: technicianId,
       amount: parseFloat(amount),
       method: 'cash',
-      status: 'completed',
+      status: 'pending_confirmation',
       paid_at: new Date().toISOString(),
     })
     await supabase.from('service_requests').update({
-      payment_status: 'paid',
+      payment_status: 'pending_confirmation',
       payment_method: 'cash',
     }).eq('id', requestId)
+
+    supabase.from('notifications').insert({
+      user_id: technicianId, type: 'payment',
+      title: '💵 El cliente reportó un pago en efectivo',
+      body: `Monto: $${amount}. Confirma que recibiste el dinero.`,
+      data: JSON.stringify({ request_id: requestId }),
+    }).then(() => { }).catch(() => { })
+  },
+
+  /**
+   * TÉCNICO confirma que recibió el pago (Yappy o efectivo).
+   * Solo entonces payment_status pasa a 'paid' y se habilita
+   * marcar el servicio como completado.
+   */
+  async confirmPayment(requestId, technicianId) {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .update({ payment_status: 'paid' })
+      .eq('id', requestId)
+      .eq('technician_id', technicianId)
+      .select('id, client_id, title, payment_method')
+    if (error) throw error
+    if (!data?.length) throw new Error('Sin permiso para confirmar este pago.')
+
+    // Actualizar el registro en payments también
+    await supabase.from('payments')
+      .update({ status: 'completed' })
+      .eq('service_request_id', requestId)
+
+    const req = data[0]
+    supabase.from('notifications').insert({
+      user_id: req.client_id, type: 'payment',
+      title: '✅ Pago confirmado',
+      body: `El técnico confirmó la recepción del pago de "${req.title}".`,
+      data: JSON.stringify({ request_id: requestId }),
+    }).then(() => { }).catch(() => { })
+
+    return req
+  },
+
+  /**
+   * TÉCNICO rechaza el pago reportado (no recibió el dinero).
+   * Regresa payment_status a 'unpaid' para que el cliente intente de nuevo.
+   */
+  async rejectPayment(requestId, technicianId, reasonNote) {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .update({ payment_status: 'unpaid', payment_ref: null })
+      .eq('id', requestId)
+      .eq('technician_id', technicianId)
+      .select('id, client_id, title')
+    if (error) throw error
+    if (!data?.length) throw new Error('Sin permiso.')
+
+    const req = data[0]
+    supabase.from('notifications').insert({
+      user_id: req.client_id, type: 'payment',
+      title: '⚠️ El técnico no encontró tu pago',
+      body: reasonNote || `Revisa el pago de "${req.title}" e intenta de nuevo o contacta al técnico.`,
+      data: JSON.stringify({ request_id: requestId }),
+    }).then(() => { }).catch(() => { })
+
+    return req
   },
 }
 

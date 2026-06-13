@@ -121,9 +121,7 @@ export function RequestDetailScreen() {
     </div>
   )
 
-  const isPendingConfirmation = request.payment_status === 'pending_confirmation'
-  const canPay = isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT
-    && !['paid', 'pending_confirmation'].includes(request.payment_status)
+  const canPay = isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && request.payment_status !== 'paid'
   const canComplete = isClient && request.payment_status === 'paid' && request.status !== REQUEST_STATUS.COMPLETED
   const canDispute = (isClient || isTech) && !['completed', 'cancelled', 'disputed'].includes(request.status)
   const isPaid = request.payment_status === 'paid'
@@ -380,7 +378,7 @@ export function RequestDetailScreen() {
         {/* ── ACCIONES SEGÚN ROL Y ESTADO ── */}
         <ActionButtons
           request={request} setRequest={setRequest}
-          isClient={isClient} isTech={isTech} isPendingConfirmation={isPendingConfirmation}
+          isClient={isClient} isTech={isTech}
           canPay={canPay} canComplete={canComplete}
           canDispute={canDispute} isPaid={isPaid} isDone={isDone}
           receipt={receipt} setReceipt={setReceipt}
@@ -549,7 +547,7 @@ function ProgressBar({ status, th, lang }) {
 // BOTONES DE ACCIÓN
 // ─────────────────────────────────────────────────────────────
 function ActionButtons({ request, setRequest, isClient, isTech, canPay, canComplete,
-  canDispute, isPaid, isDone, isPendingConfirmation, receipt, setReceipt, user, th, lang,
+  canDispute, isPaid, isDone, receipt, setReceipt, user, th, lang,
   setBusy, busy, showToast, setShowPayModal, setShowProofModal,
   setShowDisputeModal, setProofs, goBack }) {
 
@@ -632,61 +630,17 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
         </Btn>
       )}
 
-      {/* Técnico: aún no hay ningún pago reportado */}
-      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT
-        && !isPaid && !isPendingConfirmation && (
-          <div style={{
-            background: '#fef9c3', borderRadius: 14, padding: 14,
-            border: '1px solid #fde047', marginBottom: 4
-          }}>
-            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
-              ⏳ Esperando que el cliente pague
-            </p>
-            <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-              Cuando el cliente reporte su pago (Yappy, efectivo o transferencia), aparecerá aquí para que lo confirmes.
-            </p>
-          </div>
-        )}
-
-      {/* Técnico: el cliente reportó pago Yappy/efectivo — requiere CONFIRMAR */}
-      {isTech && isPendingConfirmation && (
+      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && (
         <div style={{
-          background: '#eff6ff', borderRadius: 14, padding: 14,
-          border: '1px solid #bfdbfe', marginBottom: 4
+          background: '#fef9c3', borderRadius: 14, padding: 14,
+          border: '1px solid #fde047', marginBottom: 4
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
-            💰 El cliente reportó un pago de ${request.agreed_price ?? '0.00'} por {request.payment_method === 'yappy' ? 'Yappy' : 'efectivo'}
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
+            ⏳ Esperando confirmación de pago
           </p>
-          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#1e3a8a' }}>
-            {request.payment_method === 'yappy'
-              ? 'Revisa tu app Yappy y confirma si recibiste el dinero.'
-              : 'Confirma que recibiste el efectivo en mano antes de continuar.'}
+          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
+            El cliente debe realizar el pago. Cuando suba el comprobante, podrás verificarlo aquí.
           </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn onClick={async () => {
-              setBusy(true)
-              try {
-                await paymentActions.confirmPayment(request.id, user.id)
-                setRequest(r => ({ ...r, payment_status: 'paid' }))
-                showToast('✅ Pago confirmado')
-              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
-              finally { setBusy(false) }
-            }} loading={busy} style={{ flex: 1 }}>
-              ✓ Confirmar recepción
-            </Btn>
-            <Btn onClick={async () => {
-              if (!window.confirm('¿Confirmas que NO recibiste este pago? Se notificará al cliente para que lo intente de nuevo.')) return
-              setBusy(true)
-              try {
-                await paymentActions.rejectPayment(request.id, user.id)
-                setRequest(r => ({ ...r, payment_status: 'unpaid' }))
-                showToast('Pago rechazado. Se notificó al cliente.')
-              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
-              finally { setBusy(false) }
-            }} loading={busy} variant="danger" style={{ flex: 1 }}>
-              ✗ No lo recibí
-            </Btn>
-          </div>
         </div>
       )}
 
@@ -697,7 +651,7 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
       )}
 
       {/* ── CLIENTE ── */}
-      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && !isPendingConfirmation && (
+      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && (
         <>
           <Btn onClick={() => setShowPayModal(true)}>
             💳 Realizar pago — ${request.agreed_price ?? '0.00'}
@@ -708,21 +662,6 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
             </Btn>
           )}
         </>
-      )}
-
-      {/* Cliente: ya reportó el pago, esperando que el técnico confirme */}
-      {isClient && isPendingConfirmation && (
-        <div style={{
-          background: '#fef9c3', borderRadius: 14, padding: 14,
-          border: '1px solid #fde047'
-        }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
-            ⏳ Esperando confirmación del técnico
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-            Reportaste tu pago de ${request.agreed_price ?? '0.00'}. El técnico debe confirmar que lo recibió.
-          </p>
-        </div>
       )}
 
       {isClient && isPaid && !isDone && (
