@@ -12,6 +12,7 @@ export function TechProfileScreen() {
   const [tab, setTab] = useState('info')
   const [reviewList, setReviewList] = useState([])
   const [gallery, setGallery] = useState([])
+  const [lightboxIdx, setLightboxIdx] = useState(null) // índice de foto abierta en pantalla completa
   const [loadingRevs, setLoadingRevs] = useState(false)
   const [loadingGal, setLoadingGal] = useState(false)
   const [showContract, setShowContract] = useState(false)
@@ -61,6 +62,18 @@ export function TechProfileScreen() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <button onClick={goBack} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 18, cursor: 'pointer' }}>←</button>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => {
+              const url = `${window.location.origin}/?tech=${tech.user_id}`
+              const shareText = `${tech.full_name} — ${tech.professional_title || 'Técnico'} en Changuinola Pro ⭐ ${Number(tech.average_rating).toFixed(1)}`
+              if (navigator.share) {
+                navigator.share({ title: shareText, url }).catch(() => { })
+              } else {
+                navigator.clipboard?.writeText(`${shareText}\n${url}`)
+                showToast(lang === 'en' ? 'Link copied!' : '¡Enlace copiado!')
+              }
+            }} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 17, cursor: 'pointer' }}>
+              📤
+            </button>
             <button onClick={() => toggleFavorite(tech.user_id)} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 20, cursor: 'pointer' }}>
               {isFav ? '⭐' : '☆'}
             </button>
@@ -116,6 +129,14 @@ export function TechProfileScreen() {
                 {tech.slogan && <p style={{ fontStyle: 'italic', color: th.primary, margin: '10px 0 0', fontSize: 13 }}>"{tech.slogan}"</p>}
               </Card>
             )}
+
+            <Card title={`💰 ${t.priceRange}`}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: th.textSec, fontSize: 14 }}>{t.priceRange}</span>
+                <span style={{ fontWeight: 800, color: th.primary, fontSize: 18 }}>${tech.min_price} – ${tech.max_price}</span>
+              </div>
+              {tech.price_unit && <p style={{ margin: '4px 0 0', fontSize: 12, color: th.textSec }}>{tech.price_unit}</p>}
+            </Card>
 
             <Card title="📍 Ubicación y disponibilidad">
               <Row label="Ciudad" val={`${tech.city || 'Changuinola'}, ${tech.province || 'Bocas del Toro'}`} />
@@ -232,17 +253,98 @@ export function TechProfileScreen() {
             {loadingGal
               ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
               : gallery.length === 0
-                ? <p style={{ color: th.textSec, textAlign: 'center', padding: '40px 0' }}>Sin fotos de trabajos aún.</p>
+                ? (
+                  <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
+                    <p style={{ fontWeight: 700, fontSize: 15, color: th.text, margin: '0 0 4px' }}>
+                      {lang === 'en' ? 'No work photos yet' : 'Sin fotos de trabajos aún'}
+                    </p>
+                    <p style={{ fontSize: 13, color: th.textSec, margin: 0 }}>
+                      {lang === 'en'
+                        ? 'This technician hasn\'t shared photos of completed jobs.'
+                        : 'Este técnico aún no ha compartido fotos de trabajos realizados.'}
+                    </p>
+                  </div>
+                )
                 : (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
-                    {gallery.map(img => (
-                      <div key={img.id} style={{ aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: `1px solid ${th.border}` }}>
-                        <img src={img.image_url} alt={img.caption || 'Trabajo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
+                    {gallery.map((img, idx) => (
+                      <button key={img.id} onClick={() => setLightboxIdx(idx)}
+                        style={{
+                          aspectRatio: '1', borderRadius: 12, overflow: 'hidden',
+                          border: `1px solid ${th.border}`, padding: 0, cursor: 'pointer',
+                          background: 'none'
+                        }}>
+                        <img src={img.image_url} alt={img.caption || 'Trabajo'}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </button>
                     ))}
                   </div>
                 )
             }
+          </div>
+        )}
+
+        {/* ── LIGHTBOX: ver foto en pantalla completa ── */}
+        {lightboxIdx !== null && gallery[lightboxIdx] && (
+          <div onClick={() => setLightboxIdx(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
+              zIndex: 300, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', padding: 16
+            }}>
+
+            {/* Cerrar */}
+            <button onClick={() => setLightboxIdx(null)}
+              style={{
+                position: 'absolute', top: 16, right: 16, width: 40, height: 40,
+                borderRadius: 20, background: 'rgba(255,255,255,0.15)', border: 'none',
+                color: '#fff', fontSize: 22, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>×</button>
+
+            {/* Anterior */}
+            {gallery.length > 1 && (
+              <button onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i - 1 + gallery.length) % gallery.length) }}
+                style={{
+                  position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                  width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>‹</button>
+            )}
+
+            {/* Imagen */}
+            <img src={gallery[lightboxIdx].image_url}
+              alt={gallery[lightboxIdx].caption || 'Trabajo'}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '100%', maxHeight: '78vh', borderRadius: 12,
+                objectFit: 'contain'
+              }} />
+
+            {/* Siguiente */}
+            {gallery.length > 1 && (
+              <button onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i + 1) % gallery.length) }}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>›</button>
+            )}
+
+            {/* Caption + contador */}
+            <div style={{ marginTop: 14, textAlign: 'center' }}>
+              {gallery[lightboxIdx].caption && (
+                <p style={{ color: '#fff', fontSize: 14, margin: '0 0 4px' }}>
+                  {gallery[lightboxIdx].caption}
+                </p>
+              )}
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: 0 }}>
+                {lightboxIdx + 1} / {gallery.length}
+              </p>
+            </div>
           </div>
         )}
 

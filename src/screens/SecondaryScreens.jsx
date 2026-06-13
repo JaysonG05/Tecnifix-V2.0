@@ -723,22 +723,6 @@ export function EditTechProfileScreen() {
           )}
         </div>
 
-        {/* Precios */}
-        <div style={sectionStyle}>
-          <p style={sectionTitle}>💰 Precios</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Input label="Precio mín. ($)" type="number" {...field('min_price')} />
-            <Input label="Precio máx. ($)" type="number" {...field('max_price')} />
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>Unidad de precio</label>
-            <select value={form.price_unit} onChange={e => setForm(f => ({ ...f, price_unit: e.target.value }))}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, background: th.inputBg, color: th.text, outline: 'none', fontFamily: 'inherit' }}>
-              {['por visita', 'por hora', 'por metro', 'por servicio', 'por equipo'].map(u => <option key={u}>{u}</option>)}
-            </select>
-          </div>
-        </div>{/* fin Precios */}
-
         {/* Ubicación y zona */}
         <div style={sectionStyle}>
           <p style={sectionTitle}>📍 Ubicación y zona</p>
