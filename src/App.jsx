@@ -8,6 +8,9 @@ import { RequestDetailScreen } from './screens/RequestDetailScreen.jsx'
 import { CertificatesScreen } from './screens/CertificatesScreen.jsx'
 import { MyReceiptsScreen } from './screens/MyReceiptsScreen.jsx'
 import { ServiceCatalogScreen } from './screens/ServiceCatalogScreen.jsx'
+import { LegalScreen } from './screens/LegalScreen.jsx'
+import { Onboarding, hasSeenOnboarding } from './components/Onboarding.jsx'
+import { OfflineBanner } from './components/OfflineBanner.jsx'
 import {
   FavoritesScreen, ProfileScreen,
   LoginScreen, RegisterScreen,
@@ -19,6 +22,7 @@ import {
 // ─── Enrutador ────────────────────────────────────────────────
 function Router() {
   const { screen, th, isDesktop } = useApp()
+  const [showOnboarding, setShowOnboarding] = useState(!hasSeenOnboarding())
 
   const SCREENS = {
     home: <HomeScreen />,
@@ -38,12 +42,13 @@ function Router() {
     certificates: <CertificatesScreen />,
     'my-receipts': <MyReceiptsScreen />,
     'service-catalog': <ServiceCatalogScreen />,
+    legal: <LegalScreen />,
   }
 
   const noNav = [
     'login', 'register', 'tech-profile', 'edit-profile',
     'edit-tech-profile', 'settings', 'notifications',
-    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog',
+    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog', 'legal',
   ]
 
   return (
@@ -86,7 +91,7 @@ function Router() {
 }
 
 // ─── Error Boundary ───────────────────────────────────────────
-import { Component } from 'react'
+import { Component, useState } from 'react'
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(err) { return { error: err } }
