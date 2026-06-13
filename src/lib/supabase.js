@@ -598,6 +598,66 @@ export const serviceCatalog = {
 }
 
 // ─────────────────────────────────────────────
+// CHAT helpers (mensajería por solicitud)
+// ─────────────────────────────────────────────
+export const chatApi = {
+  /** Listar mensajes de una solicitud */
+  async list(requestId) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('request_id', requestId)
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return data ?? []
+  },
+
+  /** Enviar mensaje */
+  async send(requestId, senderId, body) {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({ request_id: requestId, sender_id: senderId, body: body.trim() })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  /** Marcar como leídos todos los mensajes que NO son del usuario actual */
+  async markRead(requestId, userId) {
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('request_id', requestId)
+      .neq('sender_id', userId)
+      .eq('is_read', false)
+  },
+
+  /** Contar mensajes no leídos de una solicitud (de la otra parte) */
+  async countUnread(requestId, userId) {
+    const { count } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('request_id', requestId)
+      .neq('sender_id', userId)
+      .eq('is_read', false)
+    return count ?? 0
+  },
+
+  /** Suscribirse en tiempo real a nuevos mensajes de una solicitud */
+  subscribe(requestId, onInsert) {
+    const channel = supabase
+      .channel(`messages:${requestId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages',
+        filter: `request_id=eq.${requestId}`,
+      }, (payload) => onInsert(payload.new))
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  },
+}
+
+// ─────────────────────────────────────────────
 // ARCHIVE helpers
 // ─────────────────────────────────────────────
 export const archiveApi = {

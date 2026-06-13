@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { registerServiceWorker, showLocalNotification, listenNotificationClicks } from '../lib/pushNotifications.js'
 import { supabase, auth, profiles, favorites as favoritesApi, notifications } from '../lib/supabase.js'
 
 const AppContext = createContext(null)
@@ -26,6 +27,11 @@ export function AppProvider({ children }) {
 
   // ── Navegación ─────────────────────────────────────────
   const [screen, setScreen] = useState('home')
+
+  // ── Registrar Service Worker para notificaciones push ──────
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
 
   // ── Detección de tamaño de pantalla (responsive desktop/mobile) ──
   const [isDesktop, setIsDesktop] = useState(
@@ -103,9 +109,37 @@ export function AppProvider({ children }) {
       setUnreadCount(c => c + 1)
       // Vibrar si el navegador lo soporta
       if ('vibrate' in navigator) navigator.vibrate(200)
+
+      // Notificación del sistema operativo (si la pestaña está
+      // en segundo plano y el usuario dio permiso)
+      let data = {}
+      try { data = typeof newNotif.data === 'string' ? JSON.parse(newNotif.data) : (newNotif.data || {}) } catch { }
+      const requestId = data.request_id
+      showLocalNotification({
+        title: newNotif.title,
+        body: newNotif.body || '',
+        tag: `notif-${newNotif.type}`,
+        url: requestId ? `/?screen=request-detail&request=${requestId}` : '/',
+      })
     })
     return () => supabase.removeChannel(channel)
   }, [user?.id])
+
+  // ── Manejar clic en notificación del sistema (abrir pantalla) ──
+  useEffect(() => {
+    const unsub = listenNotificationClicks((url) => {
+      try {
+        const params = new URL(url, window.location.origin).searchParams
+        const target = params.get('screen')
+        if (target === 'request-detail') {
+          setScreen('notifications')
+        } else if (target) {
+          setScreen(target)
+        }
+      } catch { }
+    })
+    return unsub
+  }, [])
 
   // ── Toggle favorito ────────────────────────────────────
   const toggleFavorite = useCallback(async (techId) => {

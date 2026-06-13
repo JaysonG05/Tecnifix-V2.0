@@ -16,6 +16,7 @@ import {
 } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 import { receiptActions, disputeActions } from '../lib/payments.js'
+import { getPermissionStatus, requestPermission } from '../lib/pushNotifications.js'
 
 // ─────────────────────────────────────────────────────────────
 // FAVORITES
@@ -723,6 +724,22 @@ export function EditTechProfileScreen() {
           )}
         </div>
 
+        {/* Precios */}
+        <div style={sectionStyle}>
+          <p style={sectionTitle}>💰 Precios</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Input label="Precio mín. ($)" type="number" {...field('min_price')} />
+            <Input label="Precio máx. ($)" type="number" {...field('max_price')} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>Unidad de precio</label>
+            <select value={form.price_unit} onChange={e => setForm(f => ({ ...f, price_unit: e.target.value }))}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, background: th.inputBg, color: th.text, outline: 'none', fontFamily: 'inherit' }}>
+              {['por visita', 'por hora', 'por metro', 'por servicio', 'por equipo'].map(u => <option key={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>{/* fin Precios */}
+
         {/* Ubicación y zona */}
         <div style={sectionStyle}>
           <p style={sectionTitle}>📍 Ubicación y zona</p>
@@ -800,6 +817,7 @@ export function SettingsScreen() {
   })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [pushPerm, setPushPerm] = useState(getPermissionStatus())
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000) }
 
@@ -852,6 +870,52 @@ export function SettingsScreen() {
         {/* Notificaciones */}
         <div style={ss}>
           <p style={sh}>{t.notifications}</p>
+
+          {/* Banner: pedir permiso al navegador para notificaciones push */}
+          {pushPerm !== 'granted' && pushPerm !== 'unsupported' && (
+            <div style={{
+              padding: '12px 16px', background: pushPerm === 'denied' ? '#fee2e2' : '#eff6ff',
+              borderBottom: `1px solid ${th.border}`
+            }}>
+              <p style={{
+                margin: '0 0 8px', fontSize: 12,
+                color: pushPerm === 'denied' ? '#991b1b' : '#1e40af', lineHeight: 1.5
+              }}>
+                {pushPerm === 'denied'
+                  ? (lang === 'en'
+                    ? '🔕 Notifications are blocked. Enable them in your browser settings to receive alerts about new requests.'
+                    : '🔕 Las notificaciones están bloqueadas. Activa los permisos del navegador para recibir alertas de nuevas solicitudes.')
+                  : (lang === 'en'
+                    ? '🔔 Enable browser notifications to get alerted instantly about new requests, even when the app is in the background.'
+                    : '🔔 Activa las notificaciones del navegador para enterarte al instante de nuevas solicitudes, incluso con la app en segundo plano.')
+                }
+              </p>
+              {pushPerm !== 'denied' && (
+                <button onClick={async () => {
+                  const result = await requestPermission()
+                  setPushPerm(result)
+                  if (result === 'granted') showToast(t.saved)
+                }} style={{
+                  background: '#1e40af', color: '#fff', border: 'none',
+                  borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit'
+                }}>
+                  {lang === 'en' ? 'Enable notifications' : 'Activar notificaciones'}
+                </button>
+              )}
+            </div>
+          )}
+          {pushPerm === 'granted' && (
+            <div style={{
+              padding: '8px 16px', background: '#f0fdf4',
+              borderBottom: `1px solid ${th.border}`
+            }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
+                ✅ {lang === 'en' ? 'Browser notifications enabled' : 'Notificaciones del navegador activadas'}
+              </p>
+            </div>
+          )}
+
           <SettingsRow label={t.pushNotif} sub="Alertas en tu dispositivo" right={<Toggle value={prefs.notif_push} onChange={v => savePref('notif_push', v)} />} />
           <SettingsRow label={t.emailNotif} sub="Resumen de actividad" right={<Toggle value={prefs.notif_email} onChange={v => savePref('notif_email', v)} />} />
           <SettingsRow label={t.smsNotif} sub="Mensajes de texto" right={<Toggle value={prefs.notif_sms} onChange={v => savePref('notif_sms', v)} />} />
