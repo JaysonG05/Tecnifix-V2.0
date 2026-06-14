@@ -149,6 +149,68 @@ export function ProfileScreen() {
 // ─────────────────────────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// OAUTH BUTTONS — Google y Facebook (reutilizable en Login/Register)
+// ─────────────────────────────────────────────────────────────
+function OAuthButtons({ th, lang, onSelect, loadingProvider }) {
+  const L = lang === 'en'
+    ? { divider: 'or', google: 'Continue with Google', facebook: 'Continue with Facebook' }
+    : { divider: 'o', google: 'Continuar con Google', facebook: 'Continuar con Facebook' }
+
+  const btnBase = {
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    gap: 10, padding: '12px 14px', borderRadius: 12, fontSize: 14, fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
+  }
+
+  return (
+    <div>
+      {/* Divisor */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0' }}>
+        <div style={{ flex: 1, height: 1, background: th.border }} />
+        <span style={{ fontSize: 12, color: th.textSec, fontWeight: 600 }}>{L.divider}</span>
+        <div style={{ flex: 1, height: 1, background: th.border }} />
+      </div>
+
+      {/* Google */}
+      <button onClick={() => onSelect('google')} disabled={!!loadingProvider}
+        style={{
+          ...btnBase, background: '#fff', color: '#1f2937',
+          border: `1.5px solid ${th.border}`,
+          opacity: loadingProvider && loadingProvider !== 'google' ? 0.5 : 1
+        }}>
+        {loadingProvider === 'google' ? (
+          <Spinner size={16} />
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.12-.85 2.07-1.81 2.7v2.26h2.92c1.71-1.57 2.69-3.89 2.69-6.6z" />
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z" />
+            <path fill="#FBBC05" d="M3.97 10.72c-.18-.54-.28-1.12-.28-1.72s.1-1.18.28-1.72V4.95H.96C.35 6.18 0 7.55 0 9s.35 2.82.96 4.05l3.01-2.33z" />
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
+          </svg>
+        )}
+        {L.google}
+      </button>
+
+      {/* Facebook */}
+      <button onClick={() => onSelect('facebook')} disabled={!!loadingProvider}
+        style={{
+          ...btnBase, background: '#1877F2', color: '#fff', border: 'none',
+          opacity: loadingProvider && loadingProvider !== 'facebook' ? 0.5 : 1
+        }}>
+        {loadingProvider === 'facebook' ? (
+          <Spinner size={16} />
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+            <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8v-6.78H7.9V12H10V9.79c0-2.07 1.23-3.21 3.11-3.21.9 0 1.84.16 1.84.16v2.02h-1.04c-1.02 0-1.34.64-1.34 1.3V12h2.46l-.39 3.02h-2.07V21.8c4.56-.93 8-4.96 8-9.8z" />
+          </svg>
+        )}
+        {L.facebook}
+      </button>
+    </div>
+  )
+}
+
 export function LoginScreen() {
   const { th, navigate, refreshUser, lang } = useApp()
   const t = T[lang]
@@ -159,6 +221,8 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [resetMode, setResetMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+
+  const [oauthLoading, setOauthLoading] = useState(null) // 'google' | 'facebook' | null
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completa todos los campos.'); return }
@@ -171,6 +235,20 @@ export function LoginScreen() {
       setError(t.wrongCredentials)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOAuth = async (provider) => {
+    setOauthLoading(provider); setError('')
+    try {
+      await auth.signInWithOAuth(provider)
+      // El navegador redirige al proveedor; al volver, onAuthStateChange
+      // detecta la sesión y AppContext carga el perfil automáticamente.
+    } catch (err) {
+      setError(lang === 'en'
+        ? `Could not connect with ${provider === 'google' ? 'Google' : 'Facebook'}.`
+        : `No se pudo conectar con ${provider === 'google' ? 'Google' : 'Facebook'}.`)
+      setOauthLoading(null)
     }
   }
 
@@ -238,6 +316,10 @@ export function LoginScreen() {
               <button onClick={() => { setResetMode(v => !v); setError('') }} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: 14, background: 'none', border: 'none', color: th.primary, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {resetMode ? '← Volver al login' : t.forgotPassword}
               </button>
+
+              {!resetMode && (
+                <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
+              )}
             </>
           )}
         </div>
@@ -265,6 +347,22 @@ export function RegisterScreen() {
   const [success, setSuccess] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [termsError, setTermsError] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState(null)
+  const [oauthError, setOauthError] = useState('')
+
+  const handleOAuth = async (provider) => {
+    if (!acceptedTerms) { setTermsError(true); return }
+    setTermsError(false)
+    setOauthLoading(provider); setOauthError('')
+    try {
+      await auth.signInWithOAuth(provider)
+    } catch (err) {
+      setOauthError(lang === 'en'
+        ? `Could not connect with ${provider === 'google' ? 'Google' : 'Facebook'}.`
+        : `No se pudo conectar con ${provider === 'google' ? 'Google' : 'Facebook'}.`)
+      setOauthLoading(null)
+    }
+  }
 
   const F = (k) => ({
     value: form[k],
@@ -363,6 +461,15 @@ export function RegisterScreen() {
       </div>
 
       <Btn onClick={handleRegister} loading={loading}>{t.create}</Btn>
+
+      {oauthError && (
+        <p style={{
+          color: th.red, fontSize: 13, margin: '10px 0 0', textAlign: 'center',
+          background: '#fef2f2', padding: '8px', borderRadius: 8
+        }}>{oauthError}</p>
+      )}
+
+      <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
     </div>
   )
 }
@@ -818,6 +925,52 @@ export function SettingsScreen() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const [pushPerm, setPushPerm] = useState(getPermissionStatus())
+  const [linkedProviders, setLinkedProviders] = useState([])
+  const [linkLoading, setLinkLoading] = useState(null)
+
+  useEffect(() => {
+    auth.getLinkedProviders().then(setLinkedProviders).catch(() => { })
+  }, [])
+
+  const PROVIDER_INFO = {
+    email: { label: 'Email y contraseña', icon: '✉️' },
+    google: { label: 'Google', icon: '🔵' },
+    facebook: { label: 'Facebook', icon: '🔷' },
+  }
+
+  const handleLinkProvider = async (provider) => {
+    setLinkLoading(provider)
+    try {
+      await auth.linkOAuthIdentity(provider)
+    } catch (err) {
+      showToast(err?.message ?? 'Error al vincular')
+      setLinkLoading(null)
+    }
+  }
+
+  const handleUnlinkProvider = async (provider) => {
+    if (linkedProviders.length <= 1) {
+      showToast(lang === 'en'
+        ? 'You must keep at least one sign-in method.'
+        : 'Debes mantener al menos un método de acceso.')
+      return
+    }
+    if (!window.confirm(lang === 'en'
+      ? `Remove ${PROVIDER_INFO[provider]?.label} as a sign-in method?`
+      : `¿Quitar ${PROVIDER_INFO[provider]?.label} como método de acceso?`)) return
+    setLinkLoading(provider)
+    try {
+      const { data } = await supabase.auth.getUserIdentities()
+      const identity = data?.identities?.find(i => i.provider === provider)
+      if (identity) {
+        await auth.unlinkOAuthIdentity(identity)
+        setLinkedProviders(prev => prev.filter(p => p !== provider))
+        showToast(lang === 'en' ? 'Removed' : 'Eliminado')
+      }
+    } catch (err) {
+      showToast(err?.message ?? 'Error')
+    } finally { setLinkLoading(null) }
+  }
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000) }
 
@@ -938,6 +1091,62 @@ export function SettingsScreen() {
           <SettingsRow label={t.changePassword} sub="Recibirás un email"
             right={<Btn onClick={async () => { if (user) { await auth.resetPassword(user.email); showToast('Email enviado') } }} variant="ghost" size="sm" style={{ width: 'auto', padding: '6px 14px' }}>Enviar →</Btn>}
           />
+
+          {/* Cuentas vinculadas (Google / Facebook / Email) */}
+          <div style={{ padding: '12px 16px', borderTop: `1px solid ${th.border}` }}>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: th.text }}>
+              {lang === 'en' ? 'Linked sign-in methods' : 'Métodos de acceso vinculados'}
+            </p>
+            {['email', 'google', 'facebook'].map(provider => {
+              const info = { email: { label: 'Email y contraseña', icon: '✉️' }, google: { label: 'Google', icon: '🔵' }, facebook: { label: 'Facebook', icon: '🔷' } }[provider]
+              const linked = linkedProviders.includes(provider)
+              const isLoading = linkLoading === provider
+              return (
+                <div key={provider} style={{
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', padding: '8px 0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{info.icon}</span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: th.text }}>{info.label}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: linked ? th.primaryText : th.textSec }}>
+                        {linked
+                          ? (lang === 'en' ? 'Connected' : 'Conectado')
+                          : (lang === 'en' ? 'Not connected' : 'No conectado')}
+                      </p>
+                    </div>
+                  </div>
+                  {provider === 'email' ? null : (
+                    linked ? (
+                      <button onClick={() => handleUnlinkProvider(provider)} disabled={isLoading}
+                        style={{
+                          background: 'none', border: `1px solid ${th.border}`, borderRadius: 10,
+                          padding: '5px 12px', fontSize: 12, fontWeight: 600, color: th.red,
+                          cursor: 'pointer', fontFamily: 'inherit'
+                        }}>
+                        {isLoading ? '...' : (lang === 'en' ? 'Remove' : 'Quitar')}
+                      </button>
+                    ) : (
+                      <button onClick={() => handleLinkProvider(provider)} disabled={isLoading}
+                        style={{
+                          background: th.primaryLight, border: `1px solid ${th.primary}`, borderRadius: 10,
+                          padding: '5px 12px', fontSize: 12, fontWeight: 600, color: th.primaryText,
+                          cursor: 'pointer', fontFamily: 'inherit'
+                        }}>
+                        {isLoading ? '...' : (lang === 'en' ? 'Connect' : 'Vincular')}
+                      </button>
+                    )
+                  )}
+                </div>
+              )
+            })}
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: th.textSec, lineHeight: 1.5 }}>
+              🔒 {lang === 'en'
+                ? 'Linking another provider lets you sign in multiple ways without losing your data.'
+                : 'Vincular otro proveedor te permite iniciar sesión de varias formas sin perder tu información.'}
+            </p>
+          </div>
         </div>
 
         {/* Acerca de */}
@@ -1605,10 +1814,10 @@ export function AdminScreen() {
   const TABS = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
     { id: 'users', icon: '👥', label: 'Usuarios' },
-    { id: 'techs', icon: '🛠️', label: 'Técnicos' },
-    { id: 'reviews', icon: '⭐', label: 'Reseñas' },
-    { id: 'certs', icon: '📜', label: 'Certificados' },
-    { id: 'disputes', icon: '⚠️', label: 'Disputas' },
+    { id: 'techs', icon: '🛠️', label: 'Técnicos', badge: stats?.pending?.techs },
+    { id: 'reviews', icon: '⭐', label: 'Reseñas', badge: stats?.pending?.reviews },
+    { id: 'certs', icon: '📜', label: 'Certificados', badge: stats?.pending?.certs },
+    { id: 'disputes', icon: '⚠️', label: 'Disputas', badge: stats?.pending?.disputes },
   ]
 
   const filterBySearch = (list, fields) => {
@@ -1635,9 +1844,19 @@ export function AdminScreen() {
               cursor: 'pointer', fontWeight: tab === tb.id ? 700 : 400,
               color: tab === tb.id ? th.primary : th.textSec,
               borderBottom: tab === tb.id ? `2.5px solid ${th.primary}` : '2.5px solid transparent',
-              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5
+              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+              position: 'relative'
             }}>
             {tb.icon} {tb.label}
+            {!!tb.badge && (
+              <span style={{
+                background: th.red, color: '#fff', fontSize: 10, fontWeight: 700,
+                minWidth: 16, height: 16, borderRadius: 8, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', padding: '0 4px'
+              }}>
+                {tb.badge > 9 ? '9+' : tb.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1681,7 +1900,63 @@ export function AdminScreen() {
             {/* ────── DASHBOARD ────── */}
             {tab === 'dashboard' && stats && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                {/* Alertas de pendientes */}
+                {(stats.pending.disputes > 0 || stats.pending.techs > 0 ||
+                  stats.pending.reviews > 0 || stats.pending.certs > 0) && (
+                    <div style={{
+                      background: '#fef3c7', borderRadius: 14, padding: 14,
+                      border: '1px solid #fde68a', marginBottom: 16
+                    }}>
+                      <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 14, color: '#92400e' }}>
+                        ⚡ Requiere tu atención
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {stats.pending.disputes > 0 && (
+                          <button onClick={() => loadTab('disputes')}
+                            style={{
+                              background: '#fee2e2', color: '#991b1b', border: 'none',
+                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: 'inherit'
+                            }}>
+                            ⚠️ {stats.pending.disputes} disputa{stats.pending.disputes !== 1 ? 's' : ''}
+                          </button>
+                        )}
+                        {stats.pending.techs > 0 && (
+                          <button onClick={() => loadTab('techs')}
+                            style={{
+                              background: '#dbeafe', color: '#1e40af', border: 'none',
+                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: 'inherit'
+                            }}>
+                            🛠️ {stats.pending.techs} técnico{stats.pending.techs !== 1 ? 's' : ''} sin verificar
+                          </button>
+                        )}
+                        {stats.pending.reviews > 0 && (
+                          <button onClick={() => loadTab('reviews')}
+                            style={{
+                              background: '#fef9c3', color: '#92400e', border: 'none',
+                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: 'inherit'
+                            }}>
+                            ⭐ {stats.pending.reviews} reseña{stats.pending.reviews !== 1 ? 's' : ''} pendiente{stats.pending.reviews !== 1 ? 's' : ''}
+                          </button>
+                        )}
+                        {stats.pending.certs > 0 && (
+                          <button onClick={() => loadTab('certs')}
+                            style={{
+                              background: '#ede9fe', color: '#5b21b6', border: 'none',
+                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: 'inherit'
+                            }}>
+                            📜 {stats.pending.certs} certificado{stats.pending.certs !== 1 ? 's' : ''}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* KPIs principales */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   {[
                     { val: stats.totalUsers, label: 'Usuarios registrados', icon: '👥', color: '#dbeafe', text: '#1e40af' },
                     { val: stats.totalTechs, label: 'Técnicos activos', icon: '🛠️', color: '#dcfce7', text: '#166534' },
@@ -1700,6 +1975,35 @@ export function AdminScreen() {
                     </div>
                   ))}
                 </div>
+
+                {/* Métricas de negocio */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                    borderRadius: 16, padding: '18px 16px'
+                  }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>💰</p>
+                    <p style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>
+                      ${stats.totalRevenue.toFixed(2)}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                      Ingresos confirmados
+                    </p>
+                  </div>
+                  <div style={{
+                    background: th.surface, borderRadius: 16,
+                    border: `1px solid ${th.border}`, padding: '18px 16px'
+                  }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>✅</p>
+                    <p style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: th.text }}>
+                      {stats.completedRequests}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: th.textSec, fontWeight: 600 }}>
+                      Servicios completados
+                    </p>
+                  </div>
+                </div>
+
                 {/* Acciones rápidas */}
                 <div style={{
                   background: th.surface, borderRadius: 16,
@@ -1726,15 +2030,90 @@ export function AdminScreen() {
                     ))}
                   </div>
                 </div>
+
+                {/* Actividad reciente */}
+                <div style={{
+                  background: th.surface, borderRadius: 16,
+                  border: `1px solid ${th.border}`, padding: 16, marginBottom: 16
+                }}>
+                  <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: 15, color: th.text }}>
+                    🕐 Actividad reciente
+                  </p>
+
+                  {stats.recentRequests.length === 0 && stats.recentUsers.length === 0 ? (
+                    <p style={{ fontSize: 13, color: th.textSec, margin: 0 }}>Sin actividad reciente.</p>
+                  ) : (
+                    <>
+                      {stats.recentUsers.slice(0, 3).map(u => (
+                        <div key={'u-' + u.id} style={{
+                          display: 'flex', alignItems: 'center',
+                          gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
+                        }}>
+                          <span style={{ fontSize: 16 }}>
+                            {u.role === 'technician' ? '🛠️' : u.role === 'admin' ? '🔧' : '👤'}
+                          </span>
+                          <p style={{
+                            margin: 0, fontSize: 13, color: th.text, flex: 1,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                          }}>
+                            <strong>{u.full_name}</strong> se registró
+                          </p>
+                          <span style={{ fontSize: 11, color: th.textSec, flexShrink: 0 }}>
+                            {new Date(u.created_at).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      ))}
+                      {stats.recentRequests.slice(0, 4).map(r => (
+                        <div key={'r-' + r.id} style={{
+                          display: 'flex', alignItems: 'center',
+                          gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
+                        }}>
+                          <span style={{ fontSize: 16 }}>📋</span>
+                          <p style={{
+                            margin: 0, fontSize: 13, color: th.text, flex: 1,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                          }}>
+                            Nueva solicitud: <strong>{r.title}</strong>
+                          </p>
+                          <span style={{ fontSize: 11, color: th.textSec, flexShrink: 0 }}>
+                            {new Date(r.created_at).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
             {/* ────── USUARIOS ────── */}
             {tab === 'users' && (
               <div>
-                <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
-                  {filterBySearch(users, ['full_name', 'email', 'role']).length} usuarios
-                </p>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: 14
+                }}>
+                  <p style={{ color: th.textSec, fontSize: 13, margin: 0 }}>
+                    {filterBySearch(users, ['full_name', 'email', 'role']).length} usuarios
+                  </p>
+                  <button onClick={() => admin.exportToCSV(
+                    filterBySearch(users, ['full_name', 'email', 'role']),
+                    [
+                      { key: 'full_name', label: 'Nombre' },
+                      { key: 'email', label: 'Email' },
+                      { key: 'role', label: 'Rol' },
+                      { key: 'account_status', label: 'Estado' },
+                      { key: 'created_at', label: 'Fecha de registro' },
+                    ],
+                    `usuarios_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
+                  )} style={{
+                    background: th.surface2, border: `1px solid ${th.border}`,
+                    borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
+                    color: th.text, cursor: 'pointer', fontFamily: 'inherit'
+                  }}>
+                    ⬇️ Exportar CSV
+                  </button>
+                </div>
                 {filterBySearch(users, ['full_name', 'email', 'role']).map(u => (
                   <div key={u.id} style={{
                     background: th.surface, borderRadius: 14,
@@ -1837,9 +2216,34 @@ export function AdminScreen() {
             {/* ────── TÉCNICOS ────── */}
             {tab === 'techs' && (
               <div>
-                <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
-                  {filterBySearch(techs, ['full_name', 'professional_title', 'city']).length} técnicos
-                </p>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: 14
+                }}>
+                  <p style={{ color: th.textSec, fontSize: 13, margin: 0 }}>
+                    {filterBySearch(techs, ['full_name', 'professional_title', 'city']).length} técnicos
+                  </p>
+                  <button onClick={() => admin.exportToCSV(
+                    filterBySearch(techs, ['full_name', 'professional_title', 'city']),
+                    [
+                      { key: 'full_name', label: 'Nombre' },
+                      { key: 'professional_title', label: 'Título profesional' },
+                      { key: 'city', label: 'Ciudad' },
+                      { key: 'average_rating', label: 'Calificación' },
+                      { key: 'total_jobs', label: 'Trabajos completados' },
+                      { key: 'verification_status', label: 'Verificación' },
+                      { key: 'is_featured', label: 'Destacado' },
+                      { key: 'public_phone', label: 'Teléfono' },
+                    ],
+                    `tecnicos_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
+                  )} style={{
+                    background: th.surface2, border: `1px solid ${th.border}`,
+                    borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
+                    color: th.text, cursor: 'pointer', fontFamily: 'inherit'
+                  }}>
+                    ⬇️ Exportar CSV
+                  </button>
+                </div>
                 {filterBySearch(techs, ['full_name', 'professional_title', 'city']).map(tech => (
                   <div key={tech.user_id} style={{
                     background: th.surface, borderRadius: 14,
