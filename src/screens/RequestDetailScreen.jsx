@@ -556,6 +556,8 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
   setBusy, busy, showToast, setShowPayModal, setShowProofModal,
   setShowDisputeModal, setProofs, goBack }) {
 
+  const [cashCodeInput, setCashCodeInput] = useState('')
+
   const changeStatus = async (newStatus) => {
     setBusy(true)
     try {
@@ -663,18 +665,38 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
           <p style={{ margin: '0 0 12px', fontSize: 13, color: '#1e3a8a' }}>
             {request.payment_method === 'yappy'
               ? 'Revisa tu app Yappy y confirma si recibiste el dinero.'
-              : 'Confirma que recibiste el efectivo en mano antes de continuar.'}
+              : 'El cliente debe mostrarte un código de 4 dígitos al entregarte el efectivo. Ingrésalo abajo para confirmar.'}
           </p>
+
+          {request.payment_method === 'cash' && (
+            <input
+              value={cashCodeInput}
+              onChange={e => setCashCodeInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              inputMode="numeric"
+              maxLength={4}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '12px',
+                marginBottom: 10, borderRadius: 12, border: '1.5px solid #bfdbfe',
+                fontSize: 22, fontWeight: 900, letterSpacing: 10, textAlign: 'center',
+                color: '#1e40af', background: '#fff', outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          )}
+
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn onClick={async () => {
               setBusy(true)
               try {
-                await paymentActions.confirmPayment(request.id, user.id)
+                await paymentActions.confirmPayment(request.id, user.id, cashCodeInput)
                 setRequest(r => ({ ...r, payment_status: 'paid' }))
+                setCashCodeInput('')
                 showToast('✅ Pago confirmado')
               } catch (err) { showToast(err?.message ?? 'Error', 'error') }
               finally { setBusy(false) }
-            }} loading={busy} style={{ flex: 1 }}>
+            }} loading={busy}
+              disabled={request.payment_method === 'cash' && cashCodeInput.length !== 4}
+              style={{ flex: 1 }}>
               ✓ Confirmar recepción
             </Btn>
             <Btn onClick={async () => {
@@ -683,6 +705,7 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
               try {
                 await paymentActions.rejectPayment(request.id, user.id)
                 setRequest(r => ({ ...r, payment_status: 'unpaid' }))
+                setCashCodeInput('')
                 showToast('Pago rechazado. Se notificó al cliente.')
               } catch (err) { showToast(err?.message ?? 'Error', 'error') }
               finally { setBusy(false) }
@@ -690,6 +713,12 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
               ✗ No lo recibí
             </Btn>
           </div>
+
+          {request.payment_method === 'cash' && (
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#1e3a8a' }}>
+              🔒 Si el cliente no tiene el código correcto, no confirmes el pago — abre una disputa.
+            </p>
+          )}
         </div>
       )}
 
@@ -763,16 +792,20 @@ function PayModal({ request, user, th, onClose, onSuccess }) {
   const yappyPhone = (request.technician_whatsapp ?? '').replace(/\D/g, '')
   const amount = request.agreed_price ?? 0
 
+  const [cashCode, setCashCode] = useState(null) // código de 4 dígitos generado para efectivo
+
   const handleConfirm = async () => {
     setLoading(true)
     try {
       if (method === 'yappy') {
         await paymentActions.recordYappy(request.id, user.id, request.technician_id,
           amount, yappyPhone, reference)
+        onSuccess(method, reference)
       } else if (method === 'cash') {
-        await paymentActions.recordCash(request.id, user.id, request.technician_id, amount)
+        const { code } = await paymentActions.recordCash(request.id, user.id, request.technician_id, amount)
+        setCashCode(code)
+        setStep(4) // mostrar el código antes de cerrar el modal
       }
-      onSuccess(method, reference)
     } catch (err) {
       alert('Error al registrar pago: ' + (err?.message ?? ''))
     } finally { setLoading(false) }
@@ -929,16 +962,51 @@ function PayModal({ request, user, th, onClose, onSuccess }) {
             border: '1px solid #fde68a', marginBottom: 16
           }}>
             <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-              ⚠️ Al confirmar declaras que realizaste el pago. Se generará un recibo digital como comprobante.
+              {method === 'cash'
+                ? '⚠️ Recibirás un código de 4 dígitos. Muéstraselo al técnico cuando le entregues el dinero — sin ese código no podrá confirmar el pago y no se marcará como pagado.'
+                : '⚠️ Al confirmar declaras que realizaste el pago. El técnico debe verificarlo antes de generarse el recibo final.'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }}>← Atrás</Btn>
             <Btn onClick={handleConfirm} loading={loading} style={{ flex: 2 }}>
-              ✅ Confirmar pago
+              {method === 'cash' ? '✅ Generar código' : '✅ Confirmar pago'}
             </Btn>
           </div>
         </>
+      )}
+
+      {/* Step 4: mostrar código de 4 dígitos para efectivo */}
+      {step === 4 && cashCode && (
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>💵</div>
+          <p style={{ fontWeight: 800, fontSize: 16, color: th.text, margin: '0 0 6px' }}>
+            Tu código de confirmación
+          </p>
+          <p style={{ fontSize: 13, color: th.textSec, margin: '0 0 16px', lineHeight: 1.5 }}>
+            Muéstrale este código al técnico cuando le entregues los ${Number(amount).toFixed(2)}.
+            Él debe ingresarlo en su app para confirmar que recibió el pago.
+          </p>
+          <div style={{
+            fontSize: 44, fontWeight: 900, letterSpacing: 10,
+            color: th.primaryText, background: th.primaryLight,
+            borderRadius: 16, padding: '20px 0', marginBottom: 16,
+            border: `2px dashed ${th.primary}`,
+          }}>
+            {cashCode}
+          </div>
+          <div style={{
+            background: '#fef3c7', borderRadius: 12, padding: 12,
+            border: '1px solid #fde68a', marginBottom: 16, textAlign: 'left'
+          }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+              🔒 Este código existe para proteger a ambas partes: el técnico solo puede
+              marcar el servicio como pagado si tú le compartes este código en persona.
+              No lo compartas por chat antes de entregar el dinero.
+            </p>
+          </div>
+          <Btn onClick={() => onSuccess('cash', null)}>Listo, entendido</Btn>
+        </div>
       )}
     </Modal>
   )

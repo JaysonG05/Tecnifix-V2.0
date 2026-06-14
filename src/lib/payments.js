@@ -227,6 +227,12 @@ export const paymentActions = {
    * Igual que Yappy, requiere confirmación del TÉCNICO.
    */
   async recordCash(requestId, payerId, technicianId, amount) {
+    // Código de 4 dígitos: el cliente lo muestra al técnico EN PERSONA
+    // al momento de entregar el dinero. El técnico debe ingresarlo
+    // para confirmar — esto prueba el encuentro físico y reduce el
+    // riesgo de que cualquiera de las partes reporte un pago falso.
+    const code = String(Math.floor(1000 + Math.random() * 9000))
+
     await supabase.from('payments').insert({
       service_request_id: requestId,
       payer_id: payerId,
@@ -239,14 +245,18 @@ export const paymentActions = {
     await supabase.from('service_requests').update({
       payment_status: 'pending_confirmation',
       payment_method: 'cash',
+      cash_confirmation_code: code,
+      cash_code_attempts: 0,
     }).eq('id', requestId)
 
     supabase.from('notifications').insert({
       user_id: technicianId, type: 'payment',
       title: '💵 El cliente reportó un pago en efectivo',
-      body: `Monto: $${amount}. Confirma que recibiste el dinero.`,
+      body: `Monto: $${amount}. Pídele al cliente el código de 4 dígitos que aparece en su pantalla para confirmar la recepción.`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
+
+    return { code }
   },
 
   /**
@@ -254,10 +264,40 @@ export const paymentActions = {
    * Solo entonces payment_status pasa a 'paid' y se habilita
    * marcar el servicio como completado.
    */
-  async confirmPayment(requestId, technicianId) {
+  /**
+   * El técnico confirma haber recibido el pago.
+   * Para efectivo, `enteredCode` es OBLIGATORIO y debe coincidir
+   * con el código de 4 dígitos que el cliente le mostró en persona.
+   */
+  async confirmPayment(requestId, technicianId, enteredCode) {
+    // Validar primero la solicitud y, si es efectivo, el código
+    const { data: sr, error: srErr } = await supabase
+      .from('service_requests')
+      .select('id, client_id, title, payment_method, cash_confirmation_code, cash_code_attempts, technician_id')
+      .eq('id', requestId)
+      .single()
+    if (srErr || !sr) throw new Error('Solicitud no encontrada.')
+    if (sr.technician_id !== technicianId) throw new Error('Sin permiso para confirmar este pago.')
+
+    if (sr.payment_method === 'cash') {
+      if (!enteredCode || !enteredCode.trim()) {
+        throw new Error('Ingresa el código de 4 dígitos que te mostró el cliente.')
+      }
+      if (enteredCode.trim() !== sr.cash_confirmation_code) {
+        const attempts = (sr.cash_code_attempts ?? 0) + 1
+        await supabase.from('service_requests')
+          .update({ cash_code_attempts: attempts })
+          .eq('id', requestId)
+        if (attempts >= 3) {
+          throw new Error('Código incorrecto 3 veces. Si el cliente no tiene el código correcto, abre una disputa.')
+        }
+        throw new Error(`Código incorrecto. Pídele al cliente que te muestre el código de 4 dígitos. (Intento ${attempts}/3)`)
+      }
+    }
+
     const { data, error } = await supabase
       .from('service_requests')
-      .update({ payment_status: 'paid' })
+      .update({ payment_status: 'paid', cash_confirmation_code: null })
       .eq('id', requestId)
       .eq('technician_id', technicianId)
       .select('id, client_id, title, payment_method')
@@ -287,7 +327,7 @@ export const paymentActions = {
   async rejectPayment(requestId, technicianId, reasonNote) {
     const { data, error } = await supabase
       .from('service_requests')
-      .update({ payment_status: 'unpaid', payment_ref: null })
+      .update({ payment_status: 'unpaid', payment_ref: null, cash_confirmation_code: null, cash_code_attempts: 0 })
       .eq('id', requestId)
       .eq('technician_id', technicianId)
       .select('id, client_id, title')
