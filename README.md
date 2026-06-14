@@ -1,4 +1,4 @@
-# 🔧 Changuinola Pro — v2.0 (Producción)
+# 🔧 Tecnifix— v2.0 (Producción)
 
 App web + móvil de directorio de técnicos para Changuinola, Panamá.
 Backend real con Supabase · Mapa OpenStreetMap · Pagos Yappy · Panel Admin
@@ -22,6 +22,7 @@ changuinola-pro/
     ├── context/
     │   └── AppContext.jsx      ← Estado global + Supabase auth
     ├── lib/
+        └── payments.js
     │   └── supabase.js         ← Todas las funciones de BD
     ├── i18n/
     │   └── translations.js     ← ES / EN completo
@@ -30,11 +31,15 @@ changuinola-pro/
     │   ├── TechnicianCard.jsx  ← Tarjeta reutilizable del técnico
     │   └── NavBar.jsx          ← Barra de navegación inferior
     └── screens/
+        ├──CertificatesScreen.jsx
         ├── HomeScreen.jsx
-        ├── SearchScreen.jsx
         ├── MapScreen.jsx
-        ├── TechProfileScreen.jsx
-        └── SecondaryScreens.jsx  ← Profile, Login, Register, Settings,
+        ├── MyReceiptsScreen.jsx
+        ├── RequestDetailScreen.jsx
+        ├── SearchScreen.jsx
+        ├── SecondaryScreens.jsx 
+        ├── ServiceCatalogScreen.jsx
+        └── TechProfileScreen.jsx ← Profile, Login, Register, Settings,
                                      EditProfile, EditTechProfile,
                                      Admin, Notifications, Favorites
 ```

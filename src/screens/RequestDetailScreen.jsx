@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, Btn, Badge, Spinner, Toast, Input } from '../components/UI.jsx'
-import { supabase } from '../lib/supabase.js'
+import { supabase, chatApi } from '../lib/supabase.js'
 import {
   requestActions, paymentActions, receiptActions, disputeActions,
   REQUEST_STATUS, STATUS_LABELS, STATUS_COLORS,
@@ -121,7 +121,9 @@ export function RequestDetailScreen() {
     </div>
   )
 
-  const canPay = isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && request.payment_status !== 'paid'
+  const isPendingConfirmation = request.payment_status === 'pending_confirmation'
+  const canPay = isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT
+    && !['paid', 'pending_confirmation'].includes(request.payment_status)
   const canComplete = isClient && request.payment_status === 'paid' && request.status !== REQUEST_STATUS.COMPLETED
   const canDispute = (isClient || isTech) && !['completed', 'cancelled', 'disputed'].includes(request.status)
   const isPaid = request.payment_status === 'paid'
@@ -213,6 +215,9 @@ export function RequestDetailScreen() {
             </div>
           </div>
         </Section>
+
+        {/* ── Chat interno ── */}
+        <ChatSection request={request} user={user} isClient={isClient} th={th} lang={lang} />
 
         {/* ── Fotos del trabajo ── */}
         <Section title="📸 Fotos del trabajo" th={th}>
@@ -378,7 +383,7 @@ export function RequestDetailScreen() {
         {/* ── ACCIONES SEGÚN ROL Y ESTADO ── */}
         <ActionButtons
           request={request} setRequest={setRequest}
-          isClient={isClient} isTech={isTech}
+          isClient={isClient} isTech={isTech} isPendingConfirmation={isPendingConfirmation}
           canPay={canPay} canComplete={canComplete}
           canDispute={canDispute} isPaid={isPaid} isDone={isDone}
           receipt={receipt} setReceipt={setReceipt}
@@ -547,9 +552,11 @@ function ProgressBar({ status, th, lang }) {
 // BOTONES DE ACCIÓN
 // ─────────────────────────────────────────────────────────────
 function ActionButtons({ request, setRequest, isClient, isTech, canPay, canComplete,
-  canDispute, isPaid, isDone, receipt, setReceipt, user, th, lang,
+  canDispute, isPaid, isDone, isPendingConfirmation, receipt, setReceipt, user, th, lang,
   setBusy, busy, showToast, setShowPayModal, setShowProofModal,
   setShowDisputeModal, setProofs, goBack }) {
+
+  const [cashCodeInput, setCashCodeInput] = useState('')
 
   const changeStatus = async (newStatus) => {
     setBusy(true)
@@ -630,17 +637,88 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
         </Btn>
       )}
 
-      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && (
+      {/* Técnico: aún no hay ningún pago reportado */}
+      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT
+        && !isPaid && !isPendingConfirmation && (
+          <div style={{
+            background: '#fef9c3', borderRadius: 14, padding: 14,
+            border: '1px solid #fde047', marginBottom: 4
+          }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
+              ⏳ Esperando que el cliente pague
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
+              Cuando el cliente reporte su pago (Yappy, efectivo o transferencia), aparecerá aquí para que lo confirmes.
+            </p>
+          </div>
+        )}
+
+      {/* Técnico: el cliente reportó pago Yappy/efectivo — requiere CONFIRMAR */}
+      {isTech && isPendingConfirmation && (
         <div style={{
-          background: '#fef9c3', borderRadius: 14, padding: 14,
-          border: '1px solid #fde047', marginBottom: 4
+          background: '#eff6ff', borderRadius: 14, padding: 14,
+          border: '1px solid #bfdbfe', marginBottom: 4
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
-            ⏳ Esperando confirmación de pago
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
+            💰 El cliente reportó un pago de ${request.agreed_price ?? '0.00'} por {request.payment_method === 'yappy' ? 'Yappy' : 'efectivo'}
           </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-            El cliente debe realizar el pago. Cuando suba el comprobante, podrás verificarlo aquí.
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#1e3a8a' }}>
+            {request.payment_method === 'yappy'
+              ? 'Revisa tu app Yappy y confirma si recibiste el dinero.'
+              : 'El cliente debe mostrarte un código de 4 dígitos al entregarte el efectivo. Ingrésalo abajo para confirmar.'}
           </p>
+
+          {request.payment_method === 'cash' && (
+            <input
+              value={cashCodeInput}
+              onChange={e => setCashCodeInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              inputMode="numeric"
+              maxLength={4}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '12px',
+                marginBottom: 10, borderRadius: 12, border: '1.5px solid #bfdbfe',
+                fontSize: 22, fontWeight: 900, letterSpacing: 10, textAlign: 'center',
+                color: '#1e40af', background: '#fff', outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={async () => {
+              setBusy(true)
+              try {
+                await paymentActions.confirmPayment(request.id, user.id, cashCodeInput)
+                setRequest(r => ({ ...r, payment_status: 'paid' }))
+                setCashCodeInput('')
+                showToast('✅ Pago confirmado')
+              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
+              finally { setBusy(false) }
+            }} loading={busy}
+              disabled={request.payment_method === 'cash' && cashCodeInput.length !== 4}
+              style={{ flex: 1 }}>
+              ✓ Confirmar recepción
+            </Btn>
+            <Btn onClick={async () => {
+              if (!window.confirm('¿Confirmas que NO recibiste este pago? Se notificará al cliente para que lo intente de nuevo.')) return
+              setBusy(true)
+              try {
+                await paymentActions.rejectPayment(request.id, user.id)
+                setRequest(r => ({ ...r, payment_status: 'unpaid' }))
+                setCashCodeInput('')
+                showToast('Pago rechazado. Se notificó al cliente.')
+              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
+              finally { setBusy(false) }
+            }} loading={busy} variant="danger" style={{ flex: 1 }}>
+              ✗ No lo recibí
+            </Btn>
+          </div>
+
+          {request.payment_method === 'cash' && (
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#1e3a8a' }}>
+              🔒 Si el cliente no tiene el código correcto, no confirmes el pago — abre una disputa.
+            </p>
+          )}
         </div>
       )}
 
@@ -651,7 +729,7 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
       )}
 
       {/* ── CLIENTE ── */}
-      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && (
+      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && !isPendingConfirmation && (
         <>
           <Btn onClick={() => setShowPayModal(true)}>
             💳 Realizar pago — ${request.agreed_price ?? '0.00'}
@@ -662,6 +740,21 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
             </Btn>
           )}
         </>
+      )}
+
+      {/* Cliente: ya reportó el pago, esperando que el técnico confirme */}
+      {isClient && isPendingConfirmation && (
+        <div style={{
+          background: '#fef9c3', borderRadius: 14, padding: 14,
+          border: '1px solid #fde047'
+        }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
+            ⏳ Esperando confirmación del técnico
+          </p>
+          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
+            Reportaste tu pago de ${request.agreed_price ?? '0.00'}. El técnico debe confirmar que lo recibió.
+          </p>
+        </div>
       )}
 
       {isClient && isPaid && !isDone && (
@@ -699,16 +792,20 @@ function PayModal({ request, user, th, onClose, onSuccess }) {
   const yappyPhone = (request.technician_whatsapp ?? '').replace(/\D/g, '')
   const amount = request.agreed_price ?? 0
 
+  const [cashCode, setCashCode] = useState(null) // código de 4 dígitos generado para efectivo
+
   const handleConfirm = async () => {
     setLoading(true)
     try {
       if (method === 'yappy') {
         await paymentActions.recordYappy(request.id, user.id, request.technician_id,
           amount, yappyPhone, reference)
+        onSuccess(method, reference)
       } else if (method === 'cash') {
-        await paymentActions.recordCash(request.id, user.id, request.technician_id, amount)
+        const { code } = await paymentActions.recordCash(request.id, user.id, request.technician_id, amount)
+        setCashCode(code)
+        setStep(4) // mostrar el código antes de cerrar el modal
       }
-      onSuccess(method, reference)
     } catch (err) {
       alert('Error al registrar pago: ' + (err?.message ?? ''))
     } finally { setLoading(false) }
@@ -865,16 +962,51 @@ function PayModal({ request, user, th, onClose, onSuccess }) {
             border: '1px solid #fde68a', marginBottom: 16
           }}>
             <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-              ⚠️ Al confirmar declaras que realizaste el pago. Se generará un recibo digital como comprobante.
+              {method === 'cash'
+                ? '⚠️ Recibirás un código de 4 dígitos. Muéstraselo al técnico cuando le entregues el dinero — sin ese código no podrá confirmar el pago y no se marcará como pagado.'
+                : '⚠️ Al confirmar declaras que realizaste el pago. El técnico debe verificarlo antes de generarse el recibo final.'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }}>← Atrás</Btn>
             <Btn onClick={handleConfirm} loading={loading} style={{ flex: 2 }}>
-              ✅ Confirmar pago
+              {method === 'cash' ? '✅ Generar código' : '✅ Confirmar pago'}
             </Btn>
           </div>
         </>
+      )}
+
+      {/* Step 4: mostrar código de 4 dígitos para efectivo */}
+      {step === 4 && cashCode && (
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>💵</div>
+          <p style={{ fontWeight: 800, fontSize: 16, color: th.text, margin: '0 0 6px' }}>
+            Tu código de confirmación
+          </p>
+          <p style={{ fontSize: 13, color: th.textSec, margin: '0 0 16px', lineHeight: 1.5 }}>
+            Muéstrale este código al técnico cuando le entregues los ${Number(amount).toFixed(2)}.
+            Él debe ingresarlo en su app para confirmar que recibió el pago.
+          </p>
+          <div style={{
+            fontSize: 44, fontWeight: 900, letterSpacing: 10,
+            color: th.primaryText, background: th.primaryLight,
+            borderRadius: 16, padding: '20px 0', marginBottom: 16,
+            border: `2px dashed ${th.primary}`,
+          }}>
+            {cashCode}
+          </div>
+          <div style={{
+            background: '#fef3c7', borderRadius: 12, padding: 12,
+            border: '1px solid #fde68a', marginBottom: 16, textAlign: 'left'
+          }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+              🔒 Este código existe para proteger a ambas partes: el técnico solo puede
+              marcar el servicio como pagado si tú le compartes este código en persona.
+              No lo compartas por chat antes de entregar el dinero.
+            </p>
+          </div>
+          <Btn onClick={() => onSuccess('cash', null)}>Listo, entendido</Btn>
+        </div>
       )}
     </Modal>
   )
@@ -1164,5 +1296,175 @@ function Modal({ title, children, onClose, th }) {
         {children}
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHAT SECTION — mensajería interna entre cliente y técnico
+// ─────────────────────────────────────────────────────────────
+function ChatSection({ request, user, isClient, th, lang }) {
+  const [messages, setMessages] = useState([])
+  const [text, setText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const scrollRef = useRef(null)
+
+  const otherName = isClient ? request.technician_name : request.client_name
+
+  // Cargar mensajes + marcar leídos
+  useEffect(() => {
+    if (!request?.id) return
+    chatApi.list(request.id)
+      .then(setMessages)
+      .catch(() => { })
+      .finally(() => setLoading(false))
+    chatApi.markRead(request.id, user.id).catch(() => { })
+  }, [request?.id])
+
+  // Suscripción realtime a nuevos mensajes
+  useEffect(() => {
+    if (!request?.id) return
+    const unsub = chatApi.subscribe(request.id, (msg) => {
+      setMessages(prev => [...prev, msg])
+      if (msg.sender_id !== user.id) {
+        chatApi.markRead(request.id, user.id).catch(() => { })
+      }
+    })
+    return unsub
+  }, [request?.id, user.id])
+
+  // Auto-scroll al fondo cuando llegan mensajes nuevos
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages.length])
+
+  const handleSend = async () => {
+    const body = text.trim()
+    if (!body || sending) return
+    setSending(true)
+    setText('')
+    try {
+      const msg = await chatApi.send(request.id, user.id, body)
+      // Optimista: ya llegará también por realtime, pero evita duplicar visualmente
+      setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
+    } catch {
+      setText(body) // restaurar si falla
+    } finally { setSending(false) }
+  }
+
+  const formatTime = (iso) => new Date(iso).toLocaleTimeString('es-PA', {
+    hour: '2-digit', minute: '2-digit',
+  })
+
+  const formatDateSep = (iso) => new Date(iso).toLocaleDateString('es-PA', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  })
+
+  // Agrupar por día para mostrar separadores de fecha
+  let lastDate = null
+
+  return (
+    <Section title={`💬 ${lang === 'en' ? 'Chat with' : 'Chat con'} ${otherName}`} th={th}>
+      {/* Aviso informativo */}
+      <div style={{
+        background: '#eff6ff', borderRadius: 10, padding: '8px 10px',
+        marginBottom: 10, border: '1px solid #bfdbfe'
+      }}>
+        <p style={{ margin: 0, fontSize: 11, color: '#1e40af', lineHeight: 1.5 }}>
+          ℹ️ {lang === 'en'
+            ? 'Messages are kept as evidence for this service request.'
+            : 'Los mensajes quedan registrados como evidencia de esta solicitud.'}
+        </p>
+      </div>
+
+      {/* Lista de mensajes */}
+      <div ref={scrollRef} style={{
+        maxHeight: 320, overflowY: 'auto', display: 'flex',
+        flexDirection: 'column', gap: 6, marginBottom: 10,
+        padding: '4px 2px',
+      }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
+            <Spinner />
+          </div>
+        ) : messages.length === 0 ? (
+          <p style={{ textAlign: 'center', fontSize: 13, color: th.textSec, padding: '16px 0' }}>
+            {lang === 'en'
+              ? 'No messages yet. Say hello! 👋'
+              : 'Sin mensajes aún. ¡Saluda! 👋'}
+          </p>
+        ) : (
+          messages.map(m => {
+            const mine = m.sender_id === user.id
+            const dateLabel = formatDateSep(m.created_at)
+            const showDateSep = dateLabel !== lastDate
+            lastDate = dateLabel
+
+            return (
+              <div key={m.id}>
+                {showDateSep && (
+                  <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
+                    <span style={{
+                      fontSize: 10, color: th.textSec,
+                      background: th.surface2, padding: '2px 10px', borderRadius: 20
+                    }}>
+                      {dateLabel}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '78%', padding: '8px 12px', borderRadius: 14,
+                    background: mine ? th.primary : th.surface2,
+                    color: mine ? '#fff' : th.text,
+                    borderBottomRightRadius: mine ? 4 : 14,
+                    borderBottomLeftRadius: mine ? 14 : 4,
+                  }}>
+                    <p style={{
+                      margin: 0, fontSize: 13, lineHeight: 1.4,
+                      wordBreak: 'break-word', whiteSpace: 'pre-wrap'
+                    }}>
+                      {m.body}
+                    </p>
+                    <p style={{
+                      margin: '3px 0 0', fontSize: 10,
+                      textAlign: 'right',
+                      color: mine ? 'rgba(255,255,255,0.7)' : th.textSec
+                    }}>
+                      {formatTime(m.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Input de mensaje */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+          placeholder={lang === 'en' ? 'Type a message...' : 'Escribe un mensaje...'}
+          style={{
+            flex: 1, padding: '10px 14px', borderRadius: 20,
+            border: `1.5px solid ${th.inputBorder}`, background: th.inputBg,
+            color: th.text, fontSize: 14, outline: 'none', fontFamily: 'inherit'
+          }}
+        />
+        <button onClick={handleSend} disabled={!text.trim() || sending}
+          style={{
+            width: 42, height: 42, borderRadius: 21, border: 'none',
+            background: text.trim() ? th.primary : th.border,
+            color: '#fff', fontSize: 18, cursor: text.trim() ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, fontFamily: 'inherit'
+          }}>
+          {sending ? <Spinner size={16} /> : '➤'}
+        </button>
+      </div>
+    </Section>
   )
 }

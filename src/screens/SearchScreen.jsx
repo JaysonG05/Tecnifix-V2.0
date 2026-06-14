@@ -7,38 +7,50 @@ import { T } from '../i18n/translations.js'
 
 const CATS = [
   { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C', icon: '❄️' },
-  { slug: 'electricidad',  nameEs: 'Electricidad',  nameEn: 'Electrical', icon: '⚡' },
-  { slug: 'plomeria',      nameEs: 'Plomería',      nameEn: 'Plumbing', icon: '🔧' },
-  { slug: 'albanileria',   nameEs: 'Albañilería',   nameEn: 'Masonry', icon: '🧱' },
-  { slug: 'limpieza',      nameEs: 'Limpieza',      nameEn: 'Cleaning', icon: '🧹' },
-  { slug: 'cerrajeria',    nameEs: 'Cerrajería',    nameEn: 'Locksmith', icon: '🔐' },
-  { slug: 'pintura',       nameEs: 'Pintura',       nameEn: 'Painting', icon: '🎨' },
-  { slug: 'tecnologia',    nameEs: 'Técnico PC',    nameEn: 'PC Tech', icon: '💻' },
+  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical', icon: '⚡' },
+  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing', icon: '🔧' },
+  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry', icon: '🧱' },
+  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning', icon: '🧹' },
+  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith', icon: '🔐' },
+  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting', icon: '🎨' },
+  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech', icon: '💻' },
 ]
 
 export function SearchScreen() {
   const { th, selectedCategory, navigate, setSelectedTech, lang } = useApp()
   const t = T[lang]
 
-  const [filter,        setFilter]        = useState(selectedCategory?.slug || 'all')
-  const [sort,          setSort]          = useState('average_rating')
+  const [filter, setFilter] = useState(selectedCategory?.slug || 'all')
+  const [sort, setSort] = useState('average_rating')
   const [onlyAvailable, setOnlyAvailable] = useState(false)
-  const [onlyVerified,  setOnlyVerified]  = useState(false)
-  const [results,       setResults]       = useState([])
-  const [loading,       setLoading]       = useState(true)
+  const [onlyVerified, setOnlyVerified] = useState(false)
+  const [maxPrice, setMaxPrice] = useState(100)
+  const [minRating, setMinRating] = useState(0)
+  const [showFilters, setShowFilters] = useState(false)
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
     technicians.list({
-      categorySlug:  filter === 'all' ? undefined : filter,
+      categorySlug: filter === 'all' ? undefined : filter,
       onlyAvailable: onlyAvailable || undefined,
-      onlyVerified:  onlyVerified || undefined,
-      sortBy:        sort,
+      onlyVerified: onlyVerified || undefined,
+      sortBy: sort,
     })
-      .then(setResults)
+      .then(data => {
+        let filtered = data
+        if (maxPrice < 100) {
+          filtered = filtered.filter(tech => Number(tech.min_price ?? 0) <= maxPrice)
+        }
+        if (minRating > 0) {
+          filtered = filtered.filter(tech => Number(tech.average_rating ?? 0) >= minRating)
+        }
+        setResults(filtered)
+      })
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [filter, sort, onlyAvailable, onlyVerified])
+  }, [filter, sort, onlyAvailable, onlyVerified, maxPrice, minRating])
 
   const openTech = (tech) => { setSelectedTech(tech); navigate('tech-profile') }
 
@@ -65,7 +77,71 @@ export function SearchScreen() {
           </select>
           <Chip active={onlyVerified} onClick={() => setOnlyVerified(v => !v)}>{t.verifiedOnly}</Chip>
           <Chip active={onlyAvailable} onClick={() => setOnlyAvailable(v => !v)}>{t.availableOnly}</Chip>
+          <Chip active={showFilters || maxPrice < 100 || minRating > 0}
+            onClick={() => setShowFilters(v => !v)}>
+            ⚙️ {lang === 'en' ? 'More filters' : 'Más filtros'}
+            {(maxPrice < 100 || minRating > 0) && (
+              <span style={{
+                marginLeft: 4, background: th.primary, color: '#fff',
+                borderRadius: 10, fontSize: 10, padding: '1px 5px', fontWeight: 700
+              }}>
+                {(maxPrice < 100 ? 1 : 0) + (minRating > 0 ? 1 : 0)}
+              </span>
+            )}
+          </Chip>
         </div>
+
+        {/* Panel de filtros avanzados */}
+        {showFilters && (
+          <div style={{ padding: '4px 16px 14px', borderTop: `1px solid ${th.border}` }}>
+            {/* Precio máximo */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: th.text }}>
+                  {lang === 'en' ? 'Max. price' : 'Precio máximo'}
+                </p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: th.primaryText }}>
+                  {maxPrice >= 100 ? (lang === 'en' ? 'Any' : 'Cualquiera') : `$${maxPrice}`}
+                </p>
+              </div>
+              <input type="range" min="5" max="100" step="5" value={maxPrice}
+                onChange={e => setMaxPrice(Number(e.target.value))}
+                style={{ width: '100%', accentColor: th.primary }} />
+            </div>
+
+            {/* Calificación mínima */}
+            <div style={{ marginBottom: 8 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: th.text }}>
+                {lang === 'en' ? 'Minimum rating' : 'Calificación mínima'}
+              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[0, 3, 3.5, 4, 4.5].map(r => (
+                  <button key={r} onClick={() => setMinRating(r)}
+                    style={{
+                      flex: 1, padding: '7px 0', borderRadius: 10,
+                      border: `1.5px solid ${minRating === r ? th.primary : th.border}`,
+                      background: minRating === r ? th.primaryLight : 'transparent',
+                      color: minRating === r ? th.primaryText : th.textSec,
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                    }}>
+                    {r === 0 ? (lang === 'en' ? 'Any' : 'Todas') : `${r}+ ⭐`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(maxPrice < 100 || minRating > 0) && (
+              <button onClick={() => { setMaxPrice(100); setMinRating(0) }}
+                style={{
+                  marginTop: 10, background: 'none', border: 'none', color: th.red,
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  textDecoration: 'underline'
+                }}>
+                {lang === 'en' ? 'Clear advanced filters' : 'Limpiar filtros avanzados'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '12px 16px 90px' }}>
@@ -76,8 +152,8 @@ export function SearchScreen() {
           ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
           : results.length === 0
             ? <EmptyState emoji="😔" title={t.noTechsFilter}
-                action={<Btn onClick={() => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(false) }} style={{ maxWidth: 200, margin: '0 auto' }}>{t.clearFilters}</Btn>}
-              />
+              action={<Btn onClick={() => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(false); setMaxPrice(100); setMinRating(0) }} style={{ maxWidth: 200, margin: '0 auto' }}>{t.clearFilters}</Btn>}
+            />
             : results.map(tech => <TechnicianCard key={tech.user_id} tech={tech} onPress={openTech} />)
         }
       </div>

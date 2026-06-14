@@ -8,6 +8,9 @@ import { RequestDetailScreen } from './screens/RequestDetailScreen.jsx'
 import { CertificatesScreen } from './screens/CertificatesScreen.jsx'
 import { MyReceiptsScreen } from './screens/MyReceiptsScreen.jsx'
 import { ServiceCatalogScreen } from './screens/ServiceCatalogScreen.jsx'
+import { LegalScreen } from './screens/LegalScreen.jsx'
+import { Onboarding, hasSeenOnboarding } from './components/Onboarding.jsx'
+import { OfflineBanner } from './components/OfflineBanner.jsx'
 import {
   FavoritesScreen, ProfileScreen,
   LoginScreen, RegisterScreen,
@@ -18,7 +21,8 @@ import {
 
 // ─── Enrutador ────────────────────────────────────────────────
 function Router() {
-  const { screen, th } = useApp()
+  const { screen, th, isDesktop } = useApp()
+  const [showOnboarding, setShowOnboarding] = useState(!hasSeenOnboarding())
 
   const SCREENS = {
     home: <HomeScreen />,
@@ -38,21 +42,27 @@ function Router() {
     certificates: <CertificatesScreen />,
     'my-receipts': <MyReceiptsScreen />,
     'service-catalog': <ServiceCatalogScreen />,
+    legal: <LegalScreen />,
   }
 
   const noNav = [
     'login', 'register', 'tech-profile', 'edit-profile',
     'edit-tech-profile', 'settings', 'notifications',
-    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog',
+    'admin', 'request-detail', 'certificates', 'my-receipts', 'service-catalog', 'legal',
   ]
 
   return (
     <div style={{
-      maxWidth: 430, margin: '0 auto', minHeight: '100vh',
+      maxWidth: isDesktop ? 1100 : 430,
+      margin: '0 auto', minHeight: '100vh',
       background: th.bg, position: 'relative',
+      paddingLeft: isDesktop ? 220 : 0,
       fontFamily: "system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
     }}>
       <style>{`
+        @media (min-width: 900px) {
+          html, body { background: ${th.bg}; }
+        }
         @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.45} }
         @keyframes spin     { to{transform:rotate(360deg)} }
         @keyframes slideUp  { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
@@ -65,7 +75,13 @@ function Router() {
         body{ margin:0; }
       `}</style>
 
-      <div style={{ paddingBottom: noNav.includes(screen) ? 0 : 70, minHeight: '100vh' }}>
+      <div style={{
+        paddingBottom: (!isDesktop && !noNav.includes(screen)) ? 70 : 0,
+        minHeight: '100vh',
+        maxWidth: isDesktop ? 880 : '100%',
+        margin: isDesktop ? '0 auto' : 0,
+        padding: isDesktop ? '24px 24px 40px' : undefined,
+      }}>
         {SCREENS[screen] ?? <HomeScreen />}
       </div>
 
@@ -75,7 +91,7 @@ function Router() {
 }
 
 // ─── Error Boundary ───────────────────────────────────────────
-import { Component } from 'react'
+import { Component, useState } from 'react'
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
   static getDerivedStateFromError(err) { return { error: err } }
