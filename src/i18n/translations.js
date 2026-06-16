@@ -1,10 +1,10 @@
 export const T = {
   es: {
-    appName: 'Changuinola Pro', appSlogan: 'Encuentra técnicos confiables cerca de ti',
+    appName: 'TECNIFIX', appSlogan: 'Encuentra técnicos confiables cerca de ti',
     home: 'Inicio', search: 'Buscar', map: 'Mapa', favorites: 'Favoritos', profile: 'Perfil',
     hello: 'Hola', whatNeedToday: '¿Qué necesitas hoy?',
     identifyService: 'Identifica tu servicio', tapIcon: 'Toca el ícono para encontrar tu técnico',
-    featuredTechs: 'Técnicos destacados', bestRated: 'Los mejor calificados de Changuinola',
+    featuredTechs: 'Técnicos destacados', bestRated: 'Los mejor calificados de Panamá',
     contactWhatsApp: 'Contactar por WhatsApp',
     verified: 'Verificado', featured: 'Destacado', available: 'Disponible', busy: 'Ocupado',
     from: 'Desde', reviews: 'reseñas', rating: 'Calificación', jobs: 'Trabajos', experience: 'Exp.',
@@ -91,11 +91,11 @@ export const T = {
     required: 'Campo requerido', invalidEmail: 'Email inválido',
   },
   en: {
-    appName: 'Changuinola Pro', appSlogan: 'Find reliable technicians near you',
+    appName: 'TECNIFIX', appSlogan: 'Find reliable technicians near you',
     home: 'Home', search: 'Search', map: 'Map', favorites: 'Favorites', profile: 'Profile',
     hello: 'Hello', whatNeedToday: 'What do you need today?',
     identifyService: 'Identify your service', tapIcon: 'Tap an icon to find your technician',
-    featuredTechs: 'Featured Technicians', bestRated: 'Top rated in Changuinola',
+    featuredTechs: 'Featured Technicians', bestRated: 'Top rated in Panamá',
     contactWhatsApp: 'Contact via WhatsApp',
     verified: 'Verified', featured: 'Featured', available: 'Available', busy: 'Busy',
     from: 'From', reviews: 'reviews', rating: 'Rating', jobs: 'Jobs', experience: 'Exp.',

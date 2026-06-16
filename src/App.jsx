@@ -57,22 +57,37 @@ function Router() {
       margin: '0 auto', minHeight: '100vh',
       background: th.bg, position: 'relative',
       paddingLeft: isDesktop ? 220 : 0,
-      fontFamily: "system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily: th.fontBody,
+      color: th.text,
     }}>
       <style>{`
+        :root {
+          /* Curvas de easing — "Orden de Trabajo": entradas con golpe
+             de sello (ease-out fuerte) y movimiento natural (ease-in-out) */
+          --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+          --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+        }
         @media (min-width: 900px) {
           html, body { background: ${th.bg}; }
         }
         @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.45} }
         @keyframes spin     { to{transform:rotate(360deg)} }
-        @keyframes slideUp  { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes slideUp  { from{transform:translateY(32px);opacity:0} to{transform:translateY(0);opacity:1} }
         @keyframes slideDown{ from{transform:translate(-50%,-20px);opacity:0} to{transform:translate(-50%,0);opacity:1} }
         @keyframes slideIn  { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+        @keyframes fadeIn   { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         *,*::before,*::after{ box-sizing:border-box; }
         *{ -webkit-tap-highlight-color:transparent; }
         ::-webkit-scrollbar{ display:none; }
         input,select,button,textarea{ font-family:inherit; }
-        body{ margin:0; }
+        body{ margin:0; font-family:${th.fontBody}; background:${th.bg}; color:${th.text}; }
+        h1,h2,h3,h4{ font-family:${th.fontDisplay}; }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
       `}</style>
 
       <div style={{

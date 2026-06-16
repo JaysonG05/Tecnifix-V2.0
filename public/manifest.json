@@ -1,11 +1,11 @@
 {
-  "name": "Changuinola Pro",
-  "short_name": "Changuinola Pro",
-  "description": "Técnicos confiables en Changuinola, Panamá",
+  "name": "TECNIFIX",
+  "short_name": "TECNIFIX",
+  "description": "Técnicos profesionales en todo Panamá",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#22c55e",
+  "background_color": "#00214D",
+  "theme_color": "#00214D",
   "orientation": "portrait",
   "icons": [
     {

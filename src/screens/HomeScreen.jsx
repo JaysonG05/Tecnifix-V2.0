@@ -38,8 +38,8 @@ function StatCard({ val, label, color, th }) {
       background: th.surface, border: `1px solid ${th.border}`,
       borderRadius: 12, padding: '10px 8px', textAlign: 'center', flex: 1
     }}>
-      <p style={{ margin: '0 0 2px', fontSize: 18, fontWeight: 800, color: color || th.text }}>{val}</p>
-      <p style={{ margin: 0, fontSize: 10, color: th.textSec, lineHeight: 1.3 }}>{label}</p>
+      <p style={{ margin: '0 0 2px', fontSize: 18, fontWeight: 700, fontFamily: th.fontMono, color: color || th.text }}>{val}</p>
+      <p style={{ margin: 0, fontSize: 10, color: th.textSec, lineHeight: 1.3, fontFamily: th.fontDisplay }}>{label}</p>
     </div>
   )
 }
@@ -123,46 +123,73 @@ export function HomeScreen() {
   return (
     <div style={{ background: th.bg, minHeight: '100vh' }}>
 
-      {/* HERO */}
+      {/* HERO — dark navy con headline grande estilo TECNIFIX */}
       <div style={{
-        background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
-        padding: '20px 20px 40px', color: '#fff'
+        background: `linear-gradient(145deg, #00214D 0%, #00369A 100%)`,
+        padding: '28px 20px 32px', position: 'relative', overflow: 'hidden',
       }}>
-        <p style={{ margin: '0 0 2px', fontSize: 13, opacity: 0.9 }}>
-          {greeting}{user ? `, ${firstName}` : ''}! 👋
+        {/* Círculos decorativos de fondo */}
+        <div style={{
+          position: 'absolute', top: -40, right: -40, width: 160, height: 160,
+          borderRadius: '50%', background: 'rgba(255,214,0,0.07)', pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -20, left: -20, width: 100, height: 100,
+          borderRadius: '50%', background: 'rgba(0,196,125,0.09)', pointerEvents: 'none'
+        }} />
+
+        <p style={{
+          margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.55)',
+          fontFamily: th.fontDisplay, letterSpacing: 1.5, textTransform: 'uppercase'
+        }}>
+          {greeting}{user ? `, ${firstName}` : ''}
         </p>
-        <h2 style={{ margin: '0 0 16px', fontSize: 22, fontWeight: 900 }}>
-          {t.whatNeedToday}
-        </h2>
+        <h1 style={{
+          margin: '0 0 6px', fontSize: 26, fontWeight: 700,
+          fontFamily: th.fontDisplay, color: '#FFFFFF', lineHeight: 1.2, letterSpacing: -0.5
+        }}>
+          Encuentra técnicos
+        </h1>
+        <h1 style={{
+          margin: '0 0 18px', fontSize: 26, fontWeight: 700,
+          fontFamily: th.fontDisplay, color: th.yellow, lineHeight: 1.2, letterSpacing: -0.5
+        }}>
+          en todo Panamá
+        </h1>
+
+        {/* Barra de búsqueda con icono SVG */}
         <div style={{ position: 'relative' }}>
-          <span style={{
-            position: 'absolute', left: 14, top: '50%',
-            transform: 'translateY(-50%)', fontSize: 18, zIndex: 1
-          }}>🔍</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="rgba(0,33,77,0.5)" strokeWidth="2" strokeLinecap="round"
+            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 1, pointerEvents: 'none' }}>
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
           <input value={search} onChange={e => handleSearch(e.target.value)}
-            placeholder={t.searchPlaceholder}
+            placeholder="Buscar técnico, servicio, provincia..."
             style={{
               width: '100%', boxSizing: 'border-box',
-              background: 'rgba(255,255,255,0.97)', border: 'none',
-              borderRadius: 14, padding: '13px 40px 13px 44px',
-              fontSize: 15, outline: 'none', color: '#0f172a', fontFamily: 'inherit'
+              background: 'rgba(255,255,255,0.97)', border: '2px solid transparent',
+              borderRadius: 100, padding: '13px 44px 13px 46px',
+              fontSize: 14, outline: 'none', color: '#00214D', fontFamily: th.fontBody,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              transition: 'border-color 160ms var(--ease-out)'
             }}
+            onFocus={e => e.target.style.borderColor = th.yellow}
+            onBlur={e => e.target.style.borderColor = 'transparent'}
           />
           {search && (
             <button onClick={() => { setSearch(''); setSearchResults(null) }}
               style={{
-                position: 'absolute', right: 12, top: '50%',
-                transform: 'translateY(-50%)', background: 'none',
-                border: 'none', fontSize: 20, cursor: 'pointer', color: '#64748b'
+                position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(0,33,77,0.1)', border: 'none', borderRadius: 50,
+                width: 24, height: 24, cursor: 'pointer', color: '#00214D',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16
               }}>×</button>
           )}
         </div>
       </div>
 
-      <div style={{
-        background: th.bg, borderRadius: '20px 20px 0 0',
-        marginTop: -16, minHeight: '100vh', paddingBottom: 90
-      }}>
+      <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 90 }}>
         <div style={{ padding: '0 16px' }}>
 
           {/* RESULTADOS */}
@@ -195,14 +222,14 @@ export function HomeScreen() {
               {stats && (
                 <div style={{ display: 'flex', gap: 8, paddingTop: 20, marginBottom: 4 }}>
                   <StatCard val={stats.active}
-                    label={lang === 'en' ? 'active techs' : 'técnicos activos'}
-                    color={th.primary} th={th} />
+                    label={lang === 'en' ? 'Active techs' : 'Técnicos activos'}
+                    color={th.verified} th={th} />
                   <StatCard val={stats.avgRating}
-                    label={lang === 'en' ? 'avg. rating' : 'calificación prom.'}
-                    color="#f59e0b" th={th} />
+                    label={lang === 'en' ? 'Avg. rating' : 'Calificación prom.'}
+                    color={th.yellow} th={th} />
                   <StatCard val={`~${stats.avgResp}m`}
-                    label={lang === 'en' ? 'avg. response' : 'respuesta prom.'}
-                    color={th.blue} th={th} />
+                    label={lang === 'en' ? 'Avg. response' : 'Respuesta prom.'}
+                    color={th.primary} th={th} />
                 </div>
               )}
 
@@ -220,7 +247,7 @@ export function HomeScreen() {
                       {nearbyCount} técnico{nearbyCount !== 1 ? 's' : ''} disponible{nearbyCount !== 1 ? 's' : ''} cerca de ti
                     </p>
                     <p style={{ margin: 0, fontSize: 12, color: '#3b82f6' }}>
-                      A menos de 5 km · Toca para ver en el mapa
+                      Cerca de ti · Toca para ver en el mapa
                     </p>
                   </div>
                   <span style={{ color: '#3b82f6', fontSize: 20 }}>›</span>
@@ -347,8 +374,8 @@ export function HomeScreen() {
               {/* BANNER: registrarse como técnico */}
               {(!user || user.role === 'user') && (
                 <div style={{
-                  background: `linear-gradient(135deg, #16a34a22, #22c55e11)`,
-                  borderRadius: 16, padding: 16, border: `1px solid #22c55e44`,
+                  background: th.primaryLight,
+                  borderRadius: 16, padding: 16, border: `1.5px solid ${th.primary}33`,
                   marginBottom: 20, display: 'flex', gap: 14, alignItems: 'center'
                 }}>
                   <span style={{ fontSize: 36, flexShrink: 0 }}>🛠️</span>
@@ -359,7 +386,7 @@ export function HomeScreen() {
                     <p style={{ margin: '0 0 10px', fontSize: 12, color: th.textSec, lineHeight: 1.5 }}>
                       {lang === 'en'
                         ? 'Create your profile and start receiving clients.'
-                        : 'Crea tu perfil y empieza a recibir clientes en Changuinola.'}
+                        : 'Crea tu perfil y empieza a recibir clientes en Panamá.'}
                     </p>
                     <button onClick={() => navigate(user ? 'edit-tech-profile' : 'register')}
                       style={{
