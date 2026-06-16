@@ -15,8 +15,7 @@ import {
   serviceRequests, archiveApi, receiptsApi, admin, notifications
 } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
-import { receiptActions, disputeActions } from '../lib/payments.js'
-import { getPermissionStatus, requestPermission } from '../lib/pushNotifications.js'
+import { receiptActions } from '../lib/payments.js'
 
 // ─────────────────────────────────────────────────────────────
 // FAVORITES
@@ -149,68 +148,6 @@ export function ProfileScreen() {
 // ─────────────────────────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// OAUTH BUTTONS — Google y Facebook (reutilizable en Login/Register)
-// ─────────────────────────────────────────────────────────────
-function OAuthButtons({ th, lang, onSelect, loadingProvider }) {
-  const L = lang === 'en'
-    ? { divider: 'or', google: 'Continue with Google', facebook: 'Continue with Facebook' }
-    : { divider: 'o', google: 'Continuar con Google', facebook: 'Continuar con Facebook' }
-
-  const btnBase = {
-    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: 10, padding: '12px 14px', borderRadius: 12, fontSize: 14, fontWeight: 600,
-    cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-  }
-
-  return (
-    <div>
-      {/* Divisor */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0' }}>
-        <div style={{ flex: 1, height: 1, background: th.border }} />
-        <span style={{ fontSize: 12, color: th.textSec, fontWeight: 600 }}>{L.divider}</span>
-        <div style={{ flex: 1, height: 1, background: th.border }} />
-      </div>
-
-      {/* Google */}
-      <button onClick={() => onSelect('google')} disabled={!!loadingProvider}
-        style={{
-          ...btnBase, background: '#fff', color: '#1f2937',
-          border: `1.5px solid ${th.border}`,
-          opacity: loadingProvider && loadingProvider !== 'google' ? 0.5 : 1
-        }}>
-        {loadingProvider === 'google' ? (
-          <Spinner size={16} />
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 18 18">
-            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.12-.85 2.07-1.81 2.7v2.26h2.92c1.71-1.57 2.69-3.89 2.69-6.6z" />
-            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z" />
-            <path fill="#FBBC05" d="M3.97 10.72c-.18-.54-.28-1.12-.28-1.72s.1-1.18.28-1.72V4.95H.96C.35 6.18 0 7.55 0 9s.35 2.82.96 4.05l3.01-2.33z" />
-            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
-          </svg>
-        )}
-        {L.google}
-      </button>
-
-      {/* Facebook */}
-      <button onClick={() => onSelect('facebook')} disabled={!!loadingProvider}
-        style={{
-          ...btnBase, background: '#1877F2', color: '#fff', border: 'none',
-          opacity: loadingProvider && loadingProvider !== 'facebook' ? 0.5 : 1
-        }}>
-        {loadingProvider === 'facebook' ? (
-          <Spinner size={16} />
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-            <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8v-6.78H7.9V12H10V9.79c0-2.07 1.23-3.21 3.11-3.21.9 0 1.84.16 1.84.16v2.02h-1.04c-1.02 0-1.34.64-1.34 1.3V12h2.46l-.39 3.02h-2.07V21.8c4.56-.93 8-4.96 8-9.8z" />
-          </svg>
-        )}
-        {L.facebook}
-      </button>
-    </div>
-  )
-}
-
 export function LoginScreen() {
   const { th, navigate, refreshUser, lang } = useApp()
   const t = T[lang]
@@ -221,8 +158,6 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [resetMode, setResetMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
-
-  const [oauthLoading, setOauthLoading] = useState(null) // 'google' | 'facebook' | null
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completa todos los campos.'); return }
@@ -235,20 +170,6 @@ export function LoginScreen() {
       setError(t.wrongCredentials)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleOAuth = async (provider) => {
-    setOauthLoading(provider); setError('')
-    try {
-      await auth.signInWithOAuth(provider)
-      // El navegador redirige al proveedor; al volver, onAuthStateChange
-      // detecta la sesión y AppContext carga el perfil automáticamente.
-    } catch (err) {
-      setError(lang === 'en'
-        ? `Could not connect with ${provider === 'google' ? 'Google' : 'Facebook'}.`
-        : `No se pudo conectar con ${provider === 'google' ? 'Google' : 'Facebook'}.`)
-      setOauthLoading(null)
     }
   }
 
@@ -316,10 +237,6 @@ export function LoginScreen() {
               <button onClick={() => { setResetMode(v => !v); setError('') }} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: 14, background: 'none', border: 'none', color: th.primary, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {resetMode ? '← Volver al login' : t.forgotPassword}
               </button>
-
-              {!resetMode && (
-                <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
-              )}
             </>
           )}
         </div>
@@ -345,24 +262,6 @@ export function RegisterScreen() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [termsError, setTermsError] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState(null)
-  const [oauthError, setOauthError] = useState('')
-
-  const handleOAuth = async (provider) => {
-    if (!acceptedTerms) { setTermsError(true); return }
-    setTermsError(false)
-    setOauthLoading(provider); setOauthError('')
-    try {
-      await auth.signInWithOAuth(provider)
-    } catch (err) {
-      setOauthError(lang === 'en'
-        ? `Could not connect with ${provider === 'google' ? 'Google' : 'Facebook'}.`
-        : `No se pudo conectar con ${provider === 'google' ? 'Google' : 'Facebook'}.`)
-      setOauthLoading(null)
-    }
-  }
 
   const F = (k) => ({
     value: form[k],
@@ -382,8 +281,6 @@ export function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!validate()) return
-    if (!acceptedTerms) { setTermsError(true); return }
-    setTermsError(false)
     setLoading(true)
     try {
       await auth.signUp({ email: form.email.trim(), password: form.password, fullName: form.name.trim(), role: form.role })
@@ -427,49 +324,7 @@ export function RegisterScreen() {
       <Input label={t.confirmPassword} placeholder="Repite tu contraseña" type="password" {...F('confirm')} />
 
       <div style={{ height: 8 }} />
-
-      {/* Aceptación de términos */}
-      <div onClick={() => { setAcceptedTerms(v => !v); setTermsError(false) }}
-        style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
-          cursor: 'pointer', padding: '10px 12px', borderRadius: 12,
-          background: termsError ? '#fee2e2' : th.surface2,
-          border: `1px solid ${termsError ? '#fca5a5' : th.border}`
-        }}>
-        <div style={{
-          width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
-          border: `2px solid ${acceptedTerms ? th.primary : th.border}`,
-          background: acceptedTerms ? th.primary : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontSize: 13, fontWeight: 900
-        }}>
-          {acceptedTerms && '✓'}
-        </div>
-        <p style={{ margin: 0, fontSize: 12, color: termsError ? '#991b1b' : th.textSec, lineHeight: 1.6 }}>
-          Acepto los{' '}
-          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
-            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
-            Términos y Condiciones
-          </span>{' '}
-          y la{' '}
-          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
-            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
-            Política de Privacidad
-          </span>{' '}
-          de Changuinola Pro.
-        </p>
-      </div>
-
       <Btn onClick={handleRegister} loading={loading}>{t.create}</Btn>
-
-      {oauthError && (
-        <p style={{
-          color: th.red, fontSize: 13, margin: '10px 0 0', textAlign: 'center',
-          background: '#fef2f2', padding: '8px', borderRadius: 8
-        }}>{oauthError}</p>
-      )}
-
-      <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
     </div>
   )
 }
@@ -831,22 +686,6 @@ export function EditTechProfileScreen() {
           )}
         </div>
 
-        {/* Precios */}
-        <div style={sectionStyle}>
-          <p style={sectionTitle}>💰 Precios</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Input label="Precio mín. ($)" type="number" {...field('min_price')} />
-            <Input label="Precio máx. ($)" type="number" {...field('max_price')} />
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>Unidad de precio</label>
-            <select value={form.price_unit} onChange={e => setForm(f => ({ ...f, price_unit: e.target.value }))}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, background: th.inputBg, color: th.text, outline: 'none', fontFamily: 'inherit' }}>
-              {['por visita', 'por hora', 'por metro', 'por servicio', 'por equipo'].map(u => <option key={u}>{u}</option>)}
-            </select>
-          </div>
-        </div>{/* fin Precios */}
-
         {/* Ubicación y zona */}
         <div style={sectionStyle}>
           <p style={sectionTitle}>📍 Ubicación y zona</p>
@@ -924,53 +763,6 @@ export function SettingsScreen() {
   })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
-  const [pushPerm, setPushPerm] = useState(getPermissionStatus())
-  const [linkedProviders, setLinkedProviders] = useState([])
-  const [linkLoading, setLinkLoading] = useState(null)
-
-  useEffect(() => {
-    auth.getLinkedProviders().then(setLinkedProviders).catch(() => { })
-  }, [])
-
-  const PROVIDER_INFO = {
-    email: { label: 'Email y contraseña', icon: '✉️' },
-    google: { label: 'Google', icon: '🔵' },
-    facebook: { label: 'Facebook', icon: '🔷' },
-  }
-
-  const handleLinkProvider = async (provider) => {
-    setLinkLoading(provider)
-    try {
-      await auth.linkOAuthIdentity(provider)
-    } catch (err) {
-      showToast(err?.message ?? 'Error al vincular')
-      setLinkLoading(null)
-    }
-  }
-
-  const handleUnlinkProvider = async (provider) => {
-    if (linkedProviders.length <= 1) {
-      showToast(lang === 'en'
-        ? 'You must keep at least one sign-in method.'
-        : 'Debes mantener al menos un método de acceso.')
-      return
-    }
-    if (!window.confirm(lang === 'en'
-      ? `Remove ${PROVIDER_INFO[provider]?.label} as a sign-in method?`
-      : `¿Quitar ${PROVIDER_INFO[provider]?.label} como método de acceso?`)) return
-    setLinkLoading(provider)
-    try {
-      const { data } = await supabase.auth.getUserIdentities()
-      const identity = data?.identities?.find(i => i.provider === provider)
-      if (identity) {
-        await auth.unlinkOAuthIdentity(identity)
-        setLinkedProviders(prev => prev.filter(p => p !== provider))
-        showToast(lang === 'en' ? 'Removed' : 'Eliminado')
-      }
-    } catch (err) {
-      showToast(err?.message ?? 'Error')
-    } finally { setLinkLoading(null) }
-  }
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000) }
 
@@ -1023,52 +815,6 @@ export function SettingsScreen() {
         {/* Notificaciones */}
         <div style={ss}>
           <p style={sh}>{t.notifications}</p>
-
-          {/* Banner: pedir permiso al navegador para notificaciones push */}
-          {pushPerm !== 'granted' && pushPerm !== 'unsupported' && (
-            <div style={{
-              padding: '12px 16px', background: pushPerm === 'denied' ? '#fee2e2' : '#eff6ff',
-              borderBottom: `1px solid ${th.border}`
-            }}>
-              <p style={{
-                margin: '0 0 8px', fontSize: 12,
-                color: pushPerm === 'denied' ? '#991b1b' : '#1e40af', lineHeight: 1.5
-              }}>
-                {pushPerm === 'denied'
-                  ? (lang === 'en'
-                    ? '🔕 Notifications are blocked. Enable them in your browser settings to receive alerts about new requests.'
-                    : '🔕 Las notificaciones están bloqueadas. Activa los permisos del navegador para recibir alertas de nuevas solicitudes.')
-                  : (lang === 'en'
-                    ? '🔔 Enable browser notifications to get alerted instantly about new requests, even when the app is in the background.'
-                    : '🔔 Activa las notificaciones del navegador para enterarte al instante de nuevas solicitudes, incluso con la app en segundo plano.')
-                }
-              </p>
-              {pushPerm !== 'denied' && (
-                <button onClick={async () => {
-                  const result = await requestPermission()
-                  setPushPerm(result)
-                  if (result === 'granted') showToast(t.saved)
-                }} style={{
-                  background: '#1e40af', color: '#fff', border: 'none',
-                  borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit'
-                }}>
-                  {lang === 'en' ? 'Enable notifications' : 'Activar notificaciones'}
-                </button>
-              )}
-            </div>
-          )}
-          {pushPerm === 'granted' && (
-            <div style={{
-              padding: '8px 16px', background: '#f0fdf4',
-              borderBottom: `1px solid ${th.border}`
-            }}>
-              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
-                ✅ {lang === 'en' ? 'Browser notifications enabled' : 'Notificaciones del navegador activadas'}
-              </p>
-            </div>
-          )}
-
           <SettingsRow label={t.pushNotif} sub="Alertas en tu dispositivo" right={<Toggle value={prefs.notif_push} onChange={v => savePref('notif_push', v)} />} />
           <SettingsRow label={t.emailNotif} sub="Resumen de actividad" right={<Toggle value={prefs.notif_email} onChange={v => savePref('notif_email', v)} />} />
           <SettingsRow label={t.smsNotif} sub="Mensajes de texto" right={<Toggle value={prefs.notif_sms} onChange={v => savePref('notif_sms', v)} />} />
@@ -1091,70 +837,14 @@ export function SettingsScreen() {
           <SettingsRow label={t.changePassword} sub="Recibirás un email"
             right={<Btn onClick={async () => { if (user) { await auth.resetPassword(user.email); showToast('Email enviado') } }} variant="ghost" size="sm" style={{ width: 'auto', padding: '6px 14px' }}>Enviar →</Btn>}
           />
-
-          {/* Cuentas vinculadas (Google / Facebook / Email) */}
-          <div style={{ padding: '12px 16px', borderTop: `1px solid ${th.border}` }}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: th.text }}>
-              {lang === 'en' ? 'Linked sign-in methods' : 'Métodos de acceso vinculados'}
-            </p>
-            {['email', 'google', 'facebook'].map(provider => {
-              const info = { email: { label: 'Email y contraseña', icon: '✉️' }, google: { label: 'Google', icon: '🔵' }, facebook: { label: 'Facebook', icon: '🔷' } }[provider]
-              const linked = linkedProviders.includes(provider)
-              const isLoading = linkLoading === provider
-              return (
-                <div key={provider} style={{
-                  display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between', padding: '8px 0'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{info.icon}</span>
-                    <div>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: th.text }}>{info.label}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: linked ? th.primaryText : th.textSec }}>
-                        {linked
-                          ? (lang === 'en' ? 'Connected' : 'Conectado')
-                          : (lang === 'en' ? 'Not connected' : 'No conectado')}
-                      </p>
-                    </div>
-                  </div>
-                  {provider === 'email' ? null : (
-                    linked ? (
-                      <button onClick={() => handleUnlinkProvider(provider)} disabled={isLoading}
-                        style={{
-                          background: 'none', border: `1px solid ${th.border}`, borderRadius: 10,
-                          padding: '5px 12px', fontSize: 12, fontWeight: 600, color: th.red,
-                          cursor: 'pointer', fontFamily: 'inherit'
-                        }}>
-                        {isLoading ? '...' : (lang === 'en' ? 'Remove' : 'Quitar')}
-                      </button>
-                    ) : (
-                      <button onClick={() => handleLinkProvider(provider)} disabled={isLoading}
-                        style={{
-                          background: th.primaryLight, border: `1px solid ${th.primary}`, borderRadius: 10,
-                          padding: '5px 12px', fontSize: 12, fontWeight: 600, color: th.primaryText,
-                          cursor: 'pointer', fontFamily: 'inherit'
-                        }}>
-                        {isLoading ? '...' : (lang === 'en' ? 'Connect' : 'Vincular')}
-                      </button>
-                    )
-                  )}
-                </div>
-              )
-            })}
-            <p style={{ margin: '8px 0 0', fontSize: 11, color: th.textSec, lineHeight: 1.5 }}>
-              🔒 {lang === 'en'
-                ? 'Linking another provider lets you sign in multiple ways without losing your data.'
-                : 'Vincular otro proveedor te permite iniciar sesión de varias formas sin perder tu información.'}
-            </p>
-          </div>
         </div>
 
         {/* Acerca de */}
         <div style={ss}>
           <p style={sh}>{t.about}</p>
           <SettingsRow label={t.version} right={<span style={{ fontSize: 13, color: th.textSec }}>2.0.0</span>} />
-          <SettingsRow label={t.terms} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
-          <SettingsRow label={t.privacyPolicy} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
+          <SettingsRow label={t.terms} onClick={() => window.open('https://changuinolapro.com/terms')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
+          <SettingsRow label={t.privacyPolicy} onClick={() => window.open('https://changuinolapro.com/privacy')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
           <SettingsRow label={t.contactSupport} onClick={() => window.open('mailto:soporte@changuinolapro.com')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
         </div>
       </div>
@@ -1452,42 +1142,17 @@ Se descargará el recibo automáticamente.`)) return
     } finally { setDeleting(null) }
   }
 
-  const downloadReceipt = async (req) => {
-    // req puede venir como string (id) o como objeto completo de la solicitud
-    const requestId = typeof req === 'string' ? req : req.id
+  const downloadReceipt = async (requestId) => {
     try {
-      let { data: receipt } = await supabase
+      const { data: receipt } = await supabase
         .from('receipts').select('*').eq('service_request_id', requestId).single()
-
-      // Si no existe el recibo (p.ej. servicio completado sin pago confirmado
-      // en la app, pago en efectivo acordado fuera de línea, etc.), generarlo
-      // ahora mismo con los datos disponibles de la solicitud.
-      if (!receipt) {
-        const full = typeof req === 'object' ? req : null
-        const { data: r } = await supabase
-          .from('service_requests').select('*').eq('id', requestId).single()
-        const sr = full ?? r
-        if (!sr) { showToast('Solicitud no encontrada.', 'error'); return }
-
-        receipt = await receiptActions.generate({
-          requestId: sr.id,
-          clientId: sr.client_id,
-          technicianId: sr.technician_id,
-          serviceTitle: sr.title,
-          serviceDescription: sr.description,
-          amount: sr.agreed_price ?? 0,
-          paymentMethod: sr.payment_method || 'cash',
-          paymentReference: sr.payment_ref || null,
-          clientName: sr.client_name ?? 'Cliente',
-          technicianName: sr.technician_name ?? 'Técnico',
-        })
+      if (receipt) {
+        await receiptActions.downloadPDF(receipt)
+        showToast('Recibo descargado')
+      } else {
+        showToast('No hay recibo generado aún.', 'error')
       }
-
-      await receiptActions.downloadPDF(receipt)
-      showToast('Recibo descargado')
-    } catch (err) {
-      showToast('Error al descargar: ' + (err?.message ?? ''), 'error')
-    }
+    } catch { showToast('Error al descargar', 'error') }
   }
 
   const STATUS_COLORS = {
@@ -1686,7 +1351,7 @@ Se descargará el recibo automáticamente.`)) return
 
               {tab === 'completed' && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => downloadReceipt(r)}
+                  <button onClick={() => downloadReceipt(r.id)}
                     style={{
                       flex: 2, padding: '8px', background: th.primaryLight,
                       color: th.primaryText, border: `1px solid ${th.primary}`,
@@ -1710,7 +1375,7 @@ Se descargará el recibo automáticamente.`)) return
 
               {tab === 'archived' && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => downloadReceipt(r)}
+                  <button onClick={() => downloadReceipt(r.id)}
                     style={{
                       flex: 2, padding: '8px', background: th.primaryLight,
                       color: th.primaryText, border: `1px solid ${th.primary}`,
@@ -1749,8 +1414,6 @@ export function AdminScreen() {
   const [techs, setTechs] = useState([])
   const [revs, setRevs] = useState([])
   const [certs, setCerts] = useState([])
-  const [disputes, setDisputes] = useState([])
-  const [resolvingId, setResolvingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tabLoad, setTabLoad] = useState(false)
   const [toast, setToast] = useState(null)
@@ -1797,9 +1460,6 @@ export function AdminScreen() {
           .eq('is_verified', false)
           .order('created_at', { ascending: false })
         setCerts(data ?? [])
-      } else if (newTab === 'disputes') {
-        const d = await disputeActions.listAll()
-        setDisputes(d)
       }
     } catch (err) {
       showToast('Error al cargar datos: ' + (err?.message ?? ''), 'error')
@@ -1814,10 +1474,9 @@ export function AdminScreen() {
   const TABS = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
     { id: 'users', icon: '👥', label: 'Usuarios' },
-    { id: 'techs', icon: '🛠️', label: 'Técnicos', badge: stats?.pending?.techs },
-    { id: 'reviews', icon: '⭐', label: 'Reseñas', badge: stats?.pending?.reviews },
-    { id: 'certs', icon: '📜', label: 'Certificados', badge: stats?.pending?.certs },
-    { id: 'disputes', icon: '⚠️', label: 'Disputas', badge: stats?.pending?.disputes },
+    { id: 'techs', icon: '🛠️', label: 'Técnicos' },
+    { id: 'reviews', icon: '⭐', label: 'Reseñas' },
+    { id: 'certs', icon: '📜', label: 'Certificados' },
   ]
 
   const filterBySearch = (list, fields) => {
@@ -1844,19 +1503,9 @@ export function AdminScreen() {
               cursor: 'pointer', fontWeight: tab === tb.id ? 700 : 400,
               color: tab === tb.id ? th.primary : th.textSec,
               borderBottom: tab === tb.id ? `2.5px solid ${th.primary}` : '2.5px solid transparent',
-              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-              position: 'relative'
+              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5
             }}>
             {tb.icon} {tb.label}
-            {!!tb.badge && (
-              <span style={{
-                background: th.red, color: '#fff', fontSize: 10, fontWeight: 700,
-                minWidth: 16, height: 16, borderRadius: 8, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', padding: '0 4px'
-              }}>
-                {tb.badge > 9 ? '9+' : tb.badge}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -1900,63 +1549,7 @@ export function AdminScreen() {
             {/* ────── DASHBOARD ────── */}
             {tab === 'dashboard' && stats && (
               <div>
-                {/* Alertas de pendientes */}
-                {(stats.pending.disputes > 0 || stats.pending.techs > 0 ||
-                  stats.pending.reviews > 0 || stats.pending.certs > 0) && (
-                    <div style={{
-                      background: '#fef3c7', borderRadius: 14, padding: 14,
-                      border: '1px solid #fde68a', marginBottom: 16
-                    }}>
-                      <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 14, color: '#92400e' }}>
-                        ⚡ Requiere tu atención
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {stats.pending.disputes > 0 && (
-                          <button onClick={() => loadTab('disputes')}
-                            style={{
-                              background: '#fee2e2', color: '#991b1b', border: 'none',
-                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              cursor: 'pointer', fontFamily: 'inherit'
-                            }}>
-                            ⚠️ {stats.pending.disputes} disputa{stats.pending.disputes !== 1 ? 's' : ''}
-                          </button>
-                        )}
-                        {stats.pending.techs > 0 && (
-                          <button onClick={() => loadTab('techs')}
-                            style={{
-                              background: '#dbeafe', color: '#1e40af', border: 'none',
-                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              cursor: 'pointer', fontFamily: 'inherit'
-                            }}>
-                            🛠️ {stats.pending.techs} técnico{stats.pending.techs !== 1 ? 's' : ''} sin verificar
-                          </button>
-                        )}
-                        {stats.pending.reviews > 0 && (
-                          <button onClick={() => loadTab('reviews')}
-                            style={{
-                              background: '#fef9c3', color: '#92400e', border: 'none',
-                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              cursor: 'pointer', fontFamily: 'inherit'
-                            }}>
-                            ⭐ {stats.pending.reviews} reseña{stats.pending.reviews !== 1 ? 's' : ''} pendiente{stats.pending.reviews !== 1 ? 's' : ''}
-                          </button>
-                        )}
-                        {stats.pending.certs > 0 && (
-                          <button onClick={() => loadTab('certs')}
-                            style={{
-                              background: '#ede9fe', color: '#5b21b6', border: 'none',
-                              borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              cursor: 'pointer', fontFamily: 'inherit'
-                            }}>
-                            📜 {stats.pending.certs} certificado{stats.pending.certs !== 1 ? 's' : ''}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                {/* KPIs principales */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                   {[
                     { val: stats.totalUsers, label: 'Usuarios registrados', icon: '👥', color: '#dbeafe', text: '#1e40af' },
                     { val: stats.totalTechs, label: 'Técnicos activos', icon: '🛠️', color: '#dcfce7', text: '#166534' },
@@ -1975,35 +1568,6 @@ export function AdminScreen() {
                     </div>
                   ))}
                 </div>
-
-                {/* Métricas de negocio */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div style={{
-                    background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-                    borderRadius: 16, padding: '18px 16px'
-                  }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>💰</p>
-                    <p style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>
-                      ${stats.totalRevenue.toFixed(2)}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
-                      Ingresos confirmados
-                    </p>
-                  </div>
-                  <div style={{
-                    background: th.surface, borderRadius: 16,
-                    border: `1px solid ${th.border}`, padding: '18px 16px'
-                  }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>✅</p>
-                    <p style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: th.text }}>
-                      {stats.completedRequests}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 12, color: th.textSec, fontWeight: 600 }}>
-                      Servicios completados
-                    </p>
-                  </div>
-                </div>
-
                 {/* Acciones rápidas */}
                 <div style={{
                   background: th.surface, borderRadius: 16,
@@ -2030,90 +1594,15 @@ export function AdminScreen() {
                     ))}
                   </div>
                 </div>
-
-                {/* Actividad reciente */}
-                <div style={{
-                  background: th.surface, borderRadius: 16,
-                  border: `1px solid ${th.border}`, padding: 16, marginBottom: 16
-                }}>
-                  <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: 15, color: th.text }}>
-                    🕐 Actividad reciente
-                  </p>
-
-                  {stats.recentRequests.length === 0 && stats.recentUsers.length === 0 ? (
-                    <p style={{ fontSize: 13, color: th.textSec, margin: 0 }}>Sin actividad reciente.</p>
-                  ) : (
-                    <>
-                      {stats.recentUsers.slice(0, 3).map(u => (
-                        <div key={'u-' + u.id} style={{
-                          display: 'flex', alignItems: 'center',
-                          gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
-                        }}>
-                          <span style={{ fontSize: 16 }}>
-                            {u.role === 'technician' ? '🛠️' : u.role === 'admin' ? '🔧' : '👤'}
-                          </span>
-                          <p style={{
-                            margin: 0, fontSize: 13, color: th.text, flex: 1,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                          }}>
-                            <strong>{u.full_name}</strong> se registró
-                          </p>
-                          <span style={{ fontSize: 11, color: th.textSec, flexShrink: 0 }}>
-                            {new Date(u.created_at).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
-                          </span>
-                        </div>
-                      ))}
-                      {stats.recentRequests.slice(0, 4).map(r => (
-                        <div key={'r-' + r.id} style={{
-                          display: 'flex', alignItems: 'center',
-                          gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
-                        }}>
-                          <span style={{ fontSize: 16 }}>📋</span>
-                          <p style={{
-                            margin: 0, fontSize: 13, color: th.text, flex: 1,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                          }}>
-                            Nueva solicitud: <strong>{r.title}</strong>
-                          </p>
-                          <span style={{ fontSize: 11, color: th.textSec, flexShrink: 0 }}>
-                            {new Date(r.created_at).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })}
-                          </span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
               </div>
             )}
 
             {/* ────── USUARIOS ────── */}
             {tab === 'users' && (
               <div>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', marginBottom: 14
-                }}>
-                  <p style={{ color: th.textSec, fontSize: 13, margin: 0 }}>
-                    {filterBySearch(users, ['full_name', 'email', 'role']).length} usuarios
-                  </p>
-                  <button onClick={() => admin.exportToCSV(
-                    filterBySearch(users, ['full_name', 'email', 'role']),
-                    [
-                      { key: 'full_name', label: 'Nombre' },
-                      { key: 'email', label: 'Email' },
-                      { key: 'role', label: 'Rol' },
-                      { key: 'account_status', label: 'Estado' },
-                      { key: 'created_at', label: 'Fecha de registro' },
-                    ],
-                    `usuarios_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
-                  )} style={{
-                    background: th.surface2, border: `1px solid ${th.border}`,
-                    borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
-                    color: th.text, cursor: 'pointer', fontFamily: 'inherit'
-                  }}>
-                    ⬇️ Exportar CSV
-                  </button>
-                </div>
+                <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
+                  {filterBySearch(users, ['full_name', 'email', 'role']).length} usuarios
+                </p>
                 {filterBySearch(users, ['full_name', 'email', 'role']).map(u => (
                   <div key={u.id} style={{
                     background: th.surface, borderRadius: 14,
@@ -2216,34 +1705,9 @@ export function AdminScreen() {
             {/* ────── TÉCNICOS ────── */}
             {tab === 'techs' && (
               <div>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', marginBottom: 14
-                }}>
-                  <p style={{ color: th.textSec, fontSize: 13, margin: 0 }}>
-                    {filterBySearch(techs, ['full_name', 'professional_title', 'city']).length} técnicos
-                  </p>
-                  <button onClick={() => admin.exportToCSV(
-                    filterBySearch(techs, ['full_name', 'professional_title', 'city']),
-                    [
-                      { key: 'full_name', label: 'Nombre' },
-                      { key: 'professional_title', label: 'Título profesional' },
-                      { key: 'city', label: 'Ciudad' },
-                      { key: 'average_rating', label: 'Calificación' },
-                      { key: 'total_jobs', label: 'Trabajos completados' },
-                      { key: 'verification_status', label: 'Verificación' },
-                      { key: 'is_featured', label: 'Destacado' },
-                      { key: 'public_phone', label: 'Teléfono' },
-                    ],
-                    `tecnicos_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
-                  )} style={{
-                    background: th.surface2, border: `1px solid ${th.border}`,
-                    borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
-                    color: th.text, cursor: 'pointer', fontFamily: 'inherit'
-                  }}>
-                    ⬇️ Exportar CSV
-                  </button>
-                </div>
+                <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
+                  {filterBySearch(techs, ['full_name', 'professional_title', 'city']).length} técnicos
+                </p>
                 {filterBySearch(techs, ['full_name', 'professional_title', 'city']).map(tech => (
                   <div key={tech.user_id} style={{
                     background: th.surface, borderRadius: 14,
@@ -2595,234 +2059,6 @@ export function AdminScreen() {
                               ✗
                             </button>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ────── DISPUTAS ────── */}
-            {tab === 'disputes' && (
-              <div>
-                {disputes.length === 0 ? (
-                  <EmptyState emoji="⚠️" title="Sin disputas"
-                    sub="No hay disputas abiertas en este momento." />
-                ) : (
-                  <>
-                    <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
-                      {disputes.length} disputa{disputes.length !== 1 ? 's' : ''}
-                    </p>
-                    {disputes.map(d => {
-                      const isResolving = resolvingId === d.id
-                      const STATUS_INFO = {
-                        open: { label: '🔴 Abierta', bg: '#fee2e2', text: '#991b1b' },
-                        under_review: { label: '🟡 En revisión', bg: '#fef3c7', text: '#92400e' },
-                        resolved_client: { label: '✅ A favor del cliente', bg: '#dbeafe', text: '#1e40af' },
-                        resolved_tech: { label: '✅ A favor del técnico', bg: '#dcfce7', text: '#166534' },
-                        closed: { label: '🔒 Cerrada', bg: '#f1f5f9', text: '#475569' },
-                      }
-                      const si = STATUS_INFO[d.status] ?? STATUS_INFO.open
-                      const isFinal = ['resolved_client', 'resolved_tech', 'closed'].includes(d.status)
-
-                      const handleResolve = async (resolution) => {
-                        const labels = {
-                          resolved_client: 'a favor del CLIENTE',
-                          resolved_tech: 'a favor del TÉCNICO',
-                          closed: 'cerrando sin responsabilidad',
-                        }
-                        if (!window.confirm(`¿Resolver esta disputa ${labels[resolution]}?\n\nEsto actualizará el estado de la solicitud y notificará a ambas partes.`)) return
-                        setResolvingId(d.id)
-                        try {
-                          await disputeActions.resolve(d.id, d.service_request_id, resolution, d.resolution_notes, user.id)
-                          setDisputes(prev => prev.map(x => x.id === d.id
-                            ? { ...x, status: resolution, resolved_at: new Date().toISOString() } : x))
-                          showToast('✅ Disputa resuelta correctamente')
-                        } catch (err) {
-                          showToast(err?.message ?? 'Error al resolver', 'error')
-                        } finally { setResolvingId(null) }
-                      }
-
-                      const handleUnderReview = async () => {
-                        setResolvingId(d.id)
-                        try {
-                          await disputeActions.markUnderReview(d.id, user.id)
-                          setDisputes(prev => prev.map(x => x.id === d.id
-                            ? { ...x, status: 'under_review' } : x))
-                          showToast('Marcada como en revisión')
-                        } catch (err) {
-                          showToast(err?.message ?? 'Error', 'error')
-                        } finally { setResolvingId(null) }
-                      }
-
-                      const handleDismiss = async () => {
-                        if (!window.confirm('¿Eliminar esta disputa? La solicitud volverá a estado "Completada" y se notificará a ambas partes.')) return
-                        setResolvingId(d.id)
-                        try {
-                          await disputeActions.dismiss(d.id, d.service_request_id)
-                          setDisputes(prev => prev.filter(x => x.id !== d.id))
-                          showToast('Disputa eliminada')
-                        } catch (err) {
-                          showToast(err?.message ?? 'Error al eliminar', 'error')
-                        } finally { setResolvingId(null) }
-                      }
-
-                      return (
-                        <div key={d.id} style={{
-                          background: th.surface, borderRadius: 14,
-                          padding: 16, marginBottom: 12, border: `1px solid ${th.border}`,
-                          opacity: isResolving ? 0.6 : 1, transition: 'opacity 0.2s'
-                        }}>
-
-                          {/* Header: estado + fecha */}
-                          <div style={{
-                            display: 'flex', justifyContent: 'space-between',
-                            alignItems: 'center', marginBottom: 10
-                          }}>
-                            <span style={{
-                              fontSize: 12, fontWeight: 700, padding: '3px 10px',
-                              borderRadius: 20, background: si.bg, color: si.text
-                            }}>
-                              {si.label}
-                            </span>
-                            <span style={{ fontSize: 11, color: th.textSec }}>
-                              {new Date(d.created_at).toLocaleDateString('es-PA', {
-                                day: '2-digit', month: 'short', year: 'numeric'
-                              })}
-                            </span>
-                          </div>
-
-                          {/* Servicio relacionado */}
-                          <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 14, color: th.text }}>
-                            {d.request?.title ?? 'Solicitud eliminada'}
-                          </p>
-                          {d.request?.agreed_price && (
-                            <p style={{ margin: '0 0 8px', fontSize: 12, color: th.textSec }}>
-                              💲 Monto acordado: ${Number(d.request.agreed_price).toFixed(2)} ·{' '}
-                              {d.request.payment_status === 'paid' ? '✓ Pagado' : 'Sin pagar'}
-                            </p>
-                          )}
-
-                          {/* Partes involucradas */}
-                          <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Avatar photo={d.client?.avatar_url} name={d.client?.full_name} size={28} />
-                              <div>
-                                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: th.text }}>
-                                  {d.client?.full_name ?? 'Cliente'}
-                                </p>
-                                <p style={{ margin: 0, fontSize: 10, color: th.textSec }}>Cliente</p>
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Avatar photo={d.technician?.avatar_url} name={d.technician?.full_name} size={28} />
-                              <div>
-                                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: th.text }}>
-                                  {d.technician?.full_name ?? 'Técnico'}
-                                </p>
-                                <p style={{ margin: 0, fontSize: 10, color: th.textSec }}>Técnico</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Quién abrió la disputa */}
-                          <p style={{ margin: '0 0 6px', fontSize: 12, color: th.textSec }}>
-                            🚩 Abierta por: <strong style={{ color: th.text }}>{d.opener?.full_name ?? '—'}</strong>
-                          </p>
-
-                          {/* Motivo y descripción */}
-                          <div style={{
-                            background: th.surface2, borderRadius: 10,
-                            padding: '10px 12px', marginBottom: 10, border: `1px solid ${th.border}`
-                          }}>
-                            <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: th.text }}>
-                              Motivo: {d.reason}
-                            </p>
-                            {d.description && (
-                              <p style={{
-                                margin: 0, fontSize: 12, color: th.textSec,
-                                lineHeight: 1.5, fontStyle: 'italic'
-                              }}>
-                                "{d.description}"
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Notas de resolución (si ya fue resuelta) */}
-                          {isFinal && d.resolution_notes && (
-                            <div style={{
-                              background: '#f0fdf4', borderRadius: 10,
-                              padding: '10px 12px', marginBottom: 10, border: '1px solid #bbf7d0'
-                            }}>
-                              <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#166534' }}>
-                                Notas de resolución:
-                              </p>
-                              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
-                                {d.resolution_notes}
-                              </p>
-                            </div>
-                          )}
-
-                          {isFinal && (
-                            <p style={{ margin: '0 0 10px', fontSize: 11, color: th.textSec }}>
-                              Resuelta el {new Date(d.resolved_at).toLocaleDateString('es-PA')}
-                            </p>
-                          )}
-
-                          {/* Botones de acción — solo si no está resuelta */}
-                          {!isFinal && (
-                            <>
-                              {d.status === 'open' && (
-                                <button onClick={handleUnderReview} disabled={isResolving}
-                                  style={{
-                                    width: '100%', padding: '9px', marginBottom: 8,
-                                    background: '#fef3c7', color: '#92400e',
-                                    border: '1px solid #fde68a', borderRadius: 10,
-                                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                    fontFamily: 'inherit'
-                                  }}>
-                                  🔍 Marcar como en revisión
-                                </button>
-                              )}
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                                <button onClick={() => handleResolve('resolved_client')} disabled={isResolving}
-                                  style={{
-                                    padding: '9px', background: '#dbeafe', color: '#1e40af',
-                                    border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 12,
-                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
-                                  }}>
-                                  👤 A favor del cliente
-                                </button>
-                                <button onClick={() => handleResolve('resolved_tech')} disabled={isResolving}
-                                  style={{
-                                    padding: '9px', background: '#dcfce7', color: '#166534',
-                                    border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 12,
-                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
-                                  }}>
-                                  🛠️ A favor del técnico
-                                </button>
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                <button onClick={() => handleResolve('closed')} disabled={isResolving}
-                                  style={{
-                                    padding: '9px', background: th.surface2, color: th.textSec,
-                                    border: `1px solid ${th.border}`, borderRadius: 10, fontSize: 12,
-                                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-                                  }}>
-                                  🔒 Cerrar sin culpa
-                                </button>
-                                <button onClick={handleDismiss} disabled={isResolving}
-                                  style={{
-                                    padding: '9px', background: '#fee2e2', color: '#991b1b',
-                                    border: '1px solid #fca5a5', borderRadius: 10, fontSize: 12,
-                                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
-                                  }}>
-                                  🗑️ Eliminar (inválida)
-                                </button>
-                              </div>
-                            </>
-                          )}
                         </div>
                       )
                     })}

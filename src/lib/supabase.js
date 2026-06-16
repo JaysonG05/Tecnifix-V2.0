@@ -67,54 +67,6 @@ export const auth = {
     const { data } = await supabase.auth.getUser()
     return data.user
   },
-
-  /**
-   * Iniciar sesión / registrarse con un proveedor OAuth (Google o Facebook).
-   * Redirige al usuario al proveedor y luego de vuelta a la app.
-   * El trigger handle_new_user crea automáticamente el perfil
-   * en public.profiles la primera vez que el usuario inicia sesión.
-   */
-  async signInWithOAuth(provider) {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider, // 'google' | 'facebook'
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: provider === 'google'
-          ? { access_type: 'offline', prompt: 'consent' }
-          : undefined,
-      },
-    })
-    if (error) throw error
-    return data
-  },
-
-  /**
-   * Lista los proveedores de inicio de sesión vinculados a la cuenta
-   * actual (útil para mostrar en Configuración → Seguridad).
-   */
-  async getLinkedProviders() {
-    const { data } = await supabase.auth.getUserIdentities()
-    return (data?.identities ?? []).map(i => i.provider)
-  },
-
-  /**
-   * Vincular un proveedor OAuth adicional a la cuenta ya autenticada
-   * (p.ej. usuario que se registró con email y quiere agregar Google).
-   */
-  async linkOAuthIdentity(provider) {
-    const { data, error } = await supabase.auth.linkIdentity({
-      provider,
-      options: { redirectTo: window.location.origin },
-    })
-    if (error) throw error
-    return data
-  },
-
-  /** Desvincular un proveedor OAuth (requiere quedar con al menos 1 método de acceso) */
-  async unlinkOAuthIdentity(identity) {
-    const { error } = await supabase.auth.unlinkIdentity(identity)
-    if (error) throw error
-  },
 }
 
 // ─────────────────────────────────────────────
@@ -646,66 +598,6 @@ export const serviceCatalog = {
 }
 
 // ─────────────────────────────────────────────
-// CHAT helpers (mensajería por solicitud)
-// ─────────────────────────────────────────────
-export const chatApi = {
-  /** Listar mensajes de una solicitud */
-  async list(requestId) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('request_id', requestId)
-      .order('created_at', { ascending: true })
-    if (error) throw error
-    return data ?? []
-  },
-
-  /** Enviar mensaje */
-  async send(requestId, senderId, body) {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({ request_id: requestId, sender_id: senderId, body: body.trim() })
-      .select()
-      .single()
-    if (error) throw error
-    return data
-  },
-
-  /** Marcar como leídos todos los mensajes que NO son del usuario actual */
-  async markRead(requestId, userId) {
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('request_id', requestId)
-      .neq('sender_id', userId)
-      .eq('is_read', false)
-  },
-
-  /** Contar mensajes no leídos de una solicitud (de la otra parte) */
-  async countUnread(requestId, userId) {
-    const { count } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('request_id', requestId)
-      .neq('sender_id', userId)
-      .eq('is_read', false)
-    return count ?? 0
-  },
-
-  /** Suscribirse en tiempo real a nuevos mensajes de una solicitud */
-  subscribe(requestId, onInsert) {
-    const channel = supabase
-      .channel(`messages:${requestId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages',
-        filter: `request_id=eq.${requestId}`,
-      }, (payload) => onInsert(payload.new))
-      .subscribe()
-    return () => supabase.removeChannel(channel)
-  },
-}
-
-// ─────────────────────────────────────────────
 // ARCHIVE helpers
 // ─────────────────────────────────────────────
 export const archiveApi = {
@@ -1120,76 +1012,20 @@ export const admin = {
 
   async getDashboardStats() {
     try {
-      const [
-        users, techs, requests, reviews_,
-        pendingReviews, pendingCerts, pendingDisputes, pendingTechs,
-        completedRequests, paidPayments, recentRequests, recentUsers,
-      ] = await Promise.all([
+      const [users, techs, requests, reviews_] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('technician_profiles').select('user_id', { count: 'exact', head: true }),
         supabase.from('service_requests').select('id', { count: 'exact', head: true }),
         supabase.from('reviews').select('id', { count: 'exact', head: true }),
-        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('moderation_status', 'pending'),
-        supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('is_verified', false),
-        supabase.from('disputes').select('id', { count: 'exact', head: true }).in('status', ['open', 'under_review']),
-        supabase.from('technician_profiles').select('user_id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-        supabase.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-        supabase.from('payments').select('amount').eq('status', 'completed'),
-        supabase.from('service_requests')
-          .select('id, title, status, created_at, client_id, technician_id')
-          .order('created_at', { ascending: false }).limit(5),
-        supabase.from('profiles')
-          .select('id, full_name, role, created_at')
-          .order('created_at', { ascending: false }).limit(5),
       ])
-
-      const totalRevenue = (paidPayments.data ?? [])
-        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
-
       return {
         totalUsers: users.count ?? 0,
         totalTechs: techs.count ?? 0,
         totalRequests: requests.count ?? 0,
         totalReviews: reviews_.count ?? 0,
-        completedRequests: completedRequests.count ?? 0,
-        totalRevenue,
-        pending: {
-          reviews: pendingReviews.count ?? 0,
-          certs: pendingCerts.count ?? 0,
-          disputes: pendingDisputes.count ?? 0,
-          techs: pendingTechs.count ?? 0,
-        },
-        recentRequests: recentRequests.data ?? [],
-        recentUsers: recentUsers.data ?? [],
       }
     } catch {
-      return {
-        totalUsers: 0, totalTechs: 0, totalRequests: 0, totalReviews: 0,
-        completedRequests: 0, totalRevenue: 0,
-        pending: { reviews: 0, certs: 0, disputes: 0, techs: 0 },
-        recentRequests: [], recentUsers: [],
-      }
+      return { totalUsers: 0, totalTechs: 0, totalRequests: 0, totalReviews: 0 }
     }
-  },
-
-  /** Exportar usuarios o técnicos a CSV (descarga directa en el navegador) */
-  exportToCSV(rows, columns, filename) {
-    const header = columns.map(c => `"${c.label}"`).join(',')
-    const lines = rows.map(row =>
-      columns.map(c => {
-        let val = row[c.key]
-        if (val === null || val === undefined) val = ''
-        val = String(val).replace(/"/g, '""')
-        return `"${val}"`
-      }).join(',')
-    )
-    const csv = [header, ...lines].join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
   },
 }
