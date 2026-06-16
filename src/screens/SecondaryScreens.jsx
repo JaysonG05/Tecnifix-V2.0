@@ -91,53 +91,122 @@ export function ProfileScreen() {
   }
 
   const roleLabel = user.role === 'admin' ? t.admin : user.role === 'technician' ? t.techRole : t.clientRole
-  const roleIcon = user.role === 'admin' ? '🔧' : user.role === 'technician' ? '🛠️' : '👤'
+
+  // Íconos SVG para el menú de perfil
+  const MENU_ITEMS = [
+    { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />, label: t.editProfile, screen: 'edit-profile' },
+    { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />, label: 'Mis recibos', screen: 'my-receipts' },
+    ...(user.role === 'technician' ? [
+      { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />, label: t.editProfProfile, screen: 'edit-tech-profile' },
+      { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />, label: 'Catálogo de servicios', screen: 'service-catalog' },
+      { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />, label: 'Mis certificados', screen: 'certificates' },
+    ] : []),
+    ...(user.role === 'admin' ? [
+      { svg: <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />, label: t.adminPanel, screen: 'admin' },
+    ] : []),
+  ]
 
   return (
     <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 90 }}>
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)', padding: '28px 20px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Avatar photo={user.avatar_url} name={user.full_name} size={72} />
+
+      {/* Header navy con info del usuario */}
+      <div style={{
+        background: 'linear-gradient(145deg, #00214D 0%, #00369A 100%)',
+        padding: '28px 20px 24px', position: 'relative', overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute', top: -30, right: -20, width: 120, height: 120,
+          borderRadius: '50%', background: 'rgba(255,214,0,0.07)', pointerEvents: 'none'
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ position: 'relative' }}>
+            <Avatar photo={user.avatar_url} name={user.full_name} size={64} />
+          </div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: '0 0 3px', fontWeight: 800, fontSize: 18, color: '#fff' }}>{user.full_name}</p>
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{user.email}</p>
-            <Badge color="rgba(255,255,255,0.25)" textColor="#fff">{roleIcon} {roleLabel}</Badge>
+            <p style={{ margin: '0 0 3px', fontWeight: 700, fontFamily: th.fontDisplay, fontSize: 17, color: '#fff' }}>
+              {user.full_name}
+            </p>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{user.email}</p>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: 'rgba(255,255,255,0.12)', borderRadius: 100,
+              padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)'
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: 3, background: th.verified }} />
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', fontFamily: th.fontDisplay, fontWeight: 600 }}>
+                {roleLabel}
+              </span>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => navigate('notifications')} style={{ position: 'relative', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 20, width: 38, height: 38, fontSize: 20, cursor: 'pointer' }}>
-              🔔
-              {unreadCount > 0 && <div style={{ position: 'absolute', top: 4, right: 4, width: 14, height: 14, background: '#ef4444', borderRadius: 7, fontSize: 9, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{unreadCount > 9 ? '9+' : unreadCount}</div>}
+            <button onClick={() => navigate('notifications')}
+              style={{
+                position: 'relative', background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10,
+                width: 38, height: 38, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute', top: 5, right: 5, width: 14, height: 14,
+                  background: th.yellow, borderRadius: 7, fontSize: 8, color: th.ink,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800
+                }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </div>
+              )}
             </button>
-            <button onClick={() => navigate('settings')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 20, width: 38, height: 38, fontSize: 20, cursor: 'pointer' }}>⚙️</button>
+            <button onClick={() => navigate('settings')}
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10,
+                width: 38, height: 38, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" /><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {/* Acciones rápidas */}
+      <div style={{ padding: '14px 16px 0' }}>
+        {/* Menú de acciones con SVG icons */}
         <div style={{ background: th.surface, borderRadius: 16, border: `1px solid ${th.border}`, marginBottom: 14, overflow: 'hidden' }}>
-          {[
-            { icon: '✏️', label: t.editProfile, screen: 'edit-profile' },
-            { icon: '🧾', label: 'Mis recibos', screen: 'my-receipts' },
-            ...(user.role === 'technician' ? [
-              { icon: '🛠️', label: t.editProfProfile, screen: 'edit-tech-profile' },
-              { icon: '💰', label: 'Catálogo de servicios', screen: 'service-catalog' },
-              { icon: '📜', label: 'Mis certificados y títulos', screen: 'certificates' },
-            ] : []),
-            ...(user.role === 'admin' ? [{ icon: '🔧', label: t.adminPanel, screen: 'admin' }] : []),
-          ].map(item => (
+          {MENU_ITEMS.map((item, idx) => (
             <button key={item.screen} onClick={() => navigate(item.screen)}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'none', border: 'none', borderBottom: `1px solid ${th.border}`, cursor: 'pointer', fontSize: 14, color: th.text, fontFamily: 'inherit' }}>
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', padding: '13px 16px',
+                background: 'none', border: 'none',
+                borderBottom: idx < MENU_ITEMS.length - 1 ? `1px solid ${th.border}` : 'none',
+                cursor: 'pointer', fontFamily: 'inherit'
+              }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 20 }}>{item.icon}</span>{item.label}
+                <span style={{
+                  width: 34, height: 34, borderRadius: 10,
+                  background: th.primaryLight, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', flexShrink: 0
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke={th.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    {item.svg}
+                  </svg>
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: th.text }}>{item.label}</span>
               </span>
-              <span style={{ color: th.textSec }}>›</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={th.textSec} strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </button>
           ))}
         </div>
 
-        {/* Solicitudes — 3 tabs */}
         <RequestsTabs user={user} th={th} t={t} navigate={navigate} setSelectedRequest={setSelectedRequest} />
 
         <Btn variant="danger" onClick={handleLogout}>{t.logout}</Btn>
@@ -159,8 +228,9 @@ function OAuthButtons({ th, lang, onSelect, loadingProvider }) {
 
   const btnBase = {
     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: 10, padding: '12px 14px', borderRadius: 12, fontSize: 14, fontWeight: 600,
+    gap: 10, padding: '12px 14px', borderRadius: 100, fontSize: 14, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
+    transition: 'all 150ms var(--ease-out)',
   }
 
   return (
@@ -168,7 +238,7 @@ function OAuthButtons({ th, lang, onSelect, loadingProvider }) {
       {/* Divisor */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0' }}>
         <div style={{ flex: 1, height: 1, background: th.border }} />
-        <span style={{ fontSize: 12, color: th.textSec, fontWeight: 600 }}>{L.divider}</span>
+        <span style={{ fontSize: 11, color: th.textSec, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase' }}>{L.divider}</span>
         <div style={{ flex: 1, height: 1, background: th.border }} />
       </div>
 
@@ -267,45 +337,97 @@ export function LoginScreen() {
 
   return (
     <div style={{ background: th.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '52px 24px 32px', textAlign: 'center' }}>
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 14px' }}>🔧</div>
-        <h1 style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 900, color: '#22c55e' }}>{t.appName}</h1>
-        <p style={{ margin: 0, fontSize: 14, color: th.textSec }}>{t.appSlogan}</p>
+
+      {/* Hero navy con logo */}
+      <div style={{
+        background: 'linear-gradient(145deg, #00214D 0%, #00369A 100%)',
+        padding: '44px 24px 36px', textAlign: 'center', position: 'relative', overflow: 'hidden'
+      }}>
+        {/* Círculo decorativo */}
+        <div style={{
+          position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+          borderRadius: '50%', background: 'rgba(255,214,0,0.08)', pointerEvents: 'none'
+        }} />
+
+        {/* Logo SVG */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="10" fill="#FFD600" />
+            <path d="M28 12c-1.2-1.2-2.9-2-4.6-2-.7 0-1.4.1-2 .3l3.3 3.3-2.4 2.4-3.3-3.3c-.2.6-.3 1.3-.3 2 0 1.7.7 3.4 2 4.6 1.1 1.1 2.6 1.8 4.3 1.9l6.3 6.3c.5.5 1.3.5 1.8 0l1.2-1.2c.5-.5.5-1.3 0-1.8l-6.3-6.3c.1-.3.2-.6.2-.9.2-1.7-.4-3.2-1.6-4.4L28 12z" fill="#00214D" />
+          </svg>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0, marginBottom: 6 }}>
+          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 28, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
+          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 28, color: '#FFD600', letterSpacing: -1 }}>FIX</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: "'Space Grotesk',sans-serif" }}>
+          Técnicos en todo Panamá
+        </p>
       </div>
 
-      <div style={{ flex: 1, padding: '0 24px 40px' }}>
-        <div style={{ background: th.surface, borderRadius: 20, padding: 24, border: `1px solid ${th.border}`, boxShadow: th.shadow }}>
-          <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 800, color: th.text }}>
+      <div style={{ flex: 1, padding: '24px 24px 40px' }}>
+        <div style={{
+          background: th.surface, borderRadius: 20, padding: 24,
+          border: `1px solid ${th.border}`, boxShadow: th.shadow
+        }}>
+          <h2 style={{
+            margin: '0 0 20px', fontSize: 20, fontWeight: 700,
+            fontFamily: th.fontDisplay, color: th.text
+          }}>
             {resetMode ? t.forgotPassword : t.loginTitle}
           </h2>
 
           {resetSent ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, background: th.primaryLight,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={th.primary} strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
               <p style={{ fontSize: 14, color: th.textSec }}>{t.resetSent}</p>
               <Btn variant="ghost" onClick={() => { setResetMode(false); setResetSent(false) }} style={{ marginTop: 16 }}>Volver al login</Btn>
             </div>
           ) : (
             <>
-              <Input label={t.email} value={email} onChange={setEmail} placeholder="tu@email.com" type="email" icon="📧" />
+              <Input label={t.email} value={email} onChange={setEmail} placeholder="tu@email.com" type="email" />
               {!resetMode && (
                 <div style={{ marginBottom: 4 }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>{t.password}</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, fontFamily: th.fontDisplay, color: th.text, marginBottom: 6 }}>{t.password}</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPass ? 'text' : 'password'} value={password}
                       onChange={e => setPassword(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleLogin()}
                       placeholder="••••••••"
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, outline: 'none', background: th.inputBg, color: th.text, fontFamily: 'inherit' }}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '12px 44px 12px 14px', borderRadius: 100, border: `1.5px solid ${th.inputBorder}`, fontSize: 14, outline: 'none', background: th.inputBg, color: th.text, fontFamily: 'inherit', transition: 'border-color 140ms' }}
+                      onFocus={e => e.target.style.borderColor = th.primary}
+                      onBlur={e => e.target.style.borderColor = th.inputBorder}
                     />
-                    <button onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>
-                      {showPass ? '🙈' : '👁️'}
+                    <button onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: th.textSec, display: 'flex', alignItems: 'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        {showPass
+                          ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                          : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
+                        }
+                      </svg>
                     </button>
                   </div>
                 </div>
               )}
 
-              {error && <p style={{ color: th.red, fontSize: 13, margin: '8px 0 0', textAlign: 'center', background: '#fef2f2', padding: '8px', borderRadius: 8 }}>{error}</p>}
+              {error && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, background: `${th.red}14`,
+                  border: `1px solid ${th.red}33`, borderRadius: 10, padding: '10px 12px', margin: '10px 0 0'
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={th.red} strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <p style={{ margin: 0, color: th.red, fontSize: 13 }}>{error}</p>
+                </div>
+              )}
               <div style={{ height: 16 }} />
 
               {resetMode
@@ -313,7 +435,12 @@ export function LoginScreen() {
                 : <Btn onClick={handleLogin} loading={loading}>{t.enter}</Btn>
               }
 
-              <button onClick={() => { setResetMode(v => !v); setError('') }} style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: 14, background: 'none', border: 'none', color: th.primary, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => { setResetMode(v => !v); setError('') }}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'center', marginTop: 14,
+                  background: 'none', border: 'none', color: th.primary, fontSize: 13,
+                  cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600
+                }}>
                 {resetMode ? '← Volver al login' : t.forgotPassword}
               </button>
 
@@ -326,7 +453,10 @@ export function LoginScreen() {
 
         <p style={{ textAlign: 'center', fontSize: 13, color: th.textSec, marginTop: 20 }}>
           {t.noAccount}{' '}
-          <button onClick={() => navigate('register')} style={{ background: 'none', border: 'none', color: th.primary, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+          <button onClick={() => navigate('register')} style={{
+            background: 'none', border: 'none',
+            color: th.primary, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit'
+          }}>
             {t.signUp}
           </button>
         </p>
@@ -456,7 +586,7 @@ export function RegisterScreen() {
             style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
             Política de Privacidad
           </span>{' '}
-          de Changuinola Pro.
+          de TECNIFIX.
         </p>
       </div>
 
@@ -598,7 +728,7 @@ export function EditTechProfileScreen() {
     min_price: '', max_price: '', price_unit: 'por visita',
     public_phone: '', public_whatsapp: '', public_email: '',
     website: '', instagram: '', facebook: '', bank_account: '',
-    address_text: '', city: 'Changuinola', province: 'Bocas del Toro',
+    address_text: '', city: 'Panamá', province: 'Panamá',
     latitude: '9.4390', longitude: '-82.5177',
     service_radius_km: '15', response_time_minutes: '60',
     is_available: true,
@@ -647,8 +777,8 @@ export function EditTechProfileScreen() {
           instagram: tp.instagram || '',
           facebook: tp.facebook || '',
           address_text: tp.address_text || '',
-          city: tp.city || 'Changuinola',
-          province: tp.province || 'Bocas del Toro',
+          city: tp.city || 'Panamá',
+          province: tp.province || 'Panamá',
           latitude: String(tp.latitude || '9.4390'),
           longitude: String(tp.longitude || '-82.5177'),
           service_radius_km: String(tp.service_radius_km || '15'),
@@ -851,8 +981,8 @@ export function EditTechProfileScreen() {
         <div style={sectionStyle}>
           <p style={sectionTitle}>📍 Ubicación y zona</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Input label={t.city} placeholder="Changuinola"    {...field('city')} />
-            <Input label={t.province} placeholder="Bocas del Toro" {...field('province')} />
+            <Input label={t.city} placeholder="Panamá"    {...field('city')} />
+            <Input label={t.province} placeholder="Panamá" {...field('province')} />
           </div>
           <Input label={t.address} placeholder="Calle, barrio..." {...field('address_text')} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -1155,7 +1285,7 @@ export function SettingsScreen() {
           <SettingsRow label={t.version} right={<span style={{ fontSize: 13, color: th.textSec }}>2.0.0</span>} />
           <SettingsRow label={t.terms} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
           <SettingsRow label={t.privacyPolicy} onClick={() => navigate('legal')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
-          <SettingsRow label={t.contactSupport} onClick={() => window.open('mailto:soporte@changuinolapro.com')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
+          <SettingsRow label={t.contactSupport} onClick={() => window.open('mailto:soporte@tecnifix.com')} right={<span style={{ color: th.primary, fontSize: 13 }}>›</span>} />
         </div>
       </div>
     </div>
@@ -1924,7 +2054,7 @@ export function AdminScreen() {
                         {stats.pending.techs > 0 && (
                           <button onClick={() => loadTab('techs')}
                             style={{
-                              background: '#dbeafe', color: '#1e40af', border: 'none',
+                              background: th.primaryLight, color: th.primary, border: 'none',
                               borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
                               cursor: 'pointer', fontFamily: 'inherit'
                             }}>
@@ -1968,7 +2098,7 @@ export function AdminScreen() {
                       padding: '18px 16px', border: `1px solid ${th.border}`
                     }}>
                       <p style={{ margin: '0 0 6px', fontSize: 30 }}>{s.icon}</p>
-                      <p style={{ margin: '0 0 4px', fontSize: 30, fontWeight: 900, color: '#0f172a' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 30, fontWeight: 900, color: th.ink }}>
                         {s.val}
                       </p>
                       <p style={{ margin: 0, fontSize: 12, color: s.text, fontWeight: 600 }}>{s.label}</p>
@@ -2105,7 +2235,7 @@ export function AdminScreen() {
                       { key: 'account_status', label: 'Estado' },
                       { key: 'created_at', label: 'Fecha de registro' },
                     ],
-                    `usuarios_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
+                    `usuarios_panama_${new Date().toISOString().slice(0, 10)}.csv`
                   )} style={{
                     background: th.surface2, border: `1px solid ${th.border}`,
                     borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
@@ -2235,7 +2365,7 @@ export function AdminScreen() {
                       { key: 'is_featured', label: 'Destacado' },
                       { key: 'public_phone', label: 'Teléfono' },
                     ],
-                    `tecnicos_changuinola_${new Date().toISOString().slice(0, 10)}.csv`
+                    `tecnicos_panama_${new Date().toISOString().slice(0, 10)}.csv`
                   )} style={{
                     background: th.surface2, border: `1px solid ${th.border}`,
                     borderRadius: 10, padding: '6px 12px', fontSize: 12, fontWeight: 600,
@@ -2259,7 +2389,7 @@ export function AdminScreen() {
                           {tech.professional_title || 'Sin título'}
                         </p>
                         <p style={{ margin: '0 0 6px', fontSize: 11, color: th.textSec }}>
-                          📍 {tech.city || 'Changuinola'} · ⭐ {Number(tech.average_rating).toFixed(1)}
+                          📍 {tech.city || 'Panamá'} · ⭐ {Number(tech.average_rating).toFixed(1)}
                           ({tech.total_reviews} reseñas) · {tech.total_jobs} trabajos
                         </p>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -2550,7 +2680,7 @@ export function AdminScreen() {
                               <button onClick={() => window.open(cert.file_url, '_blank')}
                                 style={{
                                   flex: 1, padding: '10px', background: '#eff6ff',
-                                  color: '#1e40af', border: '1px solid #bfdbfe',
+                                  color: th.primary, border: '1px solid #bfdbfe',
                                   borderRadius: 10, fontSize: 13, fontWeight: 600,
                                   cursor: 'pointer', fontFamily: 'inherit'
                                 }}>
@@ -2565,7 +2695,7 @@ export function AdminScreen() {
                                   user_id: cert.technician_id,
                                   type: 'system',
                                   title: '✓ Certificado verificado',
-                                  body: `Tu documento "${cert.name}" fue verificado por el equipo de Changuinola Pro.`,
+                                  body: `Tu documento "${cert.name}" fue verificado por el equipo de TECNIFIX.`,
                                   data: JSON.stringify({ cert_id: cert.id }),
                                 })
                                 setCerts(prev => prev.filter(c => c.id !== cert.id))
@@ -2788,7 +2918,7 @@ export function AdminScreen() {
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                                 <button onClick={() => handleResolve('resolved_client')} disabled={isResolving}
                                   style={{
-                                    padding: '9px', background: '#dbeafe', color: '#1e40af',
+                                    padding: '9px', background: th.primaryLight, color: th.primary,
                                     border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 12,
                                     fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                                   }}>

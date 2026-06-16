@@ -659,7 +659,7 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
           background: '#eff6ff', borderRadius: 14, padding: 14,
           border: '1px solid #bfdbfe', marginBottom: 4
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: th.primary }}>
             💰 El cliente reportó un pago de ${request.agreed_price ?? '0.00'} por {request.payment_method === 'yappy' ? 'Yappy' : 'efectivo'}
           </p>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: '#1e3a8a' }}>
@@ -679,7 +679,7 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
                 width: '100%', boxSizing: 'border-box', padding: '12px',
                 marginBottom: 10, borderRadius: 12, border: '1.5px solid #bfdbfe',
                 fontSize: 22, fontWeight: 900, letterSpacing: 10, textAlign: 'center',
-                color: '#1e40af', background: '#fff', outline: 'none', fontFamily: 'inherit',
+                color: th.primary, background: '#fff', outline: 'none', fontFamily: 'inherit',
               }}
             />
           )}
@@ -883,24 +883,24 @@ function PayModal({ request, user, th, onClose, onSuccess }) {
                 background: '#eff6ff', borderRadius: 14, padding: 16,
                 border: '1px solid #bfdbfe', marginBottom: 16
               }}>
-                <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#1e40af', fontSize: 14 }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: th.primary, fontSize: 14 }}>
                   🏦 Datos bancarios del técnico
                 </p>
                 {request.technician_bank_account ? (
                   <>
-                    <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: '#1e40af' }}>
+                    <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: th.primary }}>
                       {request.technician_bank_account}
                     </p>
                     <button onClick={() => {
                       navigator.clipboard.writeText(request.technician_bank_account)
                     }} style={{
-                      background: '#dbeafe', color: '#1e40af', border: 'none',
+                      background: th.primaryLight, color: th.primary, border: 'none',
                       borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer'
                     }}>📋 Copiar cuenta</button>
                   </>
                 ) : (
-                  <p style={{ margin: 0, fontSize: 13, color: '#1e40af' }}>
+                  <p style={{ margin: 0, fontSize: 13, color: th.primary }}>
                     El técnico no ha configurado su cuenta bancaria aún.
                     Contáctalo por WhatsApp para obtener los datos.
                   </p>
@@ -1180,7 +1180,7 @@ function DisputeModal({ request, user, th, onClose, onSuccess }) {
         border: '1px solid #fed7aa', marginBottom: 16
       }}>
         <p style={{ margin: 0, fontSize: 13, color: '#9a3412' }}>
-          Al abrir una disputa el equipo de soporte de Changuinola Pro revisará el caso y tomará una decisión.
+          Al abrir una disputa el equipo de soporte de TECNIFIX revisará el caso y tomará una decisión.
           El pago quedará congelado hasta resolución.
         </p>
       </div>
@@ -1370,7 +1370,7 @@ function ChatSection({ request, user, isClient, th, lang }) {
         background: '#eff6ff', borderRadius: 10, padding: '8px 10px',
         marginBottom: 10, border: '1px solid #bfdbfe'
       }}>
-        <p style={{ margin: 0, fontSize: 11, color: '#1e40af', lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: 11, color: th.primary, lineHeight: 1.5 }}>
           ℹ️ {lang === 'en'
             ? 'Messages are kept as evidence for this service request.'
             : 'Los mensajes quedan registrados como evidencia de esta solicitud.'}

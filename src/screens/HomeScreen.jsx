@@ -5,15 +5,27 @@ import { SkeletonCard } from '../components/UI.jsx'
 import { supabase, technicians, serviceRequests } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
+// Íconos SVG para categorías (paths de Heroicons)
+const CAT_ICONS_SVG = {
+  climatizacion: <><circle cx="12" cy="12" r="3" /><path strokeLinecap="round" d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" /></>,
+  electricidad: <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />,
+  plomeria: <><path strokeLinecap="round" d="M12 22V12m0 0a4 4 0 100-8 4 4 0 000 8z" /><path strokeLinecap="round" d="M6 12H2M22 12h-4M6 18l-2 2M20 4l-2 2" /></>,
+  albanileria: <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />,
+  limpieza: <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />,
+  cerrajeria: <><rect x="3" y="11" width="18" height="11" rx="2" strokeLinejoin="round" /><path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" /><circle cx="12" cy="16" r="1" fill="currentColor" /></>,
+  pintura: <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />,
+  tecnologia: <><rect x="2" y="3" width="20" height="14" rx="2" strokeLinejoin="round" /><path strokeLinecap="round" d="M8 21h8M12 17v4" /></>,
+}
+
 const CATEGORIES = [
-  { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C', icon: '❄️', color: '#dbeafe' },
-  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical', icon: '⚡', color: '#fef9c3' },
-  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing', icon: '🔧', color: '#e0f2fe' },
-  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry', icon: '🧱', color: '#fef3c7' },
-  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning', icon: '🧹', color: '#d1fae5' },
-  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith', icon: '🔐', color: '#ede9fe' },
-  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting', icon: '🎨', color: '#fce7f3' },
-  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech', icon: '💻', color: '#e0f2fe' },
+  { slug: 'climatizacion', nameEs: 'Clima', nameEn: 'A/C' },
+  { slug: 'electricidad', nameEs: 'Eléctrico', nameEn: 'Electrical' },
+  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing' },
+  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry' },
+  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning' },
+  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith' },
+  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting' },
+  { slug: 'tecnologia', nameEs: 'Tech PC', nameEn: 'IT Support' },
 ]
 
 const STATUS_COLORS = {
@@ -309,18 +321,35 @@ export function HomeScreen() {
                     <button key={cat.slug}
                       onClick={() => { setSelectedCategory(cat); navigate('search') }}
                       style={{
-                        background: cat.color, border: `1.5px solid ${th.border}`,
+                        background: th.surface, border: `1.5px solid ${th.border}`,
                         borderRadius: 14, padding: '12px 4px 10px', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        gap: 5, transition: 'transform 0.15s', fontFamily: 'inherit'
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        transition: 'all 160ms var(--ease-out)', fontFamily: 'inherit'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
-                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)'
+                        e.currentTarget.style.borderColor = th.primary
+                        e.currentTarget.style.background = th.primaryLight
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'none'
+                        e.currentTarget.style.borderColor = th.border
+                        e.currentTarget.style.background = th.surface
+                      }}
                     >
-                      <span style={{ fontSize: 26 }}>{cat.icon}</span>
                       <span style={{
-                        fontSize: 10, fontWeight: 600, color: '#0f172a',
-                        textAlign: 'center', lineHeight: 1.2
+                        width: 36, height: 36, borderRadius: 10,
+                        background: th.primaryLight, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                          stroke={th.primary} strokeWidth="1.8">
+                          {CAT_ICONS_SVG[cat.slug]}
+                        </svg>
+                      </span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, fontFamily: th.fontDisplay,
+                        color: th.text, textAlign: 'center', lineHeight: 1.2
                       }}>
                         {lang === 'en' ? cat.nameEn : cat.nameEs}
                       </span>

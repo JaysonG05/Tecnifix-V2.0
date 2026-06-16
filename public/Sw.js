@@ -1,5 +1,5 @@
 // ============================================================
-//  sw.js — Service Worker de Changuinola Pro
+//  sw.js — Service Worker de Tecifix
 //  Maneja notificaciones push y permite mostrarlas
 //  incluso si la pestaña está en segundo plano.
 // ============================================================
@@ -20,11 +20,11 @@ self.addEventListener('message', (event) => {
 
     const { title, body, tag, url } = data.payload || {}
 
-    self.registration.showNotification(title || 'Changuinola Pro', {
+    self.registration.showNotification(title || 'Tecnifix', {
         body: body || '',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        tag: tag || 'changuinola-pro',
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        tag: tag || 'tecni-fix',
         data: { url: url || '/' },
         vibrate: [100, 50, 100],
     })
@@ -53,12 +53,12 @@ self.addEventListener('push', (event) => {
     let data = {}
     try { data = event.data ? event.data.json() : {} } catch { data = {} }
 
-    const title = data.title || 'Changuinola Pro'
+    const title = data.title || 'Tecnifix'
     const options = {
         body: data.body || '',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        tag: data.tag || 'changuinola-pro',
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        tag: data.tag || 'Tecni-fix',
         data: { url: data.url || '/' },
         vibrate: [100, 50, 100],
     }

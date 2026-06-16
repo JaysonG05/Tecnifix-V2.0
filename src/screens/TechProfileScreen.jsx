@@ -64,7 +64,7 @@ export function TechProfileScreen() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => {
               const url = `${window.location.origin}/?tech=${tech.user_id}`
-              const shareText = `${tech.full_name} — ${tech.professional_title || 'Técnico'} en Changuinola Pro ⭐ ${Number(tech.average_rating).toFixed(1)}`
+              const shareText = `${tech.full_name} — ${tech.professional_title || 'Técnico'} en TECNIFIX ⭐ ${Number(tech.average_rating).toFixed(1)}`
               if (navigator.share) {
                 navigator.share({ title: shareText, url }).catch(() => { })
               } else {
@@ -82,7 +82,7 @@ export function TechProfileScreen() {
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
           <Avatar photo={tech.avatar_url} name={tech.full_name} size={88} online={tech.is_available} />
           <div style={{ flex: 1 }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: '#0f172a' }}>{tech.full_name}</h2>
+            <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: th.ink }}>{tech.full_name}</h2>
             <p style={{ margin: '0 0 8px', fontSize: 13, color: '#475569' }}>{title}</p>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {tech.verification_status === 'verified' && <Badge color="#16a34a" textColor="#fff">✓ {t.verified}</Badge>}
@@ -139,7 +139,7 @@ export function TechProfileScreen() {
             </Card>
 
             <Card title="📍 Ubicación y disponibilidad">
-              <Row label="Ciudad" val={`${tech.city || 'Changuinola'}, ${tech.province || 'Bocas del Toro'}`} />
+              <Row label="Ciudad" val={`${tech.city || 'Panamá'}, ${tech.province || 'Panamá'}`} />
               <Row label="Radio de servicio" val={`${tech.service_radius_km || 15} km`} />
               <Row label="Tiempo de respuesta" val={`~${tech.response_time_minutes || 60} min`} />
               {tech.address_text && <Row label="Dirección" val={tech.address_text} />}
@@ -387,11 +387,11 @@ export function TechProfileScreen() {
         <div style={{ paddingTop: 16, paddingBottom: 24 }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <Btn variant="whatsapp" style={{ flex: 2 }}
-              onClick={() => window.open(`https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name)},%20vi%20tu%20perfil%20en%20Changuinola%20Pro`, '_blank')}>
+              onClick={() => window.open(`https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name)},%20vi%20tu%20perfil%20en%20Panamá%20Pro`, '_blank')}>
               📱 WhatsApp
             </Btn>
             <Btn variant="ghost" style={{ flex: 1 }}
-              onClick={() => window.open(`mailto:${tech.public_email || ''}?subject=Servicio via Changuinola Pro`)}>
+              onClick={() => window.open(`mailto:${tech.public_email || ''}?subject=Servicio via TECNIFIX`)}>
               ✉️ Email
             </Btn>
           </div>
@@ -630,7 +630,7 @@ function RequestModal({ tech, catalog, onClose, onSuccess, t, th, user }) {
           <p style={{ fontWeight: 800, fontSize: 18, color: th.primary, margin: '0 0 6px' }}>{t.contractAccepted}</p>
           <p style={{ fontSize: 14, color: th.textSec, marginBottom: 24 }}>{t.nowContact}</p>
           <Btn variant="whatsapp"
-            onClick={() => window.open(`https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name)},%20firmé%20el%20contrato%20en%20Changuinola%20Pro.%20Necesito%20tu%20servicio.`, '_blank')}>
+            onClick={() => window.open(`https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name)},%20firmé%20el%20contrato%20en%20Panamá%20Pro.%20Necesito%20tu%20servicio.`, '_blank')}>
             {t.openWhatsApp}
           </Btn>
           <div style={{ height: 10 }} />
@@ -643,7 +643,7 @@ function RequestModal({ tech, catalog, onClose, onSuccess, t, th, user }) {
 
 function YappyModal({ tech, onClose, onSuccess, t, th, user }) {
   const [amount, setAmount] = useState(String(tech.min_price || ''))
-  const [desc, setDesc] = useState(`Servicio de ${tech.professional_title || 'técnico'} - Changuinola Pro`)
+  const [desc, setDesc] = useState(`Servicio de ${tech.professional_title || 'técnico'} - TECNIFIX`)
   const [reference, setReference] = useState('')
   const [loading, setLoading] = useState(false)
   const [paid, setPaid] = useState(false)
