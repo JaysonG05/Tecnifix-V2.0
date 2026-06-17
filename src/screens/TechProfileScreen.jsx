@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, StarRating, Badge, Btn, Spinner, Modal, Input, Toast, StatusBadge } from '../components/UI.jsx'
-import { reviews as reviewsApi, technicians, contracts, serviceRequests, payments, certificatesApi, serviceCatalog } from '../lib/supabase.js'
+import { supabase, reviews as reviewsApi, technicians, contracts, serviceRequests, payments, certificatesApi, serviceCatalog } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 export function TechProfileScreen() {

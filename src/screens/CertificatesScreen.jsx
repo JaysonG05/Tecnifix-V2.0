@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, Btn, Input, Spinner, Toast, PageHeader } from '../components/UI.jsx'
-import { certificatesApi } from '../lib/supabase.js'
+import { supabase, certificatesApi } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 // Tipos de documento

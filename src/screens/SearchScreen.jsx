@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { TechnicianCard } from '../components/TechnicianCard.jsx'
 import { SkeletonCard, EmptyState, Btn } from '../components/UI.jsx'
-import { technicians } from '../lib/supabase.js'
+import { supabase, technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 const CATS = [

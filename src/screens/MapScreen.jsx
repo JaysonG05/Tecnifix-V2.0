@@ -1,27 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, StarRating, Spinner, Btn } from '../components/UI.jsx'
-import { technicians } from '../lib/supabase.js'
+import { supabase, technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 export function MapScreen() {
   const { th, navigate, setSelectedTech, lang } = useApp()
   const t = T[lang]
 
-  const mapRef         = useRef(null)
-  const mapInstance    = useRef(null)
-  const markersRef     = useRef([])
+  const mapRef = useRef(null)
+  const mapInstance = useRef(null)
+  const markersRef = useRef([])
   const [leafletReady, setLeafletReady] = useState(!!window.L)
-  const [techList,     setTechList]     = useState([])
-  const [userPos,      setUserPos]      = useState(null)
-  const [locating,     setLocating]     = useState(false)
-  const [loading,      setLoading]      = useState(true)
+  const [techList, setTechList] = useState([])
+  const [userPos, setUserPos] = useState(null)
+  const [locating, setLocating] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // Cargar técnicos
   useEffect(() => {
     technicians.list()
       .then(data => setTechList(data.filter(x => x.latitude && x.longitude)))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
 
@@ -147,7 +147,7 @@ export function MapScreen() {
             .then(nearby => {
               if (nearby.length > 0) setTechList(nearby)
             })
-            .catch(() => {})
+            .catch(() => { })
         }
       },
       () => setLocating(false),

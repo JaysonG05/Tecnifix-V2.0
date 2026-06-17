@@ -3,36 +3,36 @@
 //  Técnico: crear, editar y ordenar su catálogo de servicios
 // ============================================================
 import { useState, useEffect } from 'react'
-import { useApp }          from '../context/AppContext.jsx'
+import { useApp } from '../context/AppContext.jsx'
 import { PageHeader, Btn, Input, Spinner, Toast, EmptyState } from '../components/UI.jsx'
-import { serviceCatalog }  from '../lib/supabase.js'
+import { supabase, serviceCatalog } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 const UNIT_ICONS = {
-  'por visita':   '🚗', 'por hora':     '⏱️', 'por servicio': '🔧',
-  'por metro2':   '📐', 'por punto':    '📌', 'por equipo':   '🖥️',
-  'por dia':      '📅', 'presupuesto':  '💬',
+  'por visita': '🚗', 'por hora': '⏱️', 'por servicio': '🔧',
+  'por metro2': '📐', 'por punto': '📌', 'por equipo': '🖥️',
+  'por dia': '📅', 'presupuesto': '💬',
 }
 
 // ─── Formulario de item ───────────────────────────────────────
 function ItemForm({ initial, onSave, onCancel, th, lang }) {
   const UNITS = serviceCatalog.PRICE_UNITS
-  const [form,    setForm]    = useState({
-    name:        initial?.name        ?? '',
-    name_en:     initial?.name_en     ?? '',
+  const [form, setForm] = useState({
+    name: initial?.name ?? '',
+    name_en: initial?.name_en ?? '',
     description: initial?.description ?? '',
-    price:       initial?.price       ? String(initial.price) : '',
-    price_unit:  initial?.price_unit  ?? 'por visita',
-    is_active:   initial?.is_active   ?? true,
+    price: initial?.price ? String(initial.price) : '',
+    price_unit: initial?.price_unit ?? 'por visita',
+    is_active: initial?.is_active ?? true,
   })
-  const [errors,  setErrors]  = useState({})
+  const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   const validate = () => {
     const e = {}
-    if (!form.name.trim())                  e.name  = 'El nombre es requerido.'
+    if (!form.name.trim()) e.name = 'El nombre es requerido.'
     if (!form.price || isNaN(form.price) || parseFloat(form.price) <= 0)
-                                            e.price = 'Ingresa un precio válido mayor a 0.'
+      e.price = 'Ingresa un precio válido mayor a 0.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -45,14 +45,16 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
   }
 
   const F = (k) => ({
-    value:    form[k],
+    value: form[k],
     onChange: (v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) },
-    error:    errors[k],
+    error: errors[k],
   })
 
   return (
-    <div style={{ background: th.surface, borderRadius: 16, padding: 16,
-      border: `1px solid ${th.border}`, marginBottom: 14 }}>
+    <div style={{
+      background: th.surface, borderRadius: 16, padding: 16,
+      border: `1px solid ${th.border}`, marginBottom: 14
+    }}>
       <p style={{ margin: '0 0 14px', fontWeight: 700, fontSize: 15, color: th.text }}>
         {initial ? '✏️ Editar servicio' : '➕ Nuevo servicio'}
       </p>
@@ -64,18 +66,24 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
         {/* Precio */}
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600,
-            color: th.text, marginBottom: 6 }}>Precio ($) *</label>
+          <label style={{
+            display: 'block', fontSize: 13, fontWeight: 600,
+            color: th.text, marginBottom: 6
+          }}>Precio ($) *</label>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 12, top: '50%',
-              transform: 'translateY(-50%)', fontSize: 14, color: th.textSec }}>$</span>
+            <span style={{
+              position: 'absolute', left: 12, top: '50%',
+              transform: 'translateY(-50%)', fontSize: 14, color: th.textSec
+            }}>$</span>
             <input type="number" min="0" step="0.50" value={form.price}
               onChange={e => { setForm(f => ({ ...f, price: e.target.value })); setErrors(er => ({ ...er, price: '' })) }}
               placeholder="0.00"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '11px 14px 11px 26px',
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '11px 14px 11px 26px',
                 borderRadius: 12, border: `1.5px solid ${errors.price ? th.red : th.inputBorder}`,
                 fontSize: 15, fontWeight: 700, background: th.inputBg, color: th.primaryText,
-                outline: 'none', fontFamily: 'inherit' }}
+                outline: 'none', fontFamily: 'inherit'
+              }}
               onFocus={e => e.target.style.borderColor = th.primary}
               onBlur={e => e.target.style.borderColor = errors.price ? th.red : th.inputBorder}
             />
@@ -85,14 +93,18 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
 
         {/* Unidad */}
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600,
-            color: th.text, marginBottom: 6 }}>Unidad de cobro</label>
+          <label style={{
+            display: 'block', fontSize: 13, fontWeight: 600,
+            color: th.text, marginBottom: 6
+          }}>Unidad de cobro</label>
           <select value={form.price_unit}
             onChange={e => setForm(f => ({ ...f, price_unit: e.target.value }))}
-            style={{ width: '100%', padding: '11px 12px', borderRadius: 12,
+            style={{
+              width: '100%', padding: '11px 12px', borderRadius: 12,
               border: `1.5px solid ${th.inputBorder}`, fontSize: 13,
               background: th.inputBg, color: th.text, outline: 'none',
-              fontFamily: 'inherit', boxSizing: 'border-box' }}>
+              fontFamily: 'inherit', boxSizing: 'border-box'
+            }}>
             {UNITS.map(u => (
               <option key={u.value} value={u.value}>
                 {UNIT_ICONS[u.value]} {lang === 'en' ? u.labelEn : u.label}
@@ -103,9 +115,11 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
       </div>
 
       {/* Activo toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 12px', background: th.surface2, borderRadius: 10,
-        marginBottom: 14, border: `1px solid ${th.border}` }}>
+        marginBottom: 14, border: `1px solid ${th.border}`
+      }}>
         <div>
           <p style={{ margin: '0 0 1px', fontSize: 13, fontWeight: 600, color: th.text }}>
             Visible en mi perfil
@@ -115,12 +129,16 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
           </p>
         </div>
         <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-          style={{ width: 44, height: 24, borderRadius: 12, border: 'none',
+          style={{
+            width: 44, height: 24, borderRadius: 12, border: 'none',
             cursor: 'pointer', background: form.is_active ? th.primary : th.border,
-            position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-          <div style={{ width: 18, height: 18, borderRadius: 9, background: '#fff',
+            position: 'relative', transition: 'background 0.2s', flexShrink: 0
+          }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: 9, background: '#fff',
             position: 'absolute', top: 3, left: form.is_active ? 23 : 3,
-            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+          }} />
         </button>
       </div>
 
@@ -140,12 +158,12 @@ export function ServiceCatalogScreen() {
   const { th, user, lang } = useApp()
   const t = T[lang]
 
-  const [items,    setItems]    = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editing,  setEditing]  = useState(null)   // item siendo editado
+  const [editing, setEditing] = useState(null)   // item siendo editado
   const [deleting, setDeleting] = useState(null)   // id siendo eliminado
-  const [toast,    setToast]    = useState(null)
+  const [toast, setToast] = useState(null)
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -205,7 +223,7 @@ export function ServiceCatalogScreen() {
     } catch (err) { showToast(err?.message ?? 'Error', 'error') }
   }
 
-  const activeCount   = items.filter(x => x.is_active).length
+  const activeCount = items.filter(x => x.is_active).length
   const inactiveCount = items.filter(x => !x.is_active).length
 
   return (
@@ -216,9 +234,11 @@ export function ServiceCatalogScreen() {
         right={
           !showForm && !editing && (
             <button onClick={() => setShowForm(true)}
-              style={{ background: th.primary, color: '#fff', border: 'none',
+              style={{
+                background: th.primary, color: '#fff', border: 'none',
                 borderRadius: 12, padding: '8px 14px', fontSize: 13,
-                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+              }}>
               + Agregar
             </button>
           )
@@ -227,8 +247,10 @@ export function ServiceCatalogScreen() {
 
       <div style={{ padding: '16px 16px 0' }}>
         {/* Tip informativo */}
-        <div style={{ background: '#eff6ff', borderRadius: 14, padding: 14,
-          border: '1px solid #bfdbfe', marginBottom: 20 }}>
+        <div style={{
+          background: '#eff6ff', borderRadius: 14, padding: 14,
+          border: '1px solid #bfdbfe', marginBottom: 20
+        }}>
           <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
             💡 ¿Para qué sirve el catálogo?
           </p>
@@ -240,15 +262,19 @@ export function ServiceCatalogScreen() {
 
         {/* Stats */}
         {items.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 10, marginBottom: 20 }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 10, marginBottom: 20
+          }}>
             {[
-              { val: items.length,    label: 'Total',    color: '#dbeafe', text: '#1e40af' },
-              { val: activeCount,     label: 'Activos',  color: '#dcfce7', text: '#166534' },
-              { val: inactiveCount,   label: 'Ocultos',  color: '#f1f5f9', text: '#475569' },
+              { val: items.length, label: 'Total', color: '#dbeafe', text: '#1e40af' },
+              { val: activeCount, label: 'Activos', color: '#dcfce7', text: '#166534' },
+              { val: inactiveCount, label: 'Ocultos', color: '#f1f5f9', text: '#475569' },
             ].map((s, i) => (
-              <div key={i} style={{ background: s.color, borderRadius: 12,
-                padding: '10px 12px', textAlign: 'center', border: `1px solid ${th.border}` }}>
+              <div key={i} style={{
+                background: s.color, borderRadius: 12,
+                padding: '10px 12px', textAlign: 'center', border: `1px solid ${th.border}`
+              }}>
                 <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
                   {s.val}
                 </p>
@@ -285,8 +311,8 @@ export function ServiceCatalogScreen() {
           />
         ) : (
           items.map(item => {
-            const isEditing  = editing?.id === item.id
-            const isDeleting_ = deleting  === item.id
+            const isEditing = editing?.id === item.id
+            const isDeleting_ = deleting === item.id
 
             if (isEditing) return (
               <ItemForm key={item.id} initial={item} th={th} lang={lang}
@@ -301,32 +327,44 @@ export function ServiceCatalogScreen() {
                 transition: 'opacity 0.2s',
               }}>
                 {/* Fila principal */}
-                <div style={{ padding: '14px 16px', display: 'flex',
-                  gap: 12, alignItems: 'flex-start' }}>
+                <div style={{
+                  padding: '14px 16px', display: 'flex',
+                  gap: 12, alignItems: 'flex-start'
+                }}>
                   {/* Ícono de unidad */}
-                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                     background: item.is_active ? th.primaryLight : th.surface2,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 22 }}>
+                    fontSize: 22
+                  }}>
                     {UNIT_ICONS[item.price_unit] || '🔧'}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start',
-                      justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: 15,
-                        color: th.text, flex: 1 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'flex-start',
+                      justifyContent: 'space-between', gap: 8, marginBottom: 3
+                    }}>
+                      <p style={{
+                        margin: 0, fontWeight: 700, fontSize: 15,
+                        color: th.text, flex: 1
+                      }}>
                         {item.name}
                         {!item.is_active && (
-                          <span style={{ marginLeft: 8, fontSize: 11, color: th.textSec,
+                          <span style={{
+                            marginLeft: 8, fontSize: 11, color: th.textSec,
                             background: th.surface2, padding: '1px 7px', borderRadius: 20,
-                            fontWeight: 500 }}>Oculto</span>
+                            fontWeight: 500
+                          }}>Oculto</span>
                         )}
                       </p>
                       {/* Precio grande */}
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <p style={{ margin: 0, fontSize: 20, fontWeight: 900,
-                          color: th.primaryText }}>
+                        <p style={{
+                          margin: 0, fontSize: 20, fontWeight: 900,
+                          color: th.primaryText
+                        }}>
                           ${Number(item.price).toFixed(2)}
                         </p>
                         <p style={{ margin: 0, fontSize: 11, color: th.textSec }}>
@@ -337,15 +375,19 @@ export function ServiceCatalogScreen() {
                     </div>
 
                     {item.description && (
-                      <p style={{ margin: '0 0 6px', fontSize: 12,
-                        color: th.textSec, lineHeight: 1.5 }}>
+                      <p style={{
+                        margin: '0 0 6px', fontSize: 12,
+                        color: th.textSec, lineHeight: 1.5
+                      }}>
                         {item.description}
                       </p>
                     )}
 
                     {item.name_en && (
-                      <p style={{ margin: 0, fontSize: 11, color: th.textSec,
-                        fontStyle: 'italic' }}>
+                      <p style={{
+                        margin: 0, fontSize: 11, color: th.textSec,
+                        fontStyle: 'italic'
+                      }}>
                         EN: {item.name_en}
                       </p>
                     )}
@@ -355,24 +397,30 @@ export function ServiceCatalogScreen() {
                 {/* Botones de acción */}
                 <div style={{ display: 'flex', borderTop: `1px solid ${th.border}` }}>
                   <button onClick={() => toggleActive(item)}
-                    style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none',
+                    style={{
+                      flex: 1, padding: '10px 0', background: 'none', border: 'none',
                       borderRight: `1px solid ${th.border}`, cursor: 'pointer',
                       fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                      color: item.is_active ? th.textSec : th.primary }}>
+                      color: item.is_active ? th.textSec : th.primary
+                    }}>
                     {item.is_active ? '👁️ Ocultar' : '👁️ Activar'}
                   </button>
                   <button onClick={() => setEditing(item)}
-                    style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none',
+                    style={{
+                      flex: 1, padding: '10px 0', background: 'none', border: 'none',
                       borderRight: `1px solid ${th.border}`, cursor: 'pointer',
                       fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                      color: th.text }}>
+                      color: th.text
+                    }}>
                     ✏️ Editar
                   </button>
                   <button onClick={() => handleDelete(item)} disabled={isDeleting_}
-                    style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none',
+                    style={{
+                      flex: 1, padding: '10px 0', background: 'none', border: 'none',
                       cursor: isDeleting_ ? 'not-allowed' : 'pointer',
                       fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                      color: th.red }}>
+                      color: th.red
+                    }}>
                     {isDeleting_ ? '...' : '🗑️ Eliminar'}
                   </button>
                 </div>
