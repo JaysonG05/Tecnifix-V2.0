@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 // Advertencia en consola en lugar de romper toda la app
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn(
-    '⚠️  Changuinola Pro: Faltan variables de entorno de Supabase.\n' +
+    '⚠️  Tecnifix: Faltan variables de entorno de Supabase.\n' +
     '   Copia .env.example como .env y rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.\n' +
     '   Las encuentras en: supabase.com → tu proyecto → Settings → API'
   )
