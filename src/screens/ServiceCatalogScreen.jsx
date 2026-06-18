@@ -5,13 +5,19 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { PageHeader, Btn, Input, Spinner, Toast, EmptyState } from '../components/UI.jsx'
-import { supabase, serviceCatalog } from '../lib/supabase.js'
+import { serviceCatalog } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
+// Emojis temáticos por unidad — NO strings de nombres de icono
 const UNIT_ICONS = {
-  'por visita': '🚗', 'por hora': '⏱️', 'por servicio': '🔧',
-  'por metro2': '📐', 'por punto': '📌', 'por equipo': '🖥️',
-  'por dia': '📅', 'presupuesto': '💬',
+  'por visita': '🚗',
+  'por hora': '⏱️',
+  'por servicio': '🛠️',
+  'por metro2': '📐',
+  'por punto': '📍',
+  'por equipo': '🖥️',
+  'por dia': '📅',
+  'presupuesto': '💬',
 }
 
 // ─── Formulario de item ───────────────────────────────────────
@@ -56,7 +62,7 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
       border: `1px solid ${th.border}`, marginBottom: 14
     }}>
       <p style={{ margin: '0 0 14px', fontWeight: 700, fontSize: 15, color: th.text }}>
-        {initial ? '✏️ Editar servicio' : '➕ Nuevo servicio'}
+        {initial ? 'Editar servicio' : 'Nuevo servicio'}
       </p>
 
       <Input label="Nombre del servicio *" placeholder="Ej: Instalación de toma corriente" {...F('name')} />
@@ -146,7 +152,7 @@ function ItemForm({ initial, onSave, onCancel, th, lang }) {
       <div style={{ display: 'flex', gap: 10 }}>
         <Btn variant="ghost" onClick={onCancel} style={{ flex: 1 }}>Cancelar</Btn>
         <Btn onClick={handleSubmit} loading={loading} style={{ flex: 2 }}>
-          {initial ? '💾 Guardar cambios' : '➕ Agregar servicio'}
+          {initial ? 'Guardar cambios' : 'Agregar servicio'}
         </Btn>
       </div>
     </div>
@@ -185,7 +191,7 @@ export function ServiceCatalogScreen() {
       })
       setItems(prev => [...prev, newItem])
       setShowForm(false)
-      showToast('✅ Servicio agregado al catálogo')
+      showToast('Servicio agregado')
     } catch (err) { showToast(err?.message ?? 'Error al crear', 'error') }
   }
 
@@ -197,7 +203,7 @@ export function ServiceCatalogScreen() {
       })
       setItems(prev => prev.map(x => x.id === editing.id ? updated : x))
       setEditing(null)
-      showToast('✅ Servicio actualizado')
+      showToast('Servicio actualizado')
     } catch (err) { showToast(err?.message ?? 'Error al actualizar', 'error') }
   }
 
@@ -230,7 +236,7 @@ export function ServiceCatalogScreen() {
     <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 40 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <PageHeader title="💰 Catálogo de servicios"
+      <PageHeader title="Catálogo de servicios"
         right={
           !showForm && !editing && (
             <button onClick={() => setShowForm(true)}
@@ -251,7 +257,7 @@ export function ServiceCatalogScreen() {
           background: '#eff6ff', borderRadius: 14, padding: 14,
           border: '1px solid #bfdbfe', marginBottom: 20
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: th.primary }}>
             💡 ¿Para qué sirve el catálogo?
           </p>
           <p style={{ margin: 0, fontSize: 13, color: '#1e3a8a', lineHeight: 1.6 }}>
@@ -267,15 +273,15 @@ export function ServiceCatalogScreen() {
             gap: 10, marginBottom: 20
           }}>
             {[
-              { val: items.length, label: 'Total', color: '#dbeafe', text: '#1e40af' },
-              { val: activeCount, label: 'Activos', color: '#dcfce7', text: '#166534' },
-              { val: inactiveCount, label: 'Ocultos', color: '#f1f5f9', text: '#475569' },
+              { val: items.length, label: 'Total', color: th.primaryLight, text: th.primary },
+              { val: activeCount, label: 'Activos', color: th.verifiedLight, text: th.verifiedText },
+              { val: inactiveCount, label: 'Ocultos', color: th.surface2, text: '#475569' },
             ].map((s, i) => (
               <div key={i} style={{
                 background: s.color, borderRadius: 12,
                 padding: '10px 12px', textAlign: 'center', border: `1px solid ${th.border}`
               }}>
-                <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
+                <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 900, color: th.ink }}>
                   {s.val}
                 </p>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: s.text }}>
@@ -412,7 +418,7 @@ export function ServiceCatalogScreen() {
                       fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
                       color: th.text
                     }}>
-                    ✏️ Editar
+                    Editar
                   </button>
                   <button onClick={() => handleDelete(item)} disabled={isDeleting_}
                     style={{
@@ -421,7 +427,7 @@ export function ServiceCatalogScreen() {
                       fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
                       color: th.red
                     }}>
-                    {isDeleting_ ? '...' : '🗑️ Eliminar'}
+                    {isDeleting_ ? '...' : 'Eliminar'}
                   </button>
                 </div>
               </div>

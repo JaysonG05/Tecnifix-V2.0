@@ -6,13 +6,13 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { PageHeader, Spinner, EmptyState, Toast } from '../components/UI.jsx'
-import { supabase, receiptsApi } from '../lib/supabase.js'
+import { receiptsApi } from '../lib/supabase.js'
 import { receiptActions } from '../lib/payments.js'
 
 const METHOD_LABEL = {
-  yappy: '💚 Yappy',
-  transfer: '🏦 Transferencia',
-  cash: '💵 Efectivo',
+  yappy: 'Yappy',
+  transfer: 'Transferencia',
+  cash: 'Efectivo',
 }
 
 export function MyReceiptsScreen() {
@@ -31,19 +31,32 @@ export function MyReceiptsScreen() {
   }
 
   useEffect(() => {
-    if (!user) return
-    receiptsApi.listForUser(user.id)
-      .then(setReceipts)
-      .catch(() => showToast('Error al cargar recibos', 'error'))
-      .finally(() => setLoading(false))
-  }, [user])
+    if (!user?.id) { setLoading(false); return }
+    let cancelled = false
+    const load = async () => {
+      try {
+        const data = await receiptsApi.listForUser(user.id)
+        if (!cancelled) setReceipts(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.warn('[MyReceiptsScreen] Error al cargar recibos:', err?.message ?? err)
+        if (!cancelled) {
+          setReceipts([])
+          showToast('No se pudieron cargar los recibos', 'error')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   const handleDownload = async (receipt) => {
     setDownloading(receipt.id)
     try {
       await receiptActions.downloadPDF(receipt)
       await receiptsApi.markDownloaded(receipt.id, user.id, user.role)
-      showToast('✅ Recibo descargado correctamente')
+      showToast('Recibo descargado')
     } catch {
       showToast('Error al generar PDF', 'error')
     } finally { setDownloading(null) }
@@ -69,28 +82,33 @@ export function MyReceiptsScreen() {
     <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 40 }}>
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <PageHeader title="🧾 Mis recibos" />
+      <PageHeader title="Mis recibos" />
 
       {/* Buscador */}
       <div style={{
         padding: '12px 16px', background: th.surface,
         borderBottom: `1px solid ${th.border}`
       }}>
-        <div style={{ position: 'relative', marginBottom: 10 }}>
-          <span style={{
-            position: 'absolute', left: 12, top: '50%',
-            transform: 'translateY(-50%)', fontSize: 16
-          }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)}
+        <div style={{ marginBottom: 10 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por servicio, número o nombre..."
             style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '10px 14px 10px 38px', borderRadius: 12,
-              border: `1.5px solid ${th.inputBorder}`, fontSize: 14,
-              background: th.inputBg, color: th.text, outline: 'none',
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '10px 14px', // Quitamos el padding extra de la izquierda ya que no hay icono
+              borderRadius: 12,
+              border: `1.5px solid ${th.inputBorder}`,
+              fontSize: 14,
+              background: th.inputBg,
+              color: th.text,
+              outline: 'none',
               fontFamily: 'inherit'
-            }} />
+            }}
+          />
         </div>
+
         {/* Filtros */}
         {user?.role === 'technician' && (
           <div style={{ display: 'flex', gap: 8 }}>
@@ -111,20 +129,22 @@ export function MyReceiptsScreen() {
       </div>
 
       {/* Resumen */}
-      {filtered.length > 0 && (
-        <div style={{
-          padding: '12px 16px', background: th.surface,
-          borderBottom: `1px solid ${th.border}`,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-        }}>
-          <p style={{ margin: 0, fontSize: 13, color: th.textSec }}>
-            {filtered.length} recibo{filtered.length !== 1 ? 's' : ''}
-          </p>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: th.primaryText }}>
-            Total: ${totalAmount.toFixed(2)}
-          </p>
-        </div>
-      )}
+      {
+        filtered.length > 0 && (
+          <div style={{
+            padding: '12px 16px', background: th.surface,
+            borderBottom: `1px solid ${th.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <p style={{ margin: 0, fontSize: 13, color: th.textSec }}>
+              {filtered.length} recibo{filtered.length !== 1 ? 's' : ''}
+            </p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: th.primaryText }}>
+              Total: ${totalAmount.toFixed(2)}
+            </p>
+          </div>
+        )
+      }
 
       <div style={{ padding: '16px 16px 0' }}>
         {loading ? (
@@ -132,7 +152,7 @@ export function MyReceiptsScreen() {
             <Spinner />
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState emoji="🧾" title="Sin recibos aún"
+          <EmptyState emoji="📄" title="Sin recibos aún"
             sub={search ? 'No hay recibos que coincidan con tu búsqueda.'
               : 'Los recibos aparecerán aquí cuando completes servicios.'} />
         ) : (
@@ -195,9 +215,9 @@ export function MyReceiptsScreen() {
                     gap: '6px 10px', marginBottom: 12
                   }}>
                     {[
-                      ['👤 Cliente', receipt.client_name],
-                      ['🛠️ Técnico', receipt.technician_name],
-                      ['💳 Método', METHOD_LABEL[receipt.payment_method] ?? receipt.payment_method],
+                      ['Cliente', receipt.client_name],
+                      ['Técnico', receipt.technician_name],
+                      ['Método', METHOD_LABEL[receipt.payment_method] ?? receipt.payment_method],
                       ['🔢 Referencia', receipt.payment_reference || '—'],
                     ].map(([label, val]) => (
                       <div key={label}>
@@ -222,10 +242,10 @@ export function MyReceiptsScreen() {
                     <span style={{
                       fontSize: 11, fontWeight: 600, padding: '2px 8px',
                       borderRadius: 20,
-                      background: isClient ? '#dbeafe' : '#dcfce7',
-                      color: isClient ? '#1e40af' : '#166534'
+                      background: isClient ? th.primaryLight : th.verifiedLight,
+                      color: isClient ? th.primary : th.verifiedText
                     }}>
-                      {isClient ? '👤 Tú eres el cliente' : '🛠️ Tú eres el técnico'}
+                      {isClient ? 'Tú eres el cliente' : '🛠️ Tú eres el técnico'}
                     </span>
                     {/* Indicador de si ya descargó */}
                     {((isClient && receipt.downloaded_by_client) ||
@@ -270,6 +290,6 @@ export function MyReceiptsScreen() {
           })
         )}
       </div>
-    </div>
+    </div >
   )
 }

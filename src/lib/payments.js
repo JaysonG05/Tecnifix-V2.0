@@ -79,9 +79,9 @@ export const requestActions = {
 
     // 2. Notificar al cliente (no bloquear si falla)
     const msgs = {
-      accepted: { title: '✅ Solicitud aceptada', body: `${techName} aceptó tu solicitud "${requestTitle}"` },
-      in_progress: { title: '🔧 Trabajo iniciado', body: `${techName} comenzó: "${requestTitle}"` },
-      pending_payment: { title: '💳 Listo para pagar', body: `${techName} terminó "${requestTitle}". Realiza el pago.` },
+      accepted: { title: 'Solicitud aceptada', body: `${techName} aceptó tu solicitud "${requestTitle}"` },
+      in_progress: { title: 'Trabajo iniciado', body: `${techName} comenzó: "${requestTitle}"` },
+      pending_payment: { title: 'Listo para pagar', body: `${techName} terminó "${requestTitle}". Realiza el pago.` },
       completed: { title: '🎉 Servicio completado', body: `"${requestTitle}" completado exitosamente.` },
       cancelled: { title: '❌ Solicitud cancelada', body: `"${requestTitle}" fue cancelada.` },
     }
@@ -216,7 +216,7 @@ export const paymentActions = {
     // Notificar al técnico
     supabase.from('notifications').insert({
       user_id: technicianId, type: 'payment',
-      title: '💚 El cliente reportó un pago por Yappy',
+      title: 'El cliente reportó un pago por Yappy',
       body: `Monto: $${amount}. Verifica tu app Yappy y confirma la recepción.`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
@@ -251,7 +251,7 @@ export const paymentActions = {
 
     supabase.from('notifications').insert({
       user_id: technicianId, type: 'payment',
-      title: '💵 El cliente reportó un pago en efectivo',
+      title: 'El cliente reportó un pago en efectivo',
       body: `Monto: $${amount}. Pídele al cliente el código de 4 dígitos que aparece en su pantalla para confirmar la recepción.`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
@@ -312,7 +312,7 @@ export const paymentActions = {
     const req = data[0]
     supabase.from('notifications').insert({
       user_id: req.client_id, type: 'payment',
-      title: '✅ Pago confirmado',
+      title: 'Pago confirmado',
       body: `El técnico confirmó la recepción del pago de "${req.title}".`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
@@ -337,7 +337,7 @@ export const paymentActions = {
     const req = data[0]
     supabase.from('notifications').insert({
       user_id: req.client_id, type: 'payment',
-      title: '⚠️ El técnico no encontró tu pago',
+      title: 'El técnico no encontró tu pago',
       body: reasonNote || `Revisa el pago de "${req.title}" e intenta de nuevo o contacta al técnico.`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
@@ -415,7 +415,7 @@ export const receiptActions = {
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    doc.text('Changuinola Pro', W / 2, 12, { align: 'center' })
+    doc.text('TECNIFIX', W / 2, 12, { align: 'center' })
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text('Recibo de servicio técnico', W / 2, 20, { align: 'center' })
@@ -484,7 +484,7 @@ export const receiptActions = {
     doc.setTextColor(148, 163, 184)
     doc.text(`Firma digital: ${receipt.signature_hash?.slice(0, 32)}...`, 12, y)
     y += 4
-    doc.text('Este recibo es un documento digital válido generado por Changuinola Pro.', 12, y)
+    doc.text('Este recibo es un documento digital válido generado por TECNIFIX.', 12, y)
 
     doc.save(`recibo-${receipt.receipt_number}.pdf`)
   },
@@ -513,7 +513,7 @@ export const disputeActions = {
         admins.map(a => ({
           user_id: a.id,
           type: 'dispute',
-          title: '⚠️ Nueva disputa abierta',
+          title: 'Nueva disputa abierta',
           body: `Solicitud ID ${requestId.slice(0, 8)}... necesita mediación.`,
           data: { request_id: requestId, dispute_id: data.id },
         }))
@@ -621,9 +621,9 @@ export const disputeActions = {
 
     if (req) {
       const RESOLUTION_MSG = {
-        resolved_client: { title: '✅ Disputa resuelta a favor del cliente', body: `La disputa sobre "${req.title}" fue resuelta a favor del cliente.` },
-        resolved_tech: { title: '✅ Disputa resuelta a favor del técnico', body: `La disputa sobre "${req.title}" fue resuelta a favor del técnico.` },
-        closed: { title: '🔒 Disputa cerrada', body: `La disputa sobre "${req.title}" fue cerrada por el equipo de Changuinola Pro.` },
+        resolved_client: { title: 'Disputa resuelta a favor del cliente', body: `La disputa sobre "${req.title}" fue resuelta a favor del cliente.` },
+        resolved_tech: { title: 'Disputa resuelta a favor del técnico', body: `La disputa sobre "${req.title}" fue resuelta a favor del técnico.` },
+        closed: { title: 'Disputa cerrada', body: `La disputa sobre "${req.title}" fue cerrada por el equipo de TECNIFIX.` },
       }
       const msg = RESOLUTION_MSG[resolution]
       if (msg) {

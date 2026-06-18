@@ -3,6 +3,7 @@
 // ============================================================
 import { useState } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { Icon } from '../components/Icons.jsx'
 import { PageHeader } from '../components/UI.jsx'
 
 const Section = ({ th, title, children }) => (
@@ -18,7 +19,7 @@ export function LegalScreen() {
 
     return (
         <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 40 }}>
-            <PageHeader title="📄 Legal" />
+            <PageHeader title="Legal" />
 
             <div style={{ display: 'flex', borderBottom: `1px solid ${th.border}`, background: th.surface }}>
                 {[
@@ -46,9 +47,9 @@ export function LegalScreen() {
                 {tab === 'terms' ? (
                     <>
                         <Section th={th} title="1. Naturaleza del servicio">
-                            Changuinola Pro es una plataforma de intermediación que conecta a personas que requieren
+                            TECNIFIX es una plataforma de intermediación que conecta a personas que requieren
                             servicios técnicos (clientes) con profesionales independientes que ofrecen dichos servicios
-                            (técnicos). Changuinola Pro no es empleador de los técnicos registrados, no presta los
+                            (técnicos). TECNIFIX no es empleador de los técnicos registrados, no presta los
                             servicios directamente y no garantiza la calidad, idoneidad o resultado del trabajo realizado.
                         </Section>
 
@@ -56,31 +57,31 @@ export function LegalScreen() {
                             Cada técnico es responsable de la veracidad de la información, certificados y experiencia
                             que declare en su perfil. Cada cliente es responsable de verificar dicha información antes
                             de contratar. El acuerdo de servicio (contrato digital) se establece directamente entre el
-                            cliente y el técnico; Changuinola Pro únicamente provee el medio digital para formalizarlo.
+                            cliente y el técnico; TECNIFIX únicamente provee el medio digital para formalizarlo.
                         </Section>
 
                         <Section th={th} title="3. Pagos">
                             Los pagos realizados a través de la plataforma (Yappy, transferencia bancaria o efectivo)
-                            se procesan directamente entre cliente y técnico. Changuinola Pro no retiene, custodia ni
+                            se procesan directamente entre cliente y técnico. TECNIFIX no retiene, custodia ni
                             procesa fondos. La confirmación de pago dentro de la app es declarativa y queda registrada
                             como evidencia, pero no constituye una garantía de la transacción bancaria subyacente.
                         </Section>
 
                         <Section th={th} title="4. Cuentas y verificación">
-                            La verificación de técnicos (insignia "Verificado") indica que el equipo de Changuinola Pro
+                            La verificación de técnicos (insignia "Verificado") indica que el equipo de TECNIFIX
                             revisó la documentación proporcionada, pero no constituye una certificación profesional
                             oficial ni una garantía absoluta de idoneidad.
                         </Section>
 
                         <Section th={th} title="5. Disputas">
                             En caso de desacuerdo entre cliente y técnico, cualquiera de las partes puede abrir una
-                            disputa dentro de la app. El equipo administrativo de Changuinola Pro mediará de buena fe
+                            disputa dentro de la app. El equipo administrativo de TECNIFIX mediará de buena fe
                             basándose en la evidencia disponible (contrato digital, fotos, comprobantes), pero sus
                             decisiones no sustituyen procesos legales formales ante autoridades competentes.
                         </Section>
 
                         <Section th={th} title="6. Conducta y suspensión de cuentas">
-                            Changuinola Pro se reserva el derecho de suspender o eliminar cuentas que incurran en
+                            TECNIFIX se reserva el derecho de suspender o eliminar cuentas que incurran en
                             fraude, suplantación de identidad, contenido ofensivo, reseñas falsas o cualquier conducta
                             que afecte la confianza de la comunidad.
                         </Section>
@@ -114,7 +115,7 @@ export function LegalScreen() {
                         </Section>
 
                         <Section th={th} title="4. Compartición con terceros">
-                            Changuinola Pro no vende ni comparte tu información personal con terceros con fines
+                            TECNIFIX no vende ni comparte tu información personal con terceros con fines
                             publicitarios. La información de contacto (teléfono/WhatsApp) que configures como
                             "pública" en tu perfil técnico será visible para otros usuarios de la plataforma, ya que
                             es necesaria para que los clientes puedan contactarte.
@@ -127,13 +128,13 @@ export function LegalScreen() {
                         </Section>
 
                         <Section th={th} title="6. Menores de edad">
-                            Changuinola Pro no está dirigido a menores de 18 años. No recopilamos intencionalmente
+                            TECNIFIX no está dirigido a menores de 18 años. No recopilamos intencionalmente
                             información de menores de edad.
                         </Section>
 
                         <Section th={th} title="7. Contacto">
                             Para consultas sobre privacidad o solicitudes relacionadas con tus datos, puedes
-                            contactar al equipo de Changuinola Pro a través de la sección de soporte en
+                            contactar al equipo de TECNIFIX a través de la sección de soporte en
                             Configuración.
                         </Section>
                     </>

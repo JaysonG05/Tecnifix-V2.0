@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, StarRating, Badge, Btn, Spinner, Modal, Input, Toast, StatusBadge } from '../components/UI.jsx'
-import { supabase, reviews as reviewsApi, technicians, contracts, serviceRequests, payments, certificatesApi, serviceCatalog } from '../lib/supabase.js'
+import { reviews as reviewsApi, technicians, contracts, serviceRequests, payments, certificatesApi, serviceCatalog } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 export function TechProfileScreen() {
@@ -58,7 +58,7 @@ export function TechProfileScreen() {
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Hero */}
-      <div style={{ position: 'relative', background: `linear-gradient(160deg, ${tech.category_color || '#f1f5f9'}ee, ${tech.category_color || '#f1f5f9'}88)`, padding: '16px 16px 70px' }}>
+      <div style={{ position: 'relative', background: `linear-gradient(160deg, ${tech.category_color || th.surface2}ee, ${tech.category_color || th.surface2}88)`, padding: '16px 16px 70px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <button onClick={goBack} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 18, cursor: 'pointer' }}>←</button>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -72,10 +72,19 @@ export function TechProfileScreen() {
                 showToast(lang === 'en' ? 'Link copied!' : '¡Enlace copiado!')
               }
             }} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 17, cursor: 'pointer' }}>
-              📤
+
             </button>
-            <button onClick={() => toggleFavorite(tech.user_id)} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 20, cursor: 'pointer' }}>
-              {isFav ? '⭐' : '☆'}
+            <button onClick={() => toggleFavorite(tech.user_id)} style={{
+              background: isFav ? 'rgba(255,214,0,0.2)' : 'rgba(255,255,255,0.15)',
+              border: `1.5px solid ${isFav ? '#FFD600' : 'rgba(255,255,255,0.3)'}`,
+              borderRadius: 20, width: 36, height: 36, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24"
+                fill={isFav ? '#FFD600' : 'none'}
+                stroke={isFav ? '#FFD600' : 'white'} strokeWidth="2">
+                <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
             </button>
           </div>
         </div>
@@ -85,9 +94,9 @@ export function TechProfileScreen() {
             <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: th.ink }}>{tech.full_name}</h2>
             <p style={{ margin: '0 0 8px', fontSize: 13, color: '#475569' }}>{title}</p>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {tech.verification_status === 'verified' && <Badge color="#16a34a" textColor="#fff">✓ {t.verified}</Badge>}
-              {tech.is_featured && <Badge color="#fef9c3" textColor="#92400e">⭐ {t.featured}</Badge>}
-              <Badge color={tech.is_available ? '#dcfce7' : '#f1f5f9'} textColor={tech.is_available ? '#166534' : '#64748b'}>
+              {tech.verification_status === 'verified' && <Badge color="#16a34a" textColor="#fff"> {t.verified}</Badge>}
+              {tech.is_featured && <Badge color="#fef9c3" textColor="#92400e">{t.featured}</Badge>}
+              <Badge color={tech.is_available ? th.verifiedLight : th.surface2} textColor={tech.is_available ? th.verifiedText : th.textSec}>
                 {tech.is_available ? `● ${t.available}` : `○ ${t.busy}`}
               </Badge>
             </div>
@@ -112,7 +121,7 @@ export function TechProfileScreen() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${th.border}`, background: th.surface, marginBottom: 0 }}>
-        {[['info', 'ℹ️ Info'], ['gallery', `📸 ${t.gallery}`], ['reviews', `⭐ ${t.reviews}`]].map(([key, label]) => (
+        {[['info', 'Info'], ['gallery', `📸 ${t.gallery}`], ['reviews', `⭐ ${t.reviews}`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontWeight: tab === key ? 700 : 400, color: tab === key ? th.primary : th.textSec, borderBottom: tab === key ? `2.5px solid ${th.primary}` : '2.5px solid transparent', fontSize: 14, fontFamily: 'inherit' }}>
             {label}
           </button>
@@ -130,7 +139,7 @@ export function TechProfileScreen() {
               </Card>
             )}
 
-            <Card title={`💰 ${t.priceRange}`}>
+            <Card title={t.priceRange}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: th.textSec, fontSize: 14 }}>{t.priceRange}</span>
                 <span style={{ fontWeight: 800, color: th.primary, fontSize: 18 }}>${tech.min_price} – ${tech.max_price}</span>
@@ -138,7 +147,7 @@ export function TechProfileScreen() {
               {tech.price_unit && <p style={{ margin: '4px 0 0', fontSize: 12, color: th.textSec }}>{tech.price_unit}</p>}
             </Card>
 
-            <Card title="📍 Ubicación y disponibilidad">
+            <Card title=" Ubicación y disponibilidad">
               <Row label="Ciudad" val={`${tech.city || 'Panamá'}, ${tech.province || 'Panamá'}`} />
               <Row label="Radio de servicio" val={`${tech.service_radius_km || 15} km`} />
               <Row label="Tiempo de respuesta" val={`~${tech.response_time_minutes || 60} min`} />
@@ -147,18 +156,25 @@ export function TechProfileScreen() {
 
             {/* Catálogo de servicios */}
             {catalog.length > 0 && (
-              <Card title="💰 Servicios y precios">
+              <Card title="Servicios y precios">
                 {catalog.map(item => {
-                  const UNIT_ICONS_ = {
-                    'por visita': '🚗', 'por hora': '⏱️', 'por servicio': '🔧',
-                    'por metro2': '📐', 'por punto': '📌', 'por equipo': '🖥️',
-                    'por dia': '📅', 'presupuesto': '💬',
+                  // Emojis temáticos por unidad — NO usar nombres de icono como string
+                  const UNIT_EMOJI = {
+                    'por visita': '🚗',
+                    'por hora': '⏱️',
+                    'por servicio': '🛠️',
+                    'por metro2': '📐',
+                    'por punto': '📍',
+                    'por equipo': '🖥️',
+                    'por dia': '📅',
+                    'presupuesto': '💬',
                   }
                   const unitLabel = serviceCatalog.PRICE_UNITS.find(u => u.value === item.price_unit)
                   return (
                     <div key={item.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 0', borderBottom: `1px solid ${th.border}`,
+                      paddingTop: 10, paddingBottom: 10,
+                      borderBottom: `1px solid ${th.border}`,
                     }}>
                       <div style={{
                         width: 38, height: 38, borderRadius: 10, flexShrink: 0,
@@ -166,11 +182,11 @@ export function TechProfileScreen() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 20
                       }}>
-                        {UNIT_ICONS_[item.price_unit] || '🔧'}
+                        {UNIT_EMOJI[item.price_unit] || '🛠️'}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{
-                          margin: '0 0 2px', fontWeight: 600,
+                          margin: '0 0 2px 0', fontWeight: 600,
                           fontSize: 14, color: th.text
                         }}>{item.name}</p>
                         {item.description && (
@@ -202,8 +218,8 @@ export function TechProfileScreen() {
               <Card title="📜 Certificados y títulos">
                 {certList.map(cert => {
                   const TYPE_ICONS = { certificate: '📜', title: '🎓', license: '🪪', course: '📚', other: '📄' }
-                  const TYPE_COLORS_MAP = { certificate: '#dbeafe', title: '#ede9fe', license: '#dcfce7', course: '#fef3c7', other: '#f1f5f9' }
-                  const TYPE_TEXT = { certificate: '#1e40af', title: '#5b21b6', license: '#166534', course: '#92400e', other: '#475569' }
+                  const TYPE_COLORS_MAP = { certificate: th.primaryLight, title: '#ede9fe', license: th.verifiedLight, course: th.yellowLight, other: th.surface2 }
+                  const TYPE_TEXT = { certificate: th.primary, title: '#5b21b6', license: th.verifiedText, course: th.yellowText, other: '#475569' }
                   return (
                     <div key={cert.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
@@ -211,7 +227,7 @@ export function TechProfileScreen() {
                     }}>
                       <div style={{
                         width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                        background: TYPE_COLORS_MAP[cert.file_type] || '#f1f5f9',
+                        background: TYPE_COLORS_MAP[cert.file_type] || th.surface2,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
                       }}>
                         {TYPE_ICONS[cert.file_type] || '📄'}
@@ -225,10 +241,10 @@ export function TechProfileScreen() {
                       </div>
                       {cert.is_verified && (
                         <span style={{
-                          fontSize: 11, fontWeight: 700, color: '#166534',
-                          background: '#dcfce7', padding: '3px 8px', borderRadius: 20, flexShrink: 0
+                          fontSize: 11, fontWeight: 700, color: th.verifiedText,
+                          background: th.verifiedLight, padding: '3px 8px', borderRadius: 20, flexShrink: 0
                         }}>
-                          ✓ Verificado
+                          Verificado
                         </span>
                       )}
                     </div>
@@ -388,7 +404,7 @@ export function TechProfileScreen() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <Btn variant="whatsapp" style={{ flex: 2 }}
               onClick={() => window.open(`https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name)},%20vi%20tu%20perfil%20en%20Panamá%20Pro`, '_blank')}>
-              📱 WhatsApp
+              WhatsApp
             </Btn>
             <Btn variant="ghost" style={{ flex: 1 }}
               onClick={() => window.open(`mailto:${tech.public_email || ''}?subject=Servicio via TECNIFIX`)}>
@@ -587,7 +603,7 @@ function RequestModal({ tech, catalog, onClose, onSuccess, t, th, user }) {
                       </p>
                     </div>
                     {selectedItem?.id === item.id && (
-                      <span style={{ color: th.primary, fontSize: 18, flexShrink: 0 }}>✓</span>
+                      <span style={{ color: th.primary, fontSize: 18, flexShrink: 0 }}></span>
                     )}
                   </button>
                 ))}
@@ -602,7 +618,7 @@ function RequestModal({ tech, catalog, onClose, onSuccess, t, th, user }) {
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>{t.paymentMethod}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[['yappy', '💚 Yappy'], ['cash', '💵 ' + t.cash], ['transfer', '🏦 ' + t.transfer]].map(([v, label]) => (
+              {[['yappy', '💚 Yappy'], ['cash', '💲' + t.cash], ['transfer', '🏦' + t.transfer]].map(([v, label]) => (
                 <button key={v} onClick={() => setPayMethod(v)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${payMethod === v ? th.primary : th.border}`, background: payMethod === v ? th.primaryLight : 'transparent', color: payMethod === v ? th.primaryText : th.textSec, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {label}
                 </button>
@@ -685,7 +701,7 @@ function YappyModal({ tech, onClose, onSuccess, t, th, user }) {
     <Modal title={`💳 ${t.payWithYappy}`} onClose={onClose}>
       <div style={{ background: '#f0fdf4', borderRadius: 14, padding: 16, marginBottom: 16, border: '1px solid #bbf7d0' }}>
         <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#15803d', fontSize: 14 }}>💚 Pago por Yappy</p>
-        <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
+        <p style={{ margin: 0, fontSize: 12, color: th.verifiedText }}>
           Yappy es la billetera digital más usada en Panamá. El pago va directo al técnico.
         </p>
       </div>
@@ -743,7 +759,7 @@ function ReviewModal({ tech, onClose, onSuccess, t, th, user }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
           {[1, 2, 3, 4, 5].map(i => (
             <button key={i} onClick={() => setRating(i)}
-              style={{ background: 'none', border: 'none', fontSize: 36, cursor: 'pointer', transition: 'transform 0.1s', transform: i <= rating ? 'scale(1.1)' : 'scale(1)', color: i <= rating ? '#fbbf24' : '#d1d5db' }}>
+              style={{ background: 'none', border: 'none', fontSize: 36, cursor: 'pointer', transition: 'transform 0.1s', transform: i <= rating ? 'scale(1.1)' : 'scale(1)', color: i <= rating ? th.brass : '#d1d5db' }}>
               ★
             </button>
           ))}

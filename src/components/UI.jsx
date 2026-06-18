@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from './Icons.jsx'
 import { useApp } from '../context/AppContext.jsx'
 
 // ── Avatar ─────────────────────────────────────────────────
@@ -265,34 +266,220 @@ export function SettingsRow({ label, sub, right, onClick }) {
 }
 
 // ── EmptyState ─────────────────────────────────────────────
+// Acepta tanto emojis reales (⭐) como nombres de icono SVG ('star').
+// Los nombres de icono (solo letras minúsculas y guiones) se renderizan
+// como <Icon> dentro de un contenedor cuadrado azul claro.
 export function EmptyState({ emoji, title, sub, action }) {
   const { th } = useApp()
+  // Detectar si es nombre de icono SVG (solo a-z y guiones) o emoji real
+  const isIconName = typeof emoji === 'string' && /^[a-z][a-z-]*$/.test(emoji)
+
+  // Mapa de emojis temáticos TECNIFIX para estados vacíos con guía visual
+  const THEMED_EMOJI = {
+    pending: '⏳',
+    completed: '✅',
+    in_progress: '⚡',
+    payment: '💳',
+    certificate: '📜',
+    dispute: '🚨',
+    star: '⭐',
+    receipt: '📄',
+    money: '💰',
+    document: '📋',
+    wrench: '🛠️',
+    search: '🔍',
+    chat: '💬',
+    map: '🗺️',
+    photo: '📸',
+    lock: '🔒',
+    shield: '🛡️',
+    archive: '📦',
+    user: '👤',
+    'user-group': '👥',
+    bell: '🔔',
+    settings: '⚙️',
+    logout: '🚪',
+    admin: '🖥️',
+    edit: '✏️',
+    trash: '🗑️',
+    download: '⬇️',
+    upload: '⬆️',
+    share: '📤',
+    close: '✖️',
+    plus: '➕',
+    filter: '🔽',
+    check: '✅',
+    'check-badge': '🛡️',
+    'x-circle': '❌',
+    warning: '⚠️',
+    info: 'ℹ️',
+    clock: '🕐',
+    phone: '📞',
+    location: '📍',
+    send: '📨',
+    bolt: '⚡',
+    fire: '🔥',
+    'arrow-right': '→',
+    'chevron-right': '›',
+    'chevron-left': '‹',
+    home: '🏠',
+    'star-filled': '⭐',
+    wifi: '📶',
+    'wifi-off': '📵',
+    eye: '👁️',
+  }
+
   return (
-    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>{emoji}</div>
-      <p style={{ fontSize: 18, fontWeight: 700, fontFamily: th.fontDisplay, margin: '0 0 8px', color: th.text }}>{title}</p>
-      {sub && <p style={{ fontSize: 14, margin: '0 0 24px', color: th.textSec }}>{sub}</p>}
+    <div style={{
+      textAlign: 'center', paddingTop: 60, paddingBottom: 60,
+      paddingLeft: 20, paddingRight: 20
+    }}>
+      <div style={{
+        marginBottom: 16, display: 'flex',
+        justifyContent: 'center', alignItems: 'center'
+      }}>
+        {isIconName ? (
+          <div style={{
+            width: 80, height: 80, borderRadius: 24,
+            background: th.primaryLight,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <span style={{ fontSize: 40, lineHeight: 1 }}>
+              {THEMED_EMOJI[emoji] || '🔧'}
+            </span>
+          </div>
+        ) : (
+          <span style={{ fontSize: 64, lineHeight: 1 }}>{emoji}</span>
+        )}
+      </div>
+      <p style={{
+        fontSize: 18, fontWeight: 700, fontFamily: th.fontDisplay,
+        margin: '0 0 8px 0', color: th.text
+      }}>{title}</p>
+      {sub && (
+        <p style={{
+          fontSize: 14, margin: '0 0 24px 0', color: th.textSec,
+          lineHeight: 1.5
+        }}>{sub}</p>
+      )}
       {action}
     </div>
   )
 }
 
 // ── StatusBadge ────────────────────────────────────────────
+// Paleta TECNIFIX hardcodeada + emojis temáticos por estado.
+// NO usa th.* en scope de módulo — todos los colores son inline.
 export function StatusBadge({ status, t }) {
+  const { th } = useApp()
+
+  // Paleta hardcodeada TECNIFIX (no depende de th en módulo)
   const map = {
-    pending: { bg: '#fef3c7', text: '#92400e', label: t?.pending || 'Pendiente' },
-    accepted: { bg: '#dbeafe', text: '#1e40af', label: t?.accepted || 'Aceptado' },
-    in_progress: { bg: '#ede9fe', text: '#5b21b6', label: t?.inProgress || 'En progreso' },
-    completed: { bg: '#dcfce7', text: '#166534', label: t?.completed || 'Completado' },
-    cancelled: { bg: '#fee2e2', text: '#991b1b', label: t?.cancelled || 'Cancelado' },
-    disputed: { bg: '#fef9c3', text: '#854d0e', label: t?.disputed || 'En disputa' },
-    verified: { bg: '#dcfce7', text: '#166534', label: t?.verified || 'Verificado' },
-    pending_review: { bg: '#fef3c7', text: '#92400e', label: 'En revisión' },
-    paid: { bg: '#dcfce7', text: '#166534', label: t?.paymentCompleted || 'Pagado' },
-    unpaid: { bg: '#fee2e2', text: '#991b1b', label: t?.paymentPending || 'Sin pagar' },
+    pending: {
+      bg: '#FFF8E0', text: '#7A5E00', emoji: '⏳',
+      label: t?.pending || 'Pendiente'
+    },
+    accepted: {
+      bg: '#DDEEFF', text: '#00214D', emoji: '✅',
+      label: t?.accepted || 'Aceptada'
+    },
+    in_progress: {
+      bg: '#E8F0FF', text: '#0053A0', emoji: '⚡',
+      label: t?.inProgress || 'En progreso'
+    },
+    pending_payment: {
+      bg: '#FFF0D6', text: '#7A4500', emoji: '💳',
+      label: t?.pendingPayment || 'Pend. pago'
+    },
+    completed: {
+      bg: '#DFF7ED', text: '#00704A', emoji: '✅',
+      label: t?.completed || 'Completada'
+    },
+    cancelled: {
+      bg: '#FFE8E8', text: '#B00020', emoji: '✖️',
+      label: t?.cancelled || 'Cancelada'
+    },
+    disputed: {
+      bg: '#FFF0D6', text: '#7A4500', emoji: '🚨',
+      label: t?.disputed || 'En disputa'
+    },
+    verified: {
+      bg: '#DFF7ED', text: '#00704A', emoji: '🛡️',
+      label: t?.verified || 'Verificado'
+    },
+    pending_review: {
+      bg: '#FFF8E0', text: '#7A5E00', emoji: '⏳',
+      label: 'En revisión'
+    },
+    under_review: {
+      bg: '#FFF0D6', text: '#7A4500', emoji: '⏳',
+      label: 'En revisión'
+    },
+    paid: {
+      bg: '#DFF7ED', text: '#00704A', emoji: '✅',
+      label: t?.paymentCompleted || 'Pagado'
+    },
+    unpaid: {
+      bg: '#FFE8E8', text: '#B00020', emoji: '💳',
+      label: t?.paymentPending || 'Sin pagar'
+    },
+    pending_confirmation: {
+      bg: '#E8F0FF', text: '#0053A0', emoji: '⏳',
+      label: 'Confirmando'
+    },
+    resolved_client: {
+      bg: '#DDEEFF', text: '#00214D', emoji: '✅',
+      label: 'Resuelto: cliente'
+    },
+    resolved_tech: {
+      bg: '#DFF7ED', text: '#00704A', emoji: '✅',
+      label: 'Resuelto: técnico'
+    },
+    closed: {
+      bg: '#F0F5FA', text: '#4A6A8A', emoji: '🔒',
+      label: 'Cerrada'
+    },
+    open: {
+      bg: '#FFE8E8', text: '#B00020', emoji: '🚨',
+      label: 'Abierta'
+    },
+    active: {
+      bg: '#DFF7ED', text: '#00704A', emoji: '✅',
+      label: 'Activo'
+    },
+    suspended: {
+      bg: '#FFE8E8', text: '#B00020', emoji: '⚠️',
+      label: 'Suspendido'
+    },
+    rejected: {
+      bg: '#FFE8E8', text: '#B00020', emoji: '✖️',
+      label: 'Rechazado'
+    },
+    featured: {
+      bg: '#FFF8E0', text: '#7A5E00', emoji: '⭐',
+      label: 'Destacado'
+    },
   }
-  const s = map[status] || { bg: '#f1f5f9', text: '#64748b', label: status }
-  return <Badge color={s.bg} textColor={s.text}>{s.label}</Badge>
+
+  const s = map[status] || {
+    bg: th.surface2, text: th.textSec,
+    emoji: '●', label: status ?? '—'
+  }
+
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      paddingTop: 3, paddingBottom: 3, paddingLeft: 8, paddingRight: 8,
+      borderRadius: 100,
+      background: s.bg, color: s.text,
+      fontSize: 11, fontWeight: 700,
+      fontFamily: "'Space Grotesk','Inter',sans-serif",
+      whiteSpace: 'nowrap',
+    }}>
+      <span style={{ fontSize: 12, lineHeight: 1 }}>{s.emoji}</span>
+      {s.label}
+    </span>
+  )
 }
 
 // ── TicketPerforation ───────────────────────────────────────

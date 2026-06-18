@@ -6,24 +6,25 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Avatar, Btn, Input, Spinner, Toast, PageHeader } from '../components/UI.jsx'
-import { supabase, certificatesApi } from '../lib/supabase.js'
+import { certificatesApi } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
-// Tipos de documento
+// Tipos de documento — emojis temáticos TECNIFIX
 const FILE_TYPES = [
   { v: 'certificate', icon: '📜', labelEs: 'Certificado', labelEn: 'Certificate' },
   { v: 'title', icon: '🎓', labelEs: 'Título universitario', labelEn: 'University degree' },
   { v: 'license', icon: '🪪', labelEs: 'Licencia profesional', labelEn: 'Professional license' },
   { v: 'course', icon: '📚', labelEs: 'Curso / Capacitación', labelEn: 'Course / Training' },
-  { v: 'other', icon: '📄', labelEs: 'Otro documento', labelEn: 'Other document' },
+  { v: 'other', icon: '📋', labelEs: 'Otro documento', labelEn: 'Other document' },
 ]
 
+// TYPE_COLORS: paleta TECNIFIX hardcodeada — NO usa th.* (scope de módulo)
 const TYPE_COLORS = {
-  certificate: { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
-  title: { bg: '#ede9fe', text: '#5b21b6', border: '#ddd6fe' },
-  license: { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
-  course: { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
-  other: { bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' },
+  certificate: { bg: '#DDEEFF', text: '#00214D', border: '#B3D4FF' },
+  title: { bg: '#EDE9FE', text: '#4C1D95', border: '#C4B5FD' },
+  license: { bg: '#DFF7ED', text: '#00704A', border: '#86EFAC' },
+  course: { bg: '#FFF8E0', text: '#7A5E00', border: '#FCD34D' },
+  other: { bg: '#F0F5FA', text: '#4A6A8A', border: '#D1E0ED' },
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -44,11 +45,28 @@ export function CertificatesScreen() {
   }
 
   useEffect(() => {
-    if (!user) return
-    certificatesApi.list(user.id)
-      .then(setCerts).catch(() => { })
-      .finally(() => setLoading(false))
-  }, [user])
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    const load = async () => {
+      try {
+        const data = await certificatesApi.list(user.id)
+        if (!cancelled) setCerts(Array.isArray(data) ? data : [])
+      } catch (err) {
+        // 406 o cualquier error de red/RLS: mostrar lista vacía sin congelar
+        if (!cancelled) {
+          console.warn('[CertificatesScreen] Error al cargar:', err?.message ?? err)
+          setCerts([])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   const handleDelete = async (certId) => {
     if (!window.confirm('¿Eliminar este documento? No se puede deshacer.')) return
@@ -73,7 +91,7 @@ export function CertificatesScreen() {
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <PageHeader
-        title="📜 Mis certificados"
+        title="Mis certificados"
         right={
           <button onClick={() => setShowForm(true)}
             style={{
@@ -93,12 +111,12 @@ export function CertificatesScreen() {
           background: '#eff6ff', borderRadius: 14, padding: 14,
           border: '1px solid #bfdbfe', marginBottom: 20
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
-            🎓 ¿Por qué agregar tus títulos?
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: th.primary }}>
+            ¿Por qué agregar tus títulos?
           </p>
           <p style={{ margin: 0, fontSize: 13, color: '#1e3a8a', lineHeight: 1.6 }}>
             Los técnicos verificados con certificados generan <strong>3× más confianza</strong> en los clientes.
-            El admin revisará y marcará tus documentos como ✓ Verificados.
+            El admin revisará y marcará tus documentos como Verificados.
           </p>
         </div>
 
@@ -108,12 +126,15 @@ export function CertificatesScreen() {
             <Spinner />
           </div>
         ) : certs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>📜</div>
-            <p style={{ fontWeight: 700, fontSize: 18, color: th.text, margin: '0 0 8px' }}>
+          <div style={{
+            textAlign: 'center', paddingTop: 50, paddingBottom: 50,
+            paddingLeft: 20, paddingRight: 20
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>📜</div>
+            <p style={{ fontWeight: 700, fontSize: 18, color: th.text, margin: '0 0 8px 0' }}>
               Sin documentos aún
             </p>
-            <p style={{ fontSize: 14, color: th.textSec, margin: '0 0 24px' }}>
+            <p style={{ fontSize: 14, color: th.textSec, margin: '0 0 24px 0' }}>
               Agrega tus títulos, certificados y licencias para generar más confianza.
             </p>
             <Btn onClick={() => setShowForm(true)} style={{ maxWidth: 200, margin: '0 auto' }}>
@@ -162,10 +183,10 @@ export function CertificatesScreen() {
                       </p>
                       {cert.is_verified && (
                         <span style={{
-                          fontSize: 11, fontWeight: 700, color: '#166534',
-                          background: '#dcfce7', padding: '2px 7px', borderRadius: 20, flexShrink: 0
+                          fontSize: 11, fontWeight: 700, color: th.verifiedText,
+                          background: th.verifiedLight, padding: '2px 7px', borderRadius: 20, flexShrink: 0
                         }}>
-                          ✓ Verificado
+                          Verificado
                         </span>
                       )}
                     </div>
@@ -184,7 +205,7 @@ export function CertificatesScreen() {
                           fontSize: 11, fontWeight: 700, color: '#991b1b',
                           background: '#fee2e2', padding: '2px 7px', borderRadius: 20
                         }}>
-                          ⚠️ Expirado
+                          Expirado
                         </span>
                       )}
                     </div>
@@ -203,7 +224,7 @@ export function CertificatesScreen() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                       {cert.issued_at && (
                         <div style={{ background: th.surface2, borderRadius: 10, padding: '10px 12px' }}>
-                          <p style={{ margin: '0 0 2px', fontSize: 11, color: th.textSec }}>📅 Fecha de emisión</p>
+                          <p style={{ margin: '0 0 2px', fontSize: 11, color: th.textSec }}>Fecha de emisión</p>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: th.text }}>
                             {new Date(cert.issued_at + 'T00:00:00').toLocaleDateString('es-PA', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
@@ -212,7 +233,7 @@ export function CertificatesScreen() {
                       {cert.expires_at && (
                         <div style={{ background: expired ? '#fee2e2' : th.surface2, borderRadius: 10, padding: '10px 12px' }}>
                           <p style={{ margin: '0 0 2px', fontSize: 11, color: expired ? '#991b1b' : th.textSec }}>
-                            {expired ? '⚠️ Expiró el' : '📆 Vence el'}
+                            {expired ? 'Expiró el' : 'Vence el'}
                           </p>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: expired ? '#991b1b' : th.text }}>
                             {new Date(cert.expires_at + 'T00:00:00').toLocaleDateString('es-PA', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -234,7 +255,7 @@ export function CertificatesScreen() {
                       marginBottom: 12, fontSize: 12, color: th.textSec
                     }}>
                       {cert.is_public
-                        ? <><span style={{ color: th.primary }}>👁️</span> Visible en tu perfil público</>
+                        ? <>Visible en tu perfil</>
                         : <><span>🔒</span> Solo tú y el admin pueden verlo</>
                       }
                     </div>
@@ -249,7 +270,7 @@ export function CertificatesScreen() {
                             borderRadius: 12, fontSize: 13, fontWeight: 600,
                             cursor: 'pointer', fontFamily: 'inherit'
                           }}>
-                          👁️ Ver documento
+                          Ver documento
                         </button>
                         <button onClick={() => {
                           const a = document.createElement('a')
@@ -262,7 +283,7 @@ export function CertificatesScreen() {
                           borderRadius: 12, fontSize: 13, fontWeight: 600,
                           cursor: 'pointer', fontFamily: 'inherit'
                         }}>
-                          ⬇️ Descargar
+                          Descargar
                         </button>
                       </div>
                     )}
@@ -270,10 +291,10 @@ export function CertificatesScreen() {
                     {/* Estado verificación */}
                     {!cert.is_verified && (
                       <div style={{
-                        background: '#fef9c3', borderRadius: 10, padding: '10px 12px',
+                        background: th.yellowLight, borderRadius: 10, padding: '10px 12px',
                         marginBottom: 12, border: '1px solid #fde68a'
                       }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>
+                        <p style={{ margin: 0, fontSize: 12, color: th.yellowText }}>
                           ⏳ Pendiente de verificación por el equipo de Changuinola Pro.
                           Recibirás una notificación cuando sea verificado.
                         </p>
@@ -386,7 +407,7 @@ function AddCertForm({ userId, th, lang, onClose, onSuccess }) {
         {/* Header del modal */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
           <h3 style={{ flex: 1, margin: 0, fontSize: 17, fontWeight: 800, color: th.text }}>
-            📜 Agregar documento
+            Agregar documento
           </h3>
           <button onClick={onClose} style={{
             background: th.surface2, border: 'none',
@@ -541,7 +562,7 @@ function AddCertForm({ userId, th, lang, onClose, onSuccess }) {
           background: '#f0fdf4', borderRadius: 12, padding: 12,
           border: '1px solid #bbf7d0', marginBottom: 20
         }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontSize: 12, color: th.verifiedText, lineHeight: 1.6 }}>
             🔒 Tu documento se almacena de forma segura. Solo el admin de Changuinola Pro
             puede verlo para verificarlo. Los clientes solo ven el nombre y la institución,
             nunca el archivo completo a menos que lo marques como público.

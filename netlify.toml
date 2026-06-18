@@ -1,0 +1,48 @@
+# ============================================================
+#  netlify.toml — Configuración de despliegue TECNIFIX en Netlify
+# ============================================================
+
+[build]
+  publish   = "dist"
+  command   = "npm run build"
+
+# Variables de entorno de Netlify (se sobreescriben en el dashboard)
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Redirect SPA: cualquier ruta → index.html ──────────────
+# Permite que React Router / navegación interna funcione
+# al refrescar la página o entrar directamente a una URL.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# ── Headers de seguridad ───────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options         = "DENY"
+    X-XSS-Protection        = "1; mode=block"
+    X-Content-Type-Options  = "nosniff"
+    Referrer-Policy         = "strict-origin-when-cross-origin"
+    Permissions-Policy      = "camera=(), microphone=(), geolocation=(self)"
+
+# MIME correcto para el Service Worker
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type  = "application/javascript; charset=utf-8"
+    Cache-Control = "no-cache"
+
+# Cache agresivo para assets con hash (Vite los versiona automáticamente)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Fuentes
+[[headers]]
+  for = "*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

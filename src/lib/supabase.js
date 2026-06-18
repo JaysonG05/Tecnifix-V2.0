@@ -3,22 +3,35 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-// Advertencia en consola en lugar de romper toda la app
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn(
-    '⚠️  Tecnifix: Faltan variables de entorno de Supabase.\n' +
-    '   Copia .env.example como .env y rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.\n' +
-    '   Las encuentras en: supabase.com → tu proyecto → Settings → API'
+// ── Guard de variables de entorno ────────────────────────────
+// Si faltan las env vars la app NO se congela en la pantalla azul;
+// cada query simplemente devuelve [] o null con un error en consola.
+const ENV_OK = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
+
+if (!ENV_OK) {
+  console.error(
+    '🚨 TECNIFIX — Variables de entorno faltantes:\n' +
+    '  1. Crea un archivo .env en la raíz del proyecto.\n' +
+    '  2. Agrega:\n' +
+    '       VITE_SUPABASE_URL=https://tu-proyecto.supabase.co\n' +
+    '       VITE_SUPABASE_ANON_KEY=tu-anon-key\n' +
+    '  3. Las encuentras en: supabase.com → tu proyecto → Settings → API\n' +
+    '  4. En Netlify: Site settings → Environment variables.'
   )
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-})
+// Cliente Supabase — funciona aunque las env vars estén vacías
+// (las queries fallarán con 401/400 pero NO congelarán la UI)
+export const supabase = createClient(
+  SUPABASE_URL || 'https://placeholder.supabase.co',
+  SUPABASE_ANON_KEY || 'placeholder-key',
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  })
 
 // ─────────────────────────────────────────────
 // AUTH helpers
@@ -852,7 +865,7 @@ export const contracts = {
 CONTRATO DE PRESTACIÓN DE SERVICIOS TÉCNICOS — CHANGUINOLA PRO
 Versión 1.0
 
-PARTES: El presente contrato se celebra entre el USUARIO (cliente) y el TÉCNICO, ambos identificados en la plataforma Changuinola Pro.
+PARTES: El presente contrato se celebra entre el USUARIO (cliente) y el TÉCNICO, ambos identificados en la plataforma TECNIFIX.
 
 OBJETO: El Técnico se compromete a prestar el servicio solicitado conforme a los estándares profesionales y las especificaciones acordadas.
 
@@ -862,13 +875,13 @@ RESPONSABILIDADES DEL TÉCNICO: Responde por daños causados por negligencia com
 
 RESPONSABILIDADES DEL USUARIO: Facilitar el acceso al lugar del servicio y proporcionar información veraz sobre el problema.
 
-INTERMEDIARIO: Changuinola Pro actúa únicamente como plataforma de conexión y no es responsable de la ejecución del servicio.
+INTERMEDIARIO: TECNIFIX actúa únicamente como plataforma de conexión y no es responsable de la ejecución del servicio.
 
-DISPUTAS: Ante cualquier conflicto, ambas partes se comprometen a resolver primero mediante mediación a través de Changuinola Pro antes de acudir a instancias legales.
+DISPUTAS: Ante cualquier conflicto, ambas partes se comprometen a resolver primero mediante mediación a través de TECNIFIX antes de acudir a instancias legales.
 
 VIGENCIA: Este contrato entra en vigor al ser aceptado digitalmente por el Usuario y es válido hasta la finalización del servicio.
 
-⚖️ Nota legal: Este contrato es de carácter referencial. Para servicios de alta envergadura se recomienda consultar con un abogado.
+Nota legal: Este contrato es de carácter referencial. Para servicios de alta envergadura se recomienda consultar con un abogado.
   `.trim(),
 
   async create({ serviceRequestId, clientId, technicianId, clientIp }) {

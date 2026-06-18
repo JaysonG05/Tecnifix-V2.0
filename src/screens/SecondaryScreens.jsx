@@ -16,6 +16,7 @@ import {
 } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 import { receiptActions, disputeActions } from '../lib/payments.js'
+import { Icon, IconBox } from '../components/Icons.jsx'
 import { getPermissionStatus, requestPermission } from '../lib/pushNotifications.js'
 
 // ─────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ export function ProfileScreen() {
 
   if (!user) return (
     <div style={{ background: th.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-      <div style={{ fontSize: 72, marginBottom: 16 }}>👤</div>
+      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke={th.textSec} strokeWidth="1" style={{ marginBottom: 16 }}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
       <p style={{ fontSize: 20, fontWeight: 800, color: th.text, margin: '0 0 8px' }}>{t.login}</p>
       <p style={{ fontSize: 14, color: th.textSec, margin: '0 0 28px', textAlign: 'center' }}>{t.loginRequired}</p>
       <Btn onClick={() => navigate('login')}>{t.login}</Btn>
@@ -541,7 +542,7 @@ export function RegisterScreen() {
       <p style={{ margin: '0 0 24px', fontSize: 13, color: th.textSec }}>¿Eres cliente o técnico?</p>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
-        {[{ v: 'user', label: `👤 ${t.iAmClient}`, desc: t.lookingTechs }, { v: 'technician', label: `🛠️ ${t.iAmTech}`, desc: t.offerServices }].map(r => (
+        {[{ v: 'user', label: t.iAmClient, desc: t.lookingTechs }, { v: 'technician', label: t.iAmTech, desc: t.offerServices }].map(r => (
           <button key={r.v} onClick={() => setForm(f => ({ ...f, role: r.v }))}
             style={{ flex: 1, padding: '14px 10px', borderRadius: 16, border: `2.5px solid ${form.role === r.v ? th.primary : th.border}`, background: form.role === r.v ? th.primaryLight : 'transparent', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit' }}>
             <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 14, color: th.text }}>{r.label}</p>
@@ -696,7 +697,7 @@ export function EditProfileScreen() {
           <Input label={t.phone} value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="+507 6000-0000" />
           <Input label="WhatsApp" value={form.whatsapp_phone} onChange={v => setForm(f => ({ ...f, whatsapp_phone: v }))} placeholder="+507 6000-0000" />
           <div style={{ background: th.surface2, borderRadius: 10, padding: '10px 14px', marginTop: 4 }}>
-            <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>📧 Email: <strong style={{ color: th.text }}>{user?.email}</strong></p>
+            <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>Email: <strong style={{ color: th.text }}>{user?.email}</strong></p>
             <p style={{ margin: '4px 0 0', fontSize: 11, color: th.textSec }}>El email no se puede cambiar directamente aquí.</p>
           </div>
         </div>
@@ -913,10 +914,10 @@ export function EditTechProfileScreen() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
-              { id: 1, slug: 'climatizacion', icon: '❄️', nameEs: 'Climatización', nameEn: 'A/C & Cooling', color: '#dbeafe' },
-              { id: 2, slug: 'electricidad', icon: '⚡', nameEs: 'Electricidad', nameEn: 'Electrical', color: '#fef9c3' },
+              { id: 1, slug: 'climatizacion', icon: '❄️', nameEs: 'Climatización', nameEn: 'A/C & Cooling', color: th.primaryLight },
+              { id: 2, slug: 'electricidad', icon: '⚡', nameEs: 'Electricidad', nameEn: 'Electrical', color: th.yellowLight },
               { id: 3, slug: 'plomeria', icon: '🔧', nameEs: 'Plomería', nameEn: 'Plumbing', color: '#e0f2fe' },
-              { id: 4, slug: 'albanileria', icon: '🧱', nameEs: 'Albañilería', nameEn: 'Masonry', color: '#fef3c7' },
+              { id: 4, slug: 'albanileria', icon: '🧱', nameEs: 'Albañilería', nameEn: 'Masonry', color: th.yellowLight },
               { id: 5, slug: 'limpieza', icon: '🧹', nameEs: 'Limpieza', nameEn: 'Cleaning', color: '#d1fae5' },
               { id: 6, slug: 'cerrajeria', icon: '🔐', nameEs: 'Cerrajería', nameEn: 'Locksmith', color: '#ede9fe' },
               { id: 7, slug: 'pintura', icon: '🎨', nameEs: 'Pintura', nameEn: 'Painting', color: '#fce7f3' },
@@ -939,7 +940,7 @@ export function EditTechProfileScreen() {
                     fontFamily: 'inherit', transition: 'all 0.15s',
                   }}>
                   <span style={{ fontSize: 22 }}>{cat.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? th.primaryText : '#334155', textAlign: 'left', lineHeight: 1.2 }}>
+                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? th.primaryText : th.surface2, textAlign: 'left', lineHeight: 1.2 }}>
                     {lang === 'en' ? cat.nameEn : cat.nameEs}
                   </span>
                   {active && (
@@ -1162,7 +1163,7 @@ export function SettingsScreen() {
             }}>
               <p style={{
                 margin: '0 0 8px', fontSize: 12,
-                color: pushPerm === 'denied' ? '#991b1b' : '#1e40af', lineHeight: 1.5
+                color: pushPerm === 'denied' ? '#991b1b' : th.primary, lineHeight: 1.5
               }}>
                 {pushPerm === 'denied'
                   ? (lang === 'en'
@@ -1179,7 +1180,7 @@ export function SettingsScreen() {
                   setPushPerm(result)
                   if (result === 'granted') showToast(t.saved)
                 }} style={{
-                  background: '#1e40af', color: '#fff', border: 'none',
+                  background: th.primary, color: '#fff', border: 'none',
                   borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit'
                 }}>
@@ -1193,7 +1194,7 @@ export function SettingsScreen() {
               padding: '8px 16px', background: '#f0fdf4',
               borderBottom: `1px solid ${th.border}`
             }}>
-              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
+              <p style={{ margin: 0, fontSize: 12, color: th.verifiedText }}>
                 ✅ {lang === 'en' ? 'Browser notifications enabled' : 'Notificaciones del navegador activadas'}
               </p>
             </div>
@@ -1314,8 +1315,8 @@ export function NotificationsScreen() {
     contract: '📄', payment: '💚', system: '🔔', dispute: '⚠️',
   }
   const TYPE_COLOR = {
-    new_request: '#dbeafe', request_accepted: '#dcfce7', review: '#fef9c3',
-    contract: '#ede9fe', payment: '#d1fae5', system: '#f1f5f9', dispute: '#fff7ed',
+    new_request: th.primaryLight, request_accepted: th.verifiedLight, review: th.yellowLight,
+    contract: '#ede9fe', payment: '#d1fae5', system: th.surface2, dispute: '#fff7ed',
   }
 
   // ── Eliminar una notificación ──────────────────────────────
@@ -1432,7 +1433,7 @@ export function NotificationsScreen() {
         ) : (
           notifs.map(n => {
             const isBeingDeleted = deleting === n.id
-            const iconBg = n.is_read ? th.surface2 : (TYPE_COLOR[n.type] ?? '#f1f5f9')
+            const iconBg = n.is_read ? th.surface2 : (TYPE_COLOR[n.type] ?? th.surface2)
             return (
               <div key={n.id} style={{
                 display: 'flex', gap: 12, padding: '14px 0',
@@ -1621,11 +1622,11 @@ Se descargará el recibo automáticamente.`)) return
   }
 
   const STATUS_COLORS = {
-    pending: { bg: '#fef3c7', text: '#92400e' },
-    accepted: { bg: '#dbeafe', text: '#1e40af' },
+    pending: { bg: th.yellowLight, text: th.yellowText },
+    accepted: { bg: th.primaryLight, text: th.primary },
     in_progress: { bg: '#ede9fe', text: '#5b21b6' },
     pending_payment: { bg: '#fce7f3', text: '#9d174d' },
-    completed: { bg: '#dcfce7', text: '#166534' },
+    completed: { bg: th.verifiedLight, text: th.verifiedText },
     cancelled: { bg: '#fee2e2', text: '#991b1b' },
     disputed: { bg: '#fff7ed', text: '#9a3412' },
   }
@@ -1686,10 +1687,10 @@ Se descargará el recibo automáticamente.`)) return
       {/* Info de archivo automático */}
       {tab === 'completed' && lists.completed.length > 0 && (
         <div style={{
-          padding: '8px 16px', background: '#fef9c3',
+          padding: '8px 16px', background: th.yellowLight,
           borderBottom: `1px solid #fde68a`
         }}>
-          <p style={{ margin: 0, fontSize: 11, color: '#92400e' }}>
+          <p style={{ margin: 0, fontSize: 11, color: th.yellowText }}>
             ⏰ Las solicitudes completadas se archivan automáticamente a los 30 días.
             Descarga el recibo antes de archivar para guardar evidencia.
           </p>
@@ -1716,7 +1717,7 @@ Se descargará el recibo automáticamente.`)) return
         ) : currentList.map((r, i) => {
           const isArchiving_ = archiving === r.id
           const isDeleting_ = deleting === r.id
-          const sc = STATUS_COLORS[r.status] ?? { bg: '#f1f5f9', text: '#64748b' }
+          const sc = STATUS_COLORS[r.status] ?? { bg: th.surface2, text: th.textSec }
           const isLast = i === currentList.length - 1
 
           return (
@@ -1767,8 +1768,8 @@ Se descargará el recibo automáticamente.`)) return
                   )}
                   <span style={{
                     fontSize: 10, fontWeight: 600,
-                    background: r.payment_status === 'paid' ? '#dcfce7' : '#f1f5f9',
-                    color: r.payment_status === 'paid' ? '#166534' : '#64748b',
+                    background: r.payment_status === 'paid' ? th.verifiedLight : th.surface2,
+                    color: r.payment_status === 'paid' ? th.verifiedText : th.textSec,
                     padding: '1px 6px', borderRadius: 20
                   }}>
                     {r.payment_status === 'paid' ? '✓ Pagado' : 'Sin pagar'}
@@ -1869,7 +1870,6 @@ Se descargará el recibo automáticamente.`)) return
   )
 }
 
-
 export function AdminScreen() {
   const { th, user, navigate, lang } = useApp()
   const t = T[lang]
@@ -1907,15 +1907,15 @@ export function AdminScreen() {
         setStats(s)
       } else if (newTab === 'users') {
         const u = await admin.listAllUsers()
-        setUsers(u)
+        setUsers(Array.isArray(u) ? u : [])
       } else if (newTab === 'techs') {
         const tc = await admin.listAllTechnicians()
-        setTechs(tc)
+        setTechs(Array.isArray(tc) ? tc : [])
       } else if (newTab === 'reviews') {
         const rv = await admin.listPendingReviews()
-        setRevs(rv)
+        setRevs(Array.isArray(rv) ? rv : [])
       } else if (newTab === 'certs') {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('certificates')
           .select(`
             *,
@@ -1926,13 +1926,29 @@ export function AdminScreen() {
           `)
           .eq('is_verified', false)
           .order('created_at', { ascending: false })
-        setCerts(data ?? [])
+        // 406: tabla vacía o RLS — no congelar, mostrar lista vacía
+        if (error) {
+          console.warn('[Admin/certs] Error:', error.code, error.message)
+          setCerts([])
+        } else {
+          setCerts(data ?? [])
+        }
       } else if (newTab === 'disputes') {
-        const d = await disputeActions.listAll()
-        setDisputes(d)
+        try {
+          const d = await disputeActions.listAll()
+          setDisputes(Array.isArray(d) ? d : [])
+        } catch (dErr) {
+          // La tabla disputes puede no existir aún — mostrar vacío sin crash
+          console.warn('[Admin/disputes] Error:', dErr?.message ?? dErr)
+          setDisputes([])
+        }
       }
     } catch (err) {
-      showToast('Error al cargar datos: ' + (err?.message ?? ''), 'error')
+      const msg = err?.message ?? ''
+      const friendly = msg.includes('406') || msg.includes('Not Acceptable')
+        ? 'La tabla aún no está disponible. Ejecuta el SQL de configuración en Supabase.'
+        : 'Error al cargar datos: ' + msg
+      showToast(friendly, 'error')
     } finally {
       setTabLoad(false)
       setLoading(false)
@@ -1942,12 +1958,12 @@ export function AdminScreen() {
   if (user?.role !== 'admin') return null
 
   const TABS = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'users', icon: '👥', label: 'Usuarios' },
-    { id: 'techs', icon: '🛠️', label: 'Técnicos', badge: stats?.pending?.techs },
-    { id: 'reviews', icon: '⭐', label: 'Reseñas', badge: stats?.pending?.reviews },
-    { id: 'certs', icon: '📜', label: 'Certificados', badge: stats?.pending?.certs },
-    { id: 'disputes', icon: '⚠️', label: 'Disputas', badge: stats?.pending?.disputes },
+    { id: 'dashboard', icon: 'admin', label: 'Dashboard' },
+    { id: 'users', icon: 'user-group', label: 'Usuarios' },
+    { id: 'techs', icon: 'wrench', label: 'Técnicos', badge: stats?.pending?.techs },
+    { id: 'reviews', icon: 'star', label: 'Reseñas', badge: stats?.pending?.reviews },
+    { id: 'certs', icon: 'certificate', label: 'Certificados', badge: stats?.pending?.certs },
+    { id: 'disputes', icon: 'warning', label: 'Disputas', badge: stats?.pending?.disputes },
   ]
 
   const filterBySearch = (list, fields) => {
@@ -1974,10 +1990,11 @@ export function AdminScreen() {
               cursor: 'pointer', fontWeight: tab === tb.id ? 700 : 400,
               color: tab === tb.id ? th.primary : th.textSec,
               borderBottom: tab === tb.id ? `2.5px solid ${th.primary}` : '2.5px solid transparent',
-              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
               position: 'relative'
             }}>
-            {tb.icon} {tb.label}
+            <Icon name={tb.icon} size={15} color={tab === tb.id ? th.primary : th.textSec} />
+            {tb.label}
             {!!tb.badge && (
               <span style={{
                 background: th.red, color: '#fff', fontSize: 10, fontWeight: 700,
@@ -2034,10 +2051,10 @@ export function AdminScreen() {
                 {(stats.pending.disputes > 0 || stats.pending.techs > 0 ||
                   stats.pending.reviews > 0 || stats.pending.certs > 0) && (
                     <div style={{
-                      background: '#fef3c7', borderRadius: 14, padding: 14,
+                      background: th.yellowLight, borderRadius: 14, padding: 14,
                       border: '1px solid #fde68a', marginBottom: 16
                     }}>
-                      <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 14, color: '#92400e' }}>
+                      <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 14, color: th.yellowText }}>
                         ⚡ Requiere tu atención
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -2064,7 +2081,7 @@ export function AdminScreen() {
                         {stats.pending.reviews > 0 && (
                           <button onClick={() => loadTab('reviews')}
                             style={{
-                              background: '#fef9c3', color: '#92400e', border: 'none',
+                              background: th.yellowLight, color: th.yellowText, border: 'none',
                               borderRadius: 20, padding: '6px 12px', fontSize: 12, fontWeight: 700,
                               cursor: 'pointer', fontFamily: 'inherit'
                             }}>
@@ -2088,10 +2105,10 @@ export function AdminScreen() {
                 {/* KPIs principales */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   {[
-                    { val: stats.totalUsers, label: 'Usuarios registrados', icon: '👥', color: '#dbeafe', text: '#1e40af' },
-                    { val: stats.totalTechs, label: 'Técnicos activos', icon: '🛠️', color: '#dcfce7', text: '#166534' },
-                    { val: stats.totalRequests, label: 'Solicitudes totales', icon: '📋', color: '#fef3c7', text: '#92400e' },
-                    { val: stats.totalReviews, label: 'Reseñas publicadas', icon: '⭐', color: '#fce7f3', text: '#9d174d' },
+                    { val: stats.totalUsers, label: 'Usuarios registrados', icon: 'user-group', color: th.primaryLight, text: th.primary },
+                    { val: stats.totalTechs, label: 'Técnicos activos', icon: 'wrench', color: th.verifiedLight, text: th.verifiedText },
+                    { val: stats.totalRequests, label: 'Solicitudes totales', icon: '📋', color: th.yellowLight, text: th.yellowText },
+                    { val: stats.totalReviews, label: 'Reseñas publicadas', icon: 'star', color: '#fce7f3', text: '#9d174d' },
                   ].map((s, i) => (
                     <div key={i} style={{
                       background: s.color, borderRadius: 16,
@@ -2112,7 +2129,7 @@ export function AdminScreen() {
                     background: 'linear-gradient(135deg, #16a34a, #22c55e)',
                     borderRadius: 16, padding: '18px 16px'
                   }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 24 }}>💰</p>
+                    <p style={{ margin: '0 0 6px', fontSize: 24 }}><Icon name='money' size={16} /></p>
                     <p style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 900, color: '#fff' }}>
                       ${stats.totalRevenue.toFixed(2)}
                     </p>
@@ -2144,10 +2161,10 @@ export function AdminScreen() {
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {[
-                      { label: 'Ver técnicos pendientes', tab: 'techs', icon: '🛠️', color: '#dcfce7', text: '#166534' },
-                      { label: 'Moderar reseñas', tab: 'reviews', icon: '⭐', color: '#fef3c7', text: '#92400e' },
-                      { label: 'Gestionar usuarios', tab: 'users', icon: '👥', color: '#dbeafe', text: '#1e40af' },
-                      { label: 'Verificar certificados', tab: 'certs', icon: '📜', color: '#ede9fe', text: '#5b21b6' },
+                      { label: 'Ver técnicos pendientes', tab: 'techs', icon: 'wrench', color: th.verifiedLight, text: th.verifiedText },
+                      { label: 'Moderar reseñas', tab: 'reviews', icon: 'star', color: th.yellowLight, text: th.yellowText },
+                      { label: 'Gestionar usuarios', tab: 'users', icon: 'user-group', color: th.primaryLight, text: th.primary },
+                      { label: 'Verificar certificados', tab: 'certs', icon: 'certificate', color: '#ede9fe', text: '#5b21b6' },
                     ].map(a => (
                       <button key={a.tab} onClick={() => loadTab(a.tab)}
                         style={{
@@ -2179,9 +2196,7 @@ export function AdminScreen() {
                           display: 'flex', alignItems: 'center',
                           gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
                         }}>
-                          <span style={{ fontSize: 16 }}>
-                            {u.role === 'technician' ? '🛠️' : u.role === 'admin' ? '🔧' : '👤'}
-                          </span>
+                          <Icon name={u.role === 'technician' ? 'wrench' : u.role === 'admin' ? 'admin' : 'user'} size={16} color={th.primary} />
                           <p style={{
                             margin: 0, fontSize: 13, color: th.text, flex: 1,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -2198,7 +2213,7 @@ export function AdminScreen() {
                           display: 'flex', alignItems: 'center',
                           gap: 10, padding: '6px 0', borderBottom: `1px solid ${th.border}`
                         }}>
-                          <span style={{ fontSize: 16 }}>📋</span>
+                          <Icon name='document' size={16} color={th.primary} />
                           <p style={{
                             margin: 0, fontSize: 13, color: th.text, flex: 1,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -2259,10 +2274,10 @@ export function AdminScreen() {
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           <span style={{
                             fontSize: 11, fontWeight: 600, padding: '2px 8px',
-                            borderRadius: 20, background: u.role === 'admin' ? '#fef3c7' :
-                              u.role === 'technician' ? '#dcfce7' : '#dbeafe',
-                            color: u.role === 'admin' ? '#92400e' :
-                              u.role === 'technician' ? '#166534' : '#1e40af'
+                            borderRadius: 20, background: u.role === 'admin' ? th.yellowLight :
+                              u.role === 'technician' ? th.verifiedLight : th.primaryLight,
+                            color: u.role === 'admin' ? th.yellowText :
+                              u.role === 'technician' ? th.verifiedText : th.primary
                           }}>
                             {u.role === 'admin' ? '🔧 Admin' :
                               u.role === 'technician' ? '🛠️ Técnico' : '👤 Cliente'}
@@ -2270,8 +2285,8 @@ export function AdminScreen() {
                           <span style={{
                             fontSize: 11, fontWeight: 600, padding: '2px 8px',
                             borderRadius: 20,
-                            background: u.account_status === 'active' ? '#dcfce7' : '#fee2e2',
-                            color: u.account_status === 'active' ? '#166534' : '#991b1b'
+                            background: u.account_status === 'active' ? th.verifiedLight : '#fee2e2',
+                            color: u.account_status === 'active' ? th.verifiedText : '#991b1b'
                           }}>
                             {u.account_status === 'active' ? '● Activo' : '● Suspendido'}
                           </span>
@@ -2311,8 +2326,8 @@ export function AdminScreen() {
                             showToast(`${u.full_name} reactivado.`)
                           } catch (err) { showToast(err.message, 'error') }
                         }} style={{
-                          flex: 1, minWidth: 100, padding: '8px', background: '#dcfce7',
-                          color: '#166534', border: '1px solid #bbf7d0', borderRadius: 10,
+                          flex: 1, minWidth: 100, padding: '8px', background: th.verifiedLight,
+                          color: th.verifiedText, border: '1px solid #bbf7d0', borderRadius: 10,
                           fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                         }}>
                           ✅ Reactivar
@@ -2331,7 +2346,7 @@ export function AdminScreen() {
                           } catch (err) { showToast(err.message, 'error') }
                         }} style={{
                           flex: 1, minWidth: 120, padding: '8px', background: '#f0fdf4',
-                          color: '#166534', border: '1px solid #bbf7d0', borderRadius: 10,
+                          color: th.verifiedText, border: '1px solid #bbf7d0', borderRadius: 10,
                           fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                         }}>
                           🛠️ Hacer técnico
@@ -2397,10 +2412,10 @@ export function AdminScreen() {
                           <span style={{
                             fontSize: 11, fontWeight: 700, padding: '2px 8px',
                             borderRadius: 20,
-                            background: tech.verification_status === 'verified' ? '#dcfce7' :
-                              tech.verification_status === 'rejected' ? '#fee2e2' : '#fef3c7',
-                            color: tech.verification_status === 'verified' ? '#166534' :
-                              tech.verification_status === 'rejected' ? '#991b1b' : '#92400e'
+                            background: tech.verification_status === 'verified' ? th.verifiedLight :
+                              tech.verification_status === 'rejected' ? '#fee2e2' : th.yellowLight,
+                            color: tech.verification_status === 'verified' ? th.verifiedText :
+                              tech.verification_status === 'rejected' ? '#991b1b' : th.yellowText
                           }}>
                             {tech.verification_status === 'verified' ? '✓ Verificado' :
                               tech.verification_status === 'rejected' ? '✗ Rechazado' : '⏳ Pendiente'}
@@ -2408,15 +2423,15 @@ export function AdminScreen() {
                           {tech.is_featured && (
                             <span style={{
                               fontSize: 11, fontWeight: 700, padding: '2px 8px',
-                              borderRadius: 20, background: '#fef9c3', color: '#92400e'
+                              borderRadius: 20, background: th.yellowLight, color: th.yellowText
                             }}>
                               ⭐ Destacado
                             </span>
                           )}
                           <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                            background: tech.is_available ? '#dcfce7' : '#f1f5f9',
-                            color: tech.is_available ? '#166534' : '#64748b'
+                            background: tech.is_available ? th.verifiedLight : th.surface2,
+                            color: tech.is_available ? th.verifiedText : th.textSec
                           }}>
                             {tech.is_available ? '● Disponible' : '○ No disponible'}
                           </span>
@@ -2434,7 +2449,7 @@ export function AdminScreen() {
                             showToast(`${tech.full_name} verificado. ✓`)
                           } catch (err) { showToast(err.message, 'error') }
                         }} style={{
-                          padding: '9px', background: '#dcfce7', color: '#166534',
+                          padding: '9px', background: th.verifiedLight, color: th.verifiedText,
                           border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 13,
                           fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                         }}>
@@ -2453,7 +2468,7 @@ export function AdminScreen() {
                             showToast('Verificación removida.')
                           } catch (err) { showToast(err.message, 'error') }
                         }} style={{
-                          padding: '9px', background: '#fef3c7', color: '#92400e',
+                          padding: '9px', background: th.yellowLight, color: th.yellowText,
                           border: '1px solid #fde68a', borderRadius: 10, fontSize: 12,
                           fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                         }}>
@@ -2476,9 +2491,9 @@ export function AdminScreen() {
                           admin.listAllTechnicians().then(setTechs).catch(() => { })
                         }
                       }} style={{
-                        padding: '9px', background: tech.is_featured ? '#f1f5f9' : '#fef9c3',
-                        color: tech.is_featured ? '#64748b' : '#92400e',
-                        border: `1px solid ${tech.is_featured ? th.border : '#fde68a'}`,
+                        padding: '9px', background: tech.is_featured ? th.surface2 : th.yellowLight,
+                        color: tech.is_featured ? th.textSec : th.yellowText,
+                        border: `1px solid ${tech.is_featured ? th.border : th.brass}`,
                         borderRadius: 10, fontSize: 12, fontWeight: 600,
                         cursor: 'pointer', fontFamily: 'inherit'
                       }}>
@@ -2561,11 +2576,11 @@ export function AdminScreen() {
                             try {
                               await admin.approveReview(r.id)
                               setRevs(prev => prev.filter(x => x.id !== r.id))
-                              showToast('✅ Reseña aprobada y publicada.')
+                              showToast('Reseña aprobada y publicada.')
                             } catch (err) { showToast(err.message, 'error') }
                           }} style={{
-                            flex: 1, padding: '10px', background: '#dcfce7',
-                            color: '#166534', border: '1px solid #bbf7d0', borderRadius: 10,
+                            flex: 1, padding: '10px', background: th.verifiedLight,
+                            color: th.verifiedText, border: '1px solid #bbf7d0', borderRadius: 10,
                             fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                           }}>
                             ✅ Aprobar
@@ -2702,8 +2717,8 @@ export function AdminScreen() {
                                 showToast(`✅ "${cert.name}" verificado correctamente.`)
                               } catch (err) { showToast(err.message, 'error') }
                             }} style={{
-                              flex: 1, padding: '10px', background: '#dcfce7',
-                              color: '#166534', border: '1px solid #bbf7d0', borderRadius: 10,
+                              flex: 1, padding: '10px', background: th.verifiedLight,
+                              color: th.verifiedText, border: '1px solid #bbf7d0', borderRadius: 10,
                               fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                             }}>
                               ✓ Verificar
@@ -2748,10 +2763,10 @@ export function AdminScreen() {
                       const isResolving = resolvingId === d.id
                       const STATUS_INFO = {
                         open: { label: '🔴 Abierta', bg: '#fee2e2', text: '#991b1b' },
-                        under_review: { label: '🟡 En revisión', bg: '#fef3c7', text: '#92400e' },
-                        resolved_client: { label: '✅ A favor del cliente', bg: '#dbeafe', text: '#1e40af' },
-                        resolved_tech: { label: '✅ A favor del técnico', bg: '#dcfce7', text: '#166534' },
-                        closed: { label: '🔒 Cerrada', bg: '#f1f5f9', text: '#475569' },
+                        under_review: { label: '🟡 En revisión', bg: th.yellowLight, text: th.yellowText },
+                        resolved_client: { label: '✅ A favor del cliente', bg: th.primaryLight, text: th.primary },
+                        resolved_tech: { label: '✅ A favor del técnico', bg: th.verifiedLight, text: th.verifiedText },
+                        closed: { label: '🔒 Cerrada', bg: th.surface2, text: '#475569' },
                       }
                       const si = STATUS_INFO[d.status] ?? STATUS_INFO.open
                       const isFinal = ['resolved_client', 'resolved_tech', 'closed'].includes(d.status)
@@ -2768,7 +2783,7 @@ export function AdminScreen() {
                           await disputeActions.resolve(d.id, d.service_request_id, resolution, d.resolution_notes, user.id)
                           setDisputes(prev => prev.map(x => x.id === d.id
                             ? { ...x, status: resolution, resolved_at: new Date().toISOString() } : x))
-                          showToast('✅ Disputa resuelta correctamente')
+                          showToast('Disputa resuelta correctamente')
                         } catch (err) {
                           showToast(err?.message ?? 'Error al resolver', 'error')
                         } finally { setResolvingId(null) }
@@ -2885,10 +2900,10 @@ export function AdminScreen() {
                               background: '#f0fdf4', borderRadius: 10,
                               padding: '10px 12px', marginBottom: 10, border: '1px solid #bbf7d0'
                             }}>
-                              <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#166534' }}>
+                              <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: th.verifiedText }}>
                                 Notas de resolución:
                               </p>
-                              <p style={{ margin: 0, fontSize: 12, color: '#166534' }}>
+                              <p style={{ margin: 0, fontSize: 12, color: th.verifiedText }}>
                                 {d.resolution_notes}
                               </p>
                             </div>
@@ -2907,7 +2922,7 @@ export function AdminScreen() {
                                 <button onClick={handleUnderReview} disabled={isResolving}
                                   style={{
                                     width: '100%', padding: '9px', marginBottom: 8,
-                                    background: '#fef3c7', color: '#92400e',
+                                    background: th.yellowLight, color: th.yellowText,
                                     border: '1px solid #fde68a', borderRadius: 10,
                                     fontSize: 12, fontWeight: 700, cursor: 'pointer',
                                     fontFamily: 'inherit'
@@ -2926,7 +2941,7 @@ export function AdminScreen() {
                                 </button>
                                 <button onClick={() => handleResolve('resolved_tech')} disabled={isResolving}
                                   style={{
-                                    padding: '9px', background: '#dcfce7', color: '#166534',
+                                    padding: '9px', background: th.verifiedLight, color: th.verifiedText,
                                     border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 12,
                                     fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                                   }}>

@@ -115,13 +115,13 @@ class ErrorBoundary extends Component {
       <div style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', padding: 32,
-        background: '#f8fafc', fontFamily: 'system-ui,sans-serif', maxWidth: 430, margin: '0 auto'
+        background: th.bg, fontFamily: 'system-ui,sans-serif', maxWidth: 430, margin: '0 auto'
       }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>🔧</div>
-        <h2 style={{ margin: '0 0 8px', color: '#0f172a', textAlign: 'center' }}>
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#E5282D" strokeWidth="1.5" style={{ marginBottom: 16 }}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+        <h2 style={{ margin: '0 0 8px', color: th.ink, textAlign: 'center' }}>
           Algo salió mal
         </h2>
-        <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+        <p style={{ color: th.textSec, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
           Recarga la página. Si el error persiste, revisa la consola del navegador (F12).
         </p>
         <pre style={{
@@ -132,7 +132,7 @@ class ErrorBoundary extends Component {
         </pre>
         <button onClick={() => window.location.reload()}
           style={{
-            padding: '12px 28px', background: '#22c55e', color: '#fff', border: 'none',
+            padding: '12px 28px', background: th.verified, color: '#fff', border: 'none',
             borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer'
           }}>
           🔄 Recargar

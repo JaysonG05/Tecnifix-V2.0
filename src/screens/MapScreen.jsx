@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { Icon } from '../components/Icons.jsx'
 import { Avatar, StarRating, Spinner, Btn } from '../components/UI.jsx'
 import { supabase, technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
@@ -67,7 +68,7 @@ export function MapScreen() {
     markersRef.current = []
 
     list.forEach(tech => {
-      const color = tech.is_available ? '#16a34a' : '#64748b'
+      const color = tech.is_available ? th.verified : th.textSec
       const icon = L.divIcon({
         html: `
           <div style="
@@ -102,10 +103,10 @@ export function MapScreen() {
               <span style="font-size:11px;color:#64748b">(${tech.total_reviews} reseñas)</span>
               <span style="margin-left:auto;font-weight:700;color:#16a34a">Desde $${tech.min_price}</span>
             </div>
-            <a href="https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name || '')},%20vi%20tu%20perfil%20en%20Changuinola%20Pro"
+            <a href="https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name || '')},%20vi%20tu%20perfil%20en%20Panamá%20Pro"
               target="_blank"
               style="display:block;background:#25d366;color:#fff;text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">
-              📱 WhatsApp
+              WhatsApp
             </a>
           </div>
         `, { maxWidth: 220 })
@@ -138,7 +139,7 @@ export function MapScreen() {
           })
           L.marker([lat, lng], { icon: userIcon })
             .addTo(mapInstance.current)
-            .bindPopup('📍 Tu ubicación')
+            .bindPopup(' Tu ubicación')
             .openPopup()
           mapInstance.current.setView([lat, lng], 14)
 
@@ -161,14 +162,14 @@ export function MapScreen() {
       <div style={{ padding: '16px 16px 12px', background: th.surface, borderBottom: `1px solid ${th.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: th.text }}>🗺️ {t.nearbyTechs}</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: th.text }}>{t.nearbyTechs}</h2>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: th.textSec }}>
               {loading ? '...' : techList.length} {t.techsOnMap}
             </p>
           </div>
           <button onClick={locateUser} disabled={locating}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: th.primaryLight, color: th.primaryText, border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-            {locating ? <Spinner size={14} /> : '📍'}
+            {locating ? <Spinner size={14} /> : ''}
             {locating ? t.locating : t.useMyLocation}
           </button>
         </div>
@@ -177,7 +178,7 @@ export function MapScreen() {
       {/* Mapa */}
       {!leafletReady ? (
         <div style={{ margin: 16, background: th.surface2, borderRadius: 18, height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, border: `1px dashed ${th.border}` }}>
-          <span style={{ fontSize: 52 }}>🗺️</span>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>
           <p style={{ margin: 0, color: th.textSec, fontSize: 14, textAlign: 'center', maxWidth: 220 }}>
             Mapa interactivo con OpenStreetMap (gratuito, sin API key)
           </p>
@@ -205,7 +206,7 @@ export function MapScreen() {
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <p style={{ margin: 0, fontWeight: 700, color: th.primaryText, fontSize: 13 }}>Desde ${tech.min_price}</p>
                 {tech.distance_km !== undefined && (
-                  <p style={{ margin: 0, fontSize: 11, color: th.textSec }}>📍 {tech.distance_km} km</p>
+                  <p style={{ margin: 0, fontSize: 11, color: th.textSec }}> {tech.distance_km} km</p>
                 )}
               </div>
             </div>

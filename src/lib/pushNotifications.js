@@ -11,7 +11,7 @@ let swRegistration = null
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null
   try {
-    swRegistration = await navigator.serviceWorker.register('/sw.js')
+    swRegistration = await navigator.serviceWorker.register('./sw.js')
     return swRegistration
   } catch (err) {
     console.warn('No se pudo registrar el Service Worker:', err)
@@ -62,7 +62,7 @@ export function showLocalNotification({ title, body, tag, url }) {
 
 /** Escuchar clics en notificaciones para navegar dentro de la app */
 export function listenNotificationClicks(onClick) {
-  if (!('serviceWorker' in navigator)) return () => {}
+  if (!('serviceWorker' in navigator)) return () => { }
   const handler = (event) => {
     if (event.data?.type === 'NOTIFICATION_CLICK') onClick(event.data.url)
   }

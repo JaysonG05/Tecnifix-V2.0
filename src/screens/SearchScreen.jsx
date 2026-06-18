@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { Icon } from '../components/Icons.jsx'
 import { TechnicianCard } from '../components/TechnicianCard.jsx'
 import { SkeletonCard, EmptyState, Btn } from '../components/UI.jsx'
 import { supabase, technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 const CATS = [
-  { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C', icon: '❄️' },
-  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical', icon: '⚡' },
-  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing', icon: '🔧' },
-  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry', icon: '🧱' },
-  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning', icon: '🧹' },
-  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith', icon: '🔐' },
-  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting', icon: '🎨' },
-  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech', icon: '💻' },
+  { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C' },
+  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical' },
+  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing' },
+  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry' },
+  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning' },
+  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith' },
+  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting' },
+  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech' },
 ]
 
 export function SearchScreen() {
@@ -79,7 +80,7 @@ export function SearchScreen() {
           <Chip active={onlyAvailable} onClick={() => setOnlyAvailable(v => !v)}>{t.availableOnly}</Chip>
           <Chip active={showFilters || maxPrice < 100 || minRating > 0}
             onClick={() => setShowFilters(v => !v)}>
-            ⚙️ {lang === 'en' ? 'More filters' : 'Más filtros'}
+            Filtros
             {(maxPrice < 100 || minRating > 0) && (
               <span style={{
                 marginLeft: 4, background: th.primary, color: '#fff',

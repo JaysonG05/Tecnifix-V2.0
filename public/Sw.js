@@ -1,67 +1,63 @@
 // ============================================================
-//  sw.js — Service Worker de Tecifix
-//  Maneja notificaciones push y permite mostrarlas
-//  incluso si la pestaña está en segundo plano.
+//  sw.js — Service Worker TECNIFIX
+//  Solo maneja notificaciones push — NO intercepta fetch para
+//  evitar devolver text/html con rutas incorrectas en producción.
 // ============================================================
 
-self.addEventListener('install', (event) => {
-    self.skipWaiting()
-})
+const VERSION = 'tecnifix-sw-v1'
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim())
-})
+self.addEventListener('install', () => { self.skipWaiting() })
+self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()) })
 
-// Recibe un mensaje desde la app (postMessage) para mostrar
-// una notificación local del sistema operativo.
-self.addEventListener('message', (event) => {
+// IMPORTANTE: No hay listener de 'fetch' deliberadamente.
+// Esto previene que el SW devuelva 'text/html' para rutas de
+// assets estáticos con MIME type incorrecto (octet-stream) en Netlify.
+
+// ── Notificaciones locales (postMessage desde la app) ──────
+self.addEventListener('message', event => {
     const data = event.data || {}
     if (data.type !== 'SHOW_NOTIFICATION') return
-
     const { title, body, tag, url } = data.payload || {}
-
-    self.registration.showNotification(title || 'Tecnifix', {
+    self.registration.showNotification(title || 'TECNIFIX', {
         body: body || '',
         icon: '/favicon.png',
         badge: '/favicon.png',
-        tag: tag || 'tecni-fix',
+        tag: tag || 'tecnifix-notif',
         data: { url: url || '/' },
         vibrate: [100, 50, 100],
     })
 })
 
-// Al hacer clic en la notificación, enfocar o abrir la app
-self.addEventListener('notificationclick', (event) => {
+// ── Clic en notificación → enfocar o abrir la app ──────────
+self.addEventListener('notificationclick', event => {
     event.notification.close()
-    const targetUrl = (event.notification.data && event.notification.data.url) || '/'
-
+    const targetUrl = event.notification?.data?.url || '/'
     event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
-            const existing = clientsArr.find((c) => 'focus' in c)
-            if (existing) {
-                existing.postMessage({ type: 'NOTIFICATION_CLICK', url: targetUrl })
-                return existing.focus()
-            }
-            return self.clients.openWindow(targetUrl)
-        })
+        self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then(clients => {
+                const existing = clients.find(c => 'focus' in c)
+                if (existing) {
+                    existing.postMessage({ type: 'NOTIFICATION_CLICK', url: targetUrl })
+                    return existing.focus()
+                }
+                return self.clients.openWindow(targetUrl)
+            })
     )
 })
 
-// Soporte real de Web Push (si en el futuro se agrega un backend
-// que envíe push con VAPID, este handler ya está listo)
-self.addEventListener('push', (event) => {
+// ── Push real vía VAPID (futuro) ────────────────────────────
+self.addEventListener('push', event => {
     let data = {}
     try { data = event.data ? event.data.json() : {} } catch { data = {} }
-
-    const title = data.title || 'Tecnifix'
+    const title = data.title || 'TECNIFIX'
     const options = {
         body: data.body || '',
         icon: '/favicon.png',
         badge: '/favicon.png',
-        tag: data.tag || 'Tecni-fix',
+        tag: data.tag || 'tecnifix-notif',
         data: { url: data.url || '/' },
         vibrate: [100, 50, 100],
     }
-
     event.waitUntil(self.registration.showNotification(title, options))
 })

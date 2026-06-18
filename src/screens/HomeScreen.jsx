@@ -5,16 +5,53 @@ import { SkeletonCard } from '../components/UI.jsx'
 import { supabase, technicians, serviceRequests } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
-// Íconos SVG para categorías (paths de Heroicons)
+// Íconos SVG para categorías (Heroicons empaquetados en <svg>)
 const CAT_ICONS_SVG = {
-  climatizacion: <><circle cx="12" cy="12" r="3" /><path strokeLinecap="round" d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" /></>,
-  electricidad: <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />,
-  plomeria: <><path strokeLinecap="round" d="M12 22V12m0 0a4 4 0 100-8 4 4 0 000 8z" /><path strokeLinecap="round" d="M6 12H2M22 12h-4M6 18l-2 2M20 4l-2 2" /></>,
-  albanileria: <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />,
-  limpieza: <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />,
-  cerrajeria: <><rect x="3" y="11" width="18" height="11" rx="2" strokeLinejoin="round" /><path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" /><circle cx="12" cy="16" r="1" fill="currentColor" /></>,
-  pintura: <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />,
-  tecnologia: <><rect x="2" y="3" width="20" height="14" rx="2" strokeLinejoin="round" /><path strokeLinecap="round" d="M8 21h8M12 17v4" /></>,
+  climatizacion: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3" />
+      <path strokeLinecap="round" d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+    </svg>
+  ),
+  electricidad: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+  plomeria: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" d="M12 22V12m0 0a4 4 0 100-8 4 4 0 000 8z" />
+      <path strokeLinecap="round" d="M6 12H2M22 12h-4M6 18l-2 2M20 4l-2 2" />
+    </svg>
+  ),
+  albanileria: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    </svg>
+  ),
+  limpieza: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+    </svg>
+  ),
+  cerrajeria: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" />
+      <circle cx="12" cy="16" r="1" fill="currentColor" />
+    </svg>
+  ),
+  pintura: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+    </svg>
+  ),
+  tecnologia: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="3" width="20" height="14" rx="2" strokeLinejoin="round" />
+      <path strokeLinecap="round" d="M8 21h8M12 17v4" />
+    </svg>
+  ),
 }
 
 const CATEGORIES = [
@@ -29,13 +66,14 @@ const CATEGORIES = [
 ]
 
 const STATUS_COLORS = {
-  pending: { bg: '#fef3c7', text: '#92400e', label: 'Enviada' },
-  accepted: { bg: '#dbeafe', text: '#1e40af', label: 'Aceptada' },
-  in_progress: { bg: '#ede9fe', text: '#5b21b6', label: 'En progreso' },
-  pending_payment: { bg: '#fce7f3', text: '#9d174d', label: 'Pend. pago' },
-  completed: { bg: '#dcfce7', text: '#166534', label: 'Completada' },
-  cancelled: { bg: '#fee2e2', text: '#991b1b', label: 'Cancelada' },
-  disputed: { bg: '#fff7ed', text: '#9a3412', label: 'En disputa' },
+  pending: { bg: '#FFF8E0', text: '#7A5E00', label: 'Enviada', emoji: '⏳' },
+  accepted: { bg: '#DDEEFF', text: '#00214D', label: 'Aceptada', emoji: '✅' },
+  in_progress: { bg: '#E8F0FF', text: '#0053A0', label: 'En progreso', emoji: '⚡' },
+  pending_payment: { bg: '#FFF0D6', text: '#7A4500', label: 'Pend. pago', emoji: '💳' },
+  completed: { bg: '#DFF7ED', text: '#00704A', label: 'Completada', emoji: '✅' },
+  cancelled: { bg: '#FFE8E8', text: '#B00020', label: 'Cancelada', emoji: '✖️' },
+  disputed: { bg: '#FFF0D6', text: '#7A4500', label: 'En disputa', emoji: '🚨' },
+  pending_confirmation: { bg: '#E8F0FF', text: '#0053A0', label: 'Confirmando', emoji: '⏳' },
 }
 
 function getGreeting(lang) {
@@ -211,7 +249,7 @@ export function HomeScreen() {
                 [1, 2].map(i => <SkeletonCard key={i} />)
               ) : searchResults?.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: th.textSec }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+
                   <p style={{ fontSize: 15 }}>{t.noResults}</p>
                 </div>
               ) : (
@@ -253,16 +291,21 @@ export function HomeScreen() {
                     padding: '12px 14px', border: '1px solid #bfdbfe',
                     display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer'
                   }}>
-                  <span style={{ fontSize: 28, flexShrink: 0 }}>📍</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 14, color: '#1e40af' }}>
-                      {nearbyCount} técnico{nearbyCount !== 1 ? 's' : ''} disponible{nearbyCount !== 1 ? 's' : ''} cerca de ti
-                    </p>
-                    <p style={{ margin: 0, fontSize: 12, color: '#3b82f6' }}>
-                      Cerca de ti · Toca para ver en el mapa
-                    </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                      <span style={{ fontSize: 16 }}>📍</span>
+                      <div>
+                        <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 14, color: th.primary }}>
+                          {nearbyCount} técnico{nearbyCount !== 1 ? 's' : ''} disponible{nearbyCount !== 1 ? 's' : ''} cerca de ti
+                        </p>
+                        <p style={{ margin: 0, fontSize: 12, color: th.blue }}>
+                          Cerca de ti · Toca para ver en el mapa
+                        </p>
+                      </div>
+                    </div>
+                    <span style={{ color: th.blue, fontSize: 20, marginLeft: '16px' }}>›</span>
                   </div>
-                  <span style={{ color: '#3b82f6', fontSize: 20 }}>›</span>
                 </div>
               )}
 
@@ -274,7 +317,7 @@ export function HomeScreen() {
                     padding: '12px 14px', border: `1px solid ${th.border}`,
                     display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer'
                   }}>
-                  <span style={{ fontSize: 26, flexShrink: 0 }}>📋</span>
+
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       margin: '0 0 2px', fontWeight: 700, fontSize: 13,
@@ -289,8 +332,8 @@ export function HomeScreen() {
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '3px 8px',
                     borderRadius: 20, flexShrink: 0,
-                    background: STATUS_COLORS[lastRequest.status]?.bg ?? '#f1f5f9',
-                    color: STATUS_COLORS[lastRequest.status]?.text ?? '#64748b'
+                    background: STATUS_COLORS[lastRequest.status]?.bg ?? th.surface2,
+                    color: STATUS_COLORS[lastRequest.status]?.text ?? th.textSec
                   }}>
                     {STATUS_COLORS[lastRequest.status]?.label ?? lastRequest.status}
                   </span>
@@ -386,7 +429,7 @@ export function HomeScreen() {
                         padding: '20px 16px', textAlign: 'center',
                         border: `1px dashed ${th.border}`
                       }}>
-                        <p style={{ fontSize: 32, margin: '0 0 8px' }}>🛠️</p>
+
                         <p style={{ fontSize: 14, color: th.textSec, margin: 0 }}>
                           {lang === 'en'
                             ? 'No featured technicians yet.'
@@ -407,7 +450,7 @@ export function HomeScreen() {
                   borderRadius: 16, padding: 16, border: `1.5px solid ${th.primary}33`,
                   marginBottom: 20, display: 'flex', gap: 14, alignItems: 'center'
                 }}>
-                  <span style={{ fontSize: 36, flexShrink: 0 }}>🛠️</span>
+
                   <div style={{ flex: 1 }}>
                     <p style={{ margin: '0 0 4px', fontWeight: 800, fontSize: 15, color: th.text }}>
                       {lang === 'en' ? 'Are you a technician?' : '¿Eres técnico?'}
