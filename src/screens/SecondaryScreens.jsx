@@ -350,12 +350,9 @@ export function LoginScreen() {
           borderRadius: '50%', background: 'rgba(255,214,0,0.08)', pointerEvents: 'none'
         }} />
 
-        {/* Logo SVG */}
+        {/* Logo Image */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="10" fill="#FFD600" />
-            <path d="M28 12c-1.2-1.2-2.9-2-4.6-2-.7 0-1.4.1-2 .3l3.3 3.3-2.4 2.4-3.3-3.3c-.2.6-.3 1.3-.3 2 0 1.7.7 3.4 2 4.6 1.1 1.1 2.6 1.8 4.3 1.9l6.3 6.3c.5.5 1.3.5 1.8 0l1.2-1.2c.5-.5.5-1.3 0-1.8l-6.3-6.3c.1-.3.2-.6.2-.9.2-1.7-.4-3.2-1.6-4.4L28 12z" fill="#00214D" />
-          </svg>
+          <img src="https://cdn.builder.io/api/v1/image/assets%2F5bc6fab99e5642f09cf243a25f7b5f90%2Fbc26dff7faed43b8a37674acca9f0181" alt="TECNIFIX Logo" width="56" height="56" style={{ borderRadius: 10, objectFit: 'cover' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0, marginBottom: 6 }}>
           <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 28, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
