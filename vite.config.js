@@ -16,11 +16,19 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // Separar vendors pesados para mejor caché
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          supabase: ['@supabase/supabase-js'],
-          leaflet: ['leaflet'],
+        // Separar vendors pesados para mejor caché (Función compatible con Vite 8)
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            if (id.includes('leaflet')) {
+              return 'leaflet';
+            }
+          }
         },
       },
     },
