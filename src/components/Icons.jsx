@@ -54,6 +54,20 @@ const PATHS = {
 }
 
 export function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, fill = 'none', className }) {
+    // Use favicon for wrench icon instead of SVG
+    if (name === 'wrench') {
+        return (
+            <img
+                src="/favicon.png"
+                width={size}
+                height={size}
+                alt="wrench"
+                className={className}
+                style={{ flexShrink: 0, display: 'inline-block' }}
+            />
+        )
+    }
+
     return (
         <svg
             width={size} height={size} viewBox="0 0 24 24"
