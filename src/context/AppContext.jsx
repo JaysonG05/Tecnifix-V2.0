@@ -199,12 +199,7 @@ export function AppProvider({ children }) {
       <div style={{ textAlign: 'center', animation: 'tfFadeIn 0.6s ease forwards' }}>
         {/* Ícono: llave inglesa + rayo (SVG inline) */}
         <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <rect width="72" height="72" rx="18" fill="#FFD600" />
-            <path d="M50 22c-2.2-2.2-5.1-3.4-8.2-3.4-1.2 0-2.4.2-3.6.5l5.9 5.9-4.2 4.2-5.9-5.9c-.3 1.2-.5 2.4-.5 3.6 0 3.1 1.2 6 3.4 8.2 2 2 4.7 3.2 7.6 3.4L52 50.5c.9.9 2.4.9 3.3 0l2.2-2.2c.9-.9.9-2.4 0-3.3L45.4 33c.2-.5.3-1 .4-1.5.2-3-.9-5.7-2.9-7.7L50 22z" fill="#00214D" />
-            <path d="M22 50l14-14-3-3-14 14c-.8.8-.8 2.2 0 3l3 3c.8.8 2.2.8 3 0z" fill="#00214D" opacity="0.6" />
-            <circle cx="24" cy="48" r="2" fill="#00214D" opacity="0.4" />
-          </svg>
+          <img src="./favicon.png" alt="TECNIFIX" width="72" height="72" style={{ borderRadius: 18, objectFit: 'cover' }} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 1 }}>

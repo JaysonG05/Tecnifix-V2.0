@@ -510,11 +510,7 @@ export function TecnifixLogo({ size = 32, showText = true, dark = false }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {/* Ícono: fondo cuadrado redondeado, llave SVG */}
-      <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-        <rect width="40" height="40" rx="10" fill={iconBg} />
-        <path d="M28 12c-1.2-1.2-2.9-2-4.6-2-.7 0-1.4.1-2 .3l3.3 3.3-2.4 2.4-3.3-3.3c-.2.6-.3 1.3-.3 2 0 1.7.7 3.4 2 4.6 1.1 1.1 2.6 1.8 4.3 1.9l6.3 6.3c.5.5 1.3.5 1.8 0l1.2-1.2c.5-.5.5-1.3 0-1.8l-6.3-6.3c.1-.3.2-.6.2-.9.2-1.7-.4-3.2-1.6-4.4L28 12z" fill={iconFg} />
-        <path d="M12 28l8-8-1.7-1.7-8 8c-.5.5-.5 1.3 0 1.7l1.7 1.7c.4.5 1.2.5 1.7 0l.4-.4" fill={iconFg} opacity="0.65" />
-      </svg>
+      <img src="./favicon.png" alt="TECNIFIX" width="72" height="72" style={{ borderRadius: 18, objectFit: 'cover' }} />
       {showText && (
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
           <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: size * 0.6, color: textWhite, letterSpacing: -0.5, lineHeight: 1 }}>TECNI</span>
