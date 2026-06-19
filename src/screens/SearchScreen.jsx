@@ -3,18 +3,18 @@ import { useApp } from '../context/AppContext.jsx'
 import { Icon } from '../components/Icons.jsx'
 import { TechnicianCard } from '../components/TechnicianCard.jsx'
 import { SkeletonCard, EmptyState, Btn } from '../components/UI.jsx'
-import { supabase, technicians } from '../lib/supabase.js'
+import { technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 const CATS = [
-  { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C' },
-  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical' },
-  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing' },
-  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry' },
-  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning' },
-  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith' },
-  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting' },
-  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech' },
+  { slug: 'climatizacion', nameEs: 'Climatización', nameEn: 'A/C', icon: '❄️' },
+  { slug: 'electricidad', nameEs: 'Electricidad', nameEn: 'Electrical', icon: '⚡' },
+  { slug: 'plomeria', nameEs: 'Plomería', nameEn: 'Plumbing', icon: '🔧' },
+  { slug: 'albanileria', nameEs: 'Albañilería', nameEn: 'Masonry', icon: '🏗️' },
+  { slug: 'limpieza', nameEs: 'Limpieza', nameEn: 'Cleaning', icon: '🧹' },
+  { slug: 'cerrajeria', nameEs: 'Cerrajería', nameEn: 'Locksmith', icon: '🔑' },
+  { slug: 'pintura', nameEs: 'Pintura', nameEn: 'Painting', icon: '🎨' },
+  { slug: 'tecnologia', nameEs: 'Técnico PC', nameEn: 'PC Tech', icon: '💻' },
 ]
 
 export function SearchScreen() {

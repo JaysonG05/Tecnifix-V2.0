@@ -500,7 +500,7 @@ export function TicketPerforation({ bg }) {
 }
 
 // ── Logo TECNIFIX ───────────────────────────────────────────
-// TECNI en blanco + FIX en amarillo — icono llave+rayo
+// TECNI en blanco + FIX en amarillo — icono Tllave
 export function TecnifixLogo({ size = 32, showText = true, dark = false }) {
   const iconBg = dark ? '#FFD600' : '#00214D'
   const iconFg = dark ? '#00214D' : '#FFD600'
@@ -509,7 +509,7 @@ export function TecnifixLogo({ size = 32, showText = true, dark = false }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      {/* Ícono: fondo cuadrado redondeado, llave SVG */}
+      {/* Ícono: fondo cuadrado */}
       <img src="./favicon.png" alt="TECNIFIX" width="72" height="72" style={{ borderRadius: 18, objectFit: 'cover' }} />
       {showText && (
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>

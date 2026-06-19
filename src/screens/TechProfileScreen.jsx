@@ -71,8 +71,12 @@ export function TechProfileScreen() {
                 navigator.clipboard?.writeText(`${shareText}\n${url}`)
                 showToast(lang === 'en' ? 'Link copied!' : '¡Enlace copiado!')
               }
-            }} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, fontSize: 17, cursor: 'pointer' }}>
-
+            }} style={{ background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 20, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00214D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
             </button>
             <button onClick={() => toggleFavorite(tech.user_id)} style={{
               background: isFav ? 'rgba(255,214,0,0.2)' : 'rgba(255,255,255,0.15)',
@@ -618,7 +622,7 @@ function RequestModal({ tech, catalog, onClose, onSuccess, t, th, user }) {
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: th.text, marginBottom: 6 }}>{t.paymentMethod}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {[['yappy', '💚 Yappy'], ['cash', '💲' + t.cash], ['transfer', '🏦' + t.transfer]].map(([v, label]) => (
+              {[['yappy', '💚 Yappy'], ['cash', '💲' + t.cash], ['transfer', '🏦 ' + t.transfer]].map(([v, label]) => (
                 <button key={v} onClick={() => setPayMethod(v)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${payMethod === v ? th.primary : th.border}`, background: payMethod === v ? th.primaryLight : 'transparent', color: payMethod === v ? th.primaryText : th.textSec, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {label}
                 </button>

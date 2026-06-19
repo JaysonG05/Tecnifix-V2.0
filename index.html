@@ -3,7 +3,9 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png+xml" href="./favicon.png" />
+  <!-- Rutas relativas (./) previenen MIME type octet-stream en Netlify/subdirectorios -->
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#00214D" />
 
@@ -18,7 +20,7 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="TECNIFIX" />
-  <meta property="og:title" content="TECNIFIX — Técnicos profesionales en todo Panamá" />
+  <meta property="og:title" content="TECNIFIX — Técnicos en todo Panamá" />
   <meta property="og:description"
     content="Conecta con técnicos verificados: electricistas, plomeros, climatización y más. Contratos digitales y pagos seguros." />
   <meta property="og:image" content="./og-image.png" />
@@ -33,12 +35,12 @@
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
-  <link rel="touch-icon" href="./favicon.png" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="mobile-web-app-title" content="TECNIFIX" />
+  <link rel="apple-touch-icon" href="./favicon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TECNIFIX" />
 
-  <!-- Fuentes: Space Grotesk + Inter + JetBrains Mono -->
+  <!-- Tipografía desde Google Fonts (Space Grotesk + Inter + JetBrains Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -61,10 +63,13 @@
     }
 
     body {
+      /* Fondo base TECNIFIX navy mientras carga React */
       background: #00214D;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      /* Evitar zoom en inputs en iOS */
+      -webkit-text-size-adjust: 100%;
     }
 
     ::-webkit-scrollbar {
@@ -79,6 +84,7 @@
 
 <body>
   <div id="root"></div>
+  <!-- Ruta relativa ./src/main.jsx para Netlify SPA -->
   <script type="module" src="./src/main.jsx"></script>
 </body>
 

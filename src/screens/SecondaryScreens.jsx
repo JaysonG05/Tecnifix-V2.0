@@ -350,9 +350,9 @@ export function LoginScreen() {
           borderRadius: '50%', background: 'rgba(255,214,0,0.08)', pointerEvents: 'none'
         }} />
 
-        {/* Logo Image */}
+        {/* Logo TECNIFIX */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <img src="https://cdn.builder.io/api/v1/image/assets%2F5bc6fab99e5642f09cf243a25f7b5f90%2Fbc26dff7faed43b8a37674acca9f0181" alt="TECNIFIX Logo" width="56" height="56" style={{ borderRadius: 10, objectFit: 'cover' }} />
+          <img src="./favicon.png" alt="TECNIFIX Logo" width="56" height="56" style={{ borderRadius: 10, objectFit: 'cover' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0, marginBottom: 6 }}>
           <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 28, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
@@ -1867,6 +1867,7 @@ Se descargará el recibo automáticamente.`)) return
   )
 }
 
+
 export function AdminScreen() {
   const { th, user, navigate, lang } = useApp()
   const t = T[lang]
@@ -2102,16 +2103,21 @@ export function AdminScreen() {
                 {/* KPIs principales */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   {[
-                    { val: stats.totalUsers, label: 'Usuarios registrados', icon: 'user-group', color: th.primaryLight, text: th.primary },
-                    { val: stats.totalTechs, label: 'Técnicos activos', icon: 'wrench', color: th.verifiedLight, text: th.verifiedText },
-                    { val: stats.totalRequests, label: 'Solicitudes totales', icon: '📋', color: th.yellowLight, text: th.yellowText },
-                    { val: stats.totalReviews, label: 'Reseñas publicadas', icon: 'star', color: '#fce7f3', text: '#9d174d' },
+                    { val: stats.totalUsers, label: 'Usuarios registrados', iconName: 'user-group', color: th.primaryLight, text: th.primary },
+                    { val: stats.totalTechs, label: 'Técnicos activos', iconName: 'wrench', color: th.verifiedLight, text: th.verifiedText },
+                    { val: stats.totalRequests, label: 'Solicitudes totales', iconName: null, emoji: '📋', color: th.yellowLight, text: th.yellowText },
+                    { val: stats.totalReviews, label: 'Reseñas publicadas', iconName: 'star', color: '#fce7f3', text: '#9d174d' },
                   ].map((s, i) => (
                     <div key={i} style={{
                       background: s.color, borderRadius: 16,
                       padding: '18px 16px', border: `1px solid ${th.border}`
                     }}>
-                      <p style={{ margin: '0 0 6px', fontSize: 30 }}>{s.icon}</p>
+                      <div style={{ marginBottom: 6 }}>
+                        {s.iconName
+                          ? <Icon name={s.iconName} size={28} color={s.text} />
+                          : <span style={{ fontSize: 28 }}>{s.emoji}</span>
+                        }
+                      </div>
                       <p style={{ margin: '0 0 4px', fontSize: 30, fontWeight: 900, color: th.ink }}>
                         {s.val}
                       </p>
@@ -2168,7 +2174,9 @@ export function AdminScreen() {
                           padding: '12px', background: a.color, border: `1px solid ${th.border}`,
                           borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit'
                         }}>
-                        <p style={{ margin: '0 0 4px', fontSize: 20 }}>{a.icon}</p>
+                        <div style={{ marginBottom: 6 }}>
+                          <Icon name={a.icon} size={22} color={a.text} />
+                        </div>
                         <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: a.text }}>{a.label}</p>
                       </button>
                     ))}
