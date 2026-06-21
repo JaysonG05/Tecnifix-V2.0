@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { registerServiceWorker, showLocalNotification, listenNotificationClicks } from '../lib/pushNotifications.js'
 import { supabase, auth, profiles, favorites as favoritesApi, notifications } from '../lib/supabase.js'
+import { assertRunningOnAllowedOrigin } from '../lib/security.js'
+
+// Verificar origen una sola vez al cargar el módulo (antes de montar nada)
+assertRunningOnAllowedOrigin()
 
 const AppContext = createContext(null)
 export const useApp = () => useContext(AppContext)

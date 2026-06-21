@@ -2,6 +2,11 @@
 //  payments.js — helpers de pagos, recibos, fotos y disputas
 // ============================================================
 import { supabase } from './supabase.js'
+import {
+  sanitizeString, sanitizeText, sanitizePhone, sanitizeNumber,
+  sanitizeUUID, sanitizeFilename, assertSafe, sanitizeFormData, SCHEMAS,
+} from './sanitize.js'
+import { checkRateLimit, RATE_LIMITS } from './security.js'
 
 // ── ESTADOS DEL FLUJO ────────────────────────────────────────
 export const REQUEST_STATUS = {
@@ -68,32 +73,40 @@ export const STATUS_COLORS = {
 export const requestActions = {
   /** Técnico: actualizar estado con notificación al cliente */
   async updateStatus(requestId, newStatus, clientId, techName, requestTitle) {
+    const cleanReqId = sanitizeUUID(requestId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    const validStatuses = ['pending', 'accepted', 'in_progress', 'pending_payment', 'completed', 'cancelled', 'disputed']
+    if (!validStatuses.includes(newStatus)) throw new Error('Estado inválido.')
+    const cleanClientId = sanitizeUUID(clientId)
+    const cleanTechName = sanitizeString(techName, { maxLength: 100 })
+    const cleanTitle = sanitizeString(requestTitle, { maxLength: 200 })
+
     // 1. Actualizar estado
     const result = await supabase
       .from('service_requests')
       .update({ status: newStatus })
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
       .select()
       .single()
     if (result.error) throw result.error
 
     // 2. Notificar al cliente (no bloquear si falla)
     const msgs = {
-      accepted: { title: 'Solicitud aceptada', body: `${techName} aceptó tu solicitud "${requestTitle}"` },
-      in_progress: { title: 'Trabajo iniciado', body: `${techName} comenzó: "${requestTitle}"` },
-      pending_payment: { title: 'Listo para pagar', body: `${techName} terminó "${requestTitle}". Realiza el pago.` },
-      completed: { title: '🎉 Servicio completado', body: `"${requestTitle}" completado exitosamente.` },
-      cancelled: { title: '❌ Solicitud cancelada', body: `"${requestTitle}" fue cancelada.` },
+      accepted: { title: 'Solicitud aceptada', body: `${cleanTechName} aceptó tu solicitud "${cleanTitle}"` },
+      in_progress: { title: 'Trabajo iniciado', body: `${cleanTechName} comenzó: "${cleanTitle}"` },
+      pending_payment: { title: 'Listo para pagar', body: `${cleanTechName} terminó "${cleanTitle}". Realiza el pago.` },
+      completed: { title: '🎉 Servicio completado', body: `"${cleanTitle}" completado exitosamente.` },
+      cancelled: { title: '❌ Solicitud cancelada', body: `"${cleanTitle}" fue cancelada.` },
     }
     const msg = msgs[newStatus]
-    if (msg && clientId) {
+    if (msg && cleanClientId) {
       // Usar Promise separada para que no rompa el flujo principal
       const notifPayload = {
-        user_id: clientId,
+        user_id: cleanClientId,
         type: newStatus,
         title: msg.title,
         body: msg.body,
-        data: JSON.stringify({ request_id: requestId }),
+        data: JSON.stringify({ request_id: cleanReqId }),
       }
       supabase.from('notifications').insert(notifPayload)
         .then(res => { if (res.error) console.warn('Notif error:', res.error.message) })
@@ -104,8 +117,17 @@ export const requestActions = {
 
   /** Subir foto de trabajo (antes/después/progreso) */
   async uploadJobPhoto(requestId, uploadedBy, file, photoType, caption = '') {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanUserId = sanitizeUUID(uploadedBy)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanUserId) throw new Error('ID de usuario inválido.')
+    const validTypes = ['before', 'after', 'progress']
+    const cleanType = validTypes.includes(photoType) ? photoType : 'progress'
+    const cleanCaption = sanitizeText(caption, { maxLength: 500 })
+    assertSafe(caption, 'photo_caption')
+
     const ext = file.name.split('.').pop()
-    const path = `${requestId}/${photoType}_${Date.now()}.${ext}`
+    const path = `${cleanReqId}/${cleanType}_${Date.now()}.${sanitizeFilename(ext)}`
     const { error: upErr } = await supabase.storage
       .from('job-photos')
       .upload(path, file, { upsert: false })
@@ -113,19 +135,19 @@ export const requestActions = {
     const { data: { publicUrl } } = supabase.storage.from('job-photos').getPublicUrl(path)
 
     const { data, error } = await supabase.from('job_photos').insert({
-      service_request_id: requestId,
-      uploaded_by: uploadedBy,
-      photo_type: photoType,
+      service_request_id: cleanReqId,
+      uploaded_by: cleanUserId,
+      photo_type: cleanType,
       image_url: publicUrl,
-      caption,
+      caption: cleanCaption,
     }).select().single()
     if (error) throw error
 
     // Actualizar columna de resumen si es before/after
-    if (photoType === 'before') {
-      await supabase.from('service_requests').update({ before_photo_url: publicUrl }).eq('id', requestId)
-    } else if (photoType === 'after') {
-      await supabase.from('service_requests').update({ after_photo_url: publicUrl }).eq('id', requestId)
+    if (cleanType === 'before') {
+      await supabase.from('service_requests').update({ before_photo_url: publicUrl }).eq('id', cleanReqId)
+    } else if (cleanType === 'after') {
+      await supabase.from('service_requests').update({ after_photo_url: publicUrl }).eq('id', cleanReqId)
     }
     return data
   },
@@ -146,21 +168,27 @@ export const requestActions = {
 export const paymentActions = {
   /** Subir comprobante de transferencia bancaria */
   async uploadTransferProof(requestId, uploadedBy, file, amount, reference = '') {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanUserId = sanitizeUUID(uploadedBy)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanUserId) throw new Error('ID de usuario inválido.')
+
     const ext = file.name.split('.').pop()
-    const path = `${requestId}/proof_${Date.now()}.${ext}`
+    const path = `${cleanReqId}/proof_${Date.now()}.${sanitizeFilename(ext)}`
     const { error: upErr } = await supabase.storage
       .from('pay-proofs')
       .upload(path, file, { upsert: false })
     if (upErr) throw upErr
     const { data: { publicUrl } } = supabase.storage.from('pay-proofs').getPublicUrl(path)
 
+    const cleanRef = sanitizeString(reference, { maxLength: 100 })
     const { data, error } = await supabase.from('payment_proofs').insert({
-      service_request_id: requestId,
-      uploaded_by: uploadedBy,
+      service_request_id: cleanReqId,
+      uploaded_by: cleanUserId,
       proof_type: 'transfer',
       image_url: publicUrl,
-      reference_number: reference || null,
-      amount: parseFloat(amount) || null,
+      reference_number: cleanRef || null,
+      amount: sanitizeNumber(amount, { min: 0, max: 999999, default: null }),
     }).select().single()
     if (error) throw error
     return data
@@ -168,15 +196,19 @@ export const paymentActions = {
 
   /** Técnico verifica el comprobante de pago */
   async verifyProof(proofId, technicianId, requestId) {
+    const cleanProofId = sanitizeUUID(proofId)
+    const cleanReqId = sanitizeUUID(requestId)
+    if (!cleanProofId) throw new Error('ID de comprobante inválido.')
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
     const { error } = await supabase
       .from('payment_proofs')
       .update({ verified_by_tech: true, verified_at: new Date().toISOString() })
-      .eq('id', proofId)
+      .eq('id', cleanProofId)
     if (error) throw error
     // Actualizar estado de pago en la solicitud
     await supabase.from('service_requests')
       .update({ payment_status: 'paid' })
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
   },
 
   /** Obtener comprobantes de una solicitud */
@@ -196,29 +228,40 @@ export const paymentActions = {
    * haber recibido el dinero en su cuenta Yappy.
    */
   async recordYappy(requestId, payerId, technicianId, amount, yappyPhone, reference) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanPayerId = sanitizeUUID(payerId)
+    const cleanTechId = sanitizeUUID(technicianId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanPayerId) throw new Error('ID de cliente inválido.')
+    if (!cleanTechId) throw new Error('ID de técnico inválido.')
+
+    const cleanAmount = sanitizeNumber(amount, { min: 0, max: 999999, default: 0 })
+    const cleanPhone = sanitizePhone(yappyPhone)
+    const cleanRef = sanitizeString(reference, { maxLength: 100 })
+
     await supabase.from('payments').insert({
-      service_request_id: requestId,
-      payer_id: payerId,
-      technician_id: technicianId,
-      amount: parseFloat(amount),
+      service_request_id: cleanReqId,
+      payer_id: cleanPayerId,
+      technician_id: cleanTechId,
+      amount: cleanAmount,
       method: 'yappy',
-      yappy_phone: yappyPhone,
-      yappy_reference: reference || null,
+      yappy_phone: cleanPhone,
+      yappy_reference: cleanRef || null,
       status: 'pending_confirmation',
       paid_at: new Date().toISOString(),
     })
     await supabase.from('service_requests').update({
       payment_status: 'pending_confirmation',
       payment_method: 'yappy',
-      payment_ref: reference || null,
-    }).eq('id', requestId)
+      payment_ref: cleanRef || null,
+    }).eq('id', cleanReqId)
 
     // Notificar al técnico
     supabase.from('notifications').insert({
-      user_id: technicianId, type: 'payment',
+      user_id: cleanTechId, type: 'payment',
       title: 'El cliente reportó un pago por Yappy',
-      body: `Monto: $${amount}. Verifica tu app Yappy y confirma la recepción.`,
-      data: JSON.stringify({ request_id: requestId }),
+      body: `Monto: $${cleanAmount}. Verifica tu app Yappy y confirma la recepción.`,
+      data: JSON.stringify({ request_id: cleanReqId }),
     }).then(() => { }).catch(() => { })
   },
 
@@ -227,6 +270,14 @@ export const paymentActions = {
    * Igual que Yappy, requiere confirmación del TÉCNICO.
    */
   async recordCash(requestId, payerId, technicianId, amount) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanPayerId = sanitizeUUID(payerId)
+    const cleanTechId = sanitizeUUID(technicianId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanPayerId) throw new Error('ID de cliente inválido.')
+    if (!cleanTechId) throw new Error('ID de técnico inválido.')
+    const cleanAmount = sanitizeNumber(amount, { min: 0, max: 999999, default: 0 })
+
     // Código de 4 dígitos: el cliente lo muestra al técnico EN PERSONA
     // al momento de entregar el dinero. El técnico debe ingresarlo
     // para confirmar — esto prueba el encuentro físico y reduce el
@@ -234,10 +285,10 @@ export const paymentActions = {
     const code = String(Math.floor(1000 + Math.random() * 9000))
 
     await supabase.from('payments').insert({
-      service_request_id: requestId,
-      payer_id: payerId,
-      technician_id: technicianId,
-      amount: parseFloat(amount),
+      service_request_id: cleanReqId,
+      payer_id: cleanPayerId,
+      technician_id: cleanTechId,
+      amount: cleanAmount,
       method: 'cash',
       status: 'pending_confirmation',
       paid_at: new Date().toISOString(),
@@ -247,13 +298,13 @@ export const paymentActions = {
       payment_method: 'cash',
       cash_confirmation_code: code,
       cash_code_attempts: 0,
-    }).eq('id', requestId)
+    }).eq('id', cleanReqId)
 
     supabase.from('notifications').insert({
-      user_id: technicianId, type: 'payment',
+      user_id: cleanTechId, type: 'payment',
       title: 'El cliente reportó un pago en efectivo',
-      body: `Monto: $${amount}. Pídele al cliente el código de 4 dígitos que aparece en su pantalla para confirmar la recepción.`,
-      data: JSON.stringify({ request_id: requestId }),
+      body: `Monto: $${cleanAmount}. Pídele al cliente el código de 4 dígitos que aparece en su pantalla para confirmar la recepción.`,
+      data: JSON.stringify({ request_id: cleanReqId }),
     }).then(() => { }).catch(() => { })
 
     return { code }
@@ -270,24 +321,30 @@ export const paymentActions = {
    * con el código de 4 dígitos que el cliente le mostró en persona.
    */
   async confirmPayment(requestId, technicianId, enteredCode) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanTechId = sanitizeUUID(technicianId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanTechId) throw new Error('ID de técnico inválido.')
+    const cleanCode = enteredCode ? String(enteredCode).replace(/\D/g, '').slice(0, 4) : ''
+
     // Validar primero la solicitud y, si es efectivo, el código
     const { data: sr, error: srErr } = await supabase
       .from('service_requests')
       .select('id, client_id, title, payment_method, cash_confirmation_code, cash_code_attempts, technician_id')
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
       .single()
     if (srErr || !sr) throw new Error('Solicitud no encontrada.')
-    if (sr.technician_id !== technicianId) throw new Error('Sin permiso para confirmar este pago.')
+    if (sr.technician_id !== cleanTechId) throw new Error('Sin permiso para confirmar este pago.')
 
     if (sr.payment_method === 'cash') {
-      if (!enteredCode || !enteredCode.trim()) {
+      if (!cleanCode) {
         throw new Error('Ingresa el código de 4 dígitos que te mostró el cliente.')
       }
-      if (enteredCode.trim() !== sr.cash_confirmation_code) {
+      if (cleanCode !== sr.cash_confirmation_code) {
         const attempts = (sr.cash_code_attempts ?? 0) + 1
         await supabase.from('service_requests')
           .update({ cash_code_attempts: attempts })
-          .eq('id', requestId)
+          .eq('id', cleanReqId)
         if (attempts >= 3) {
           throw new Error('Código incorrecto 3 veces. Si el cliente no tiene el código correcto, abre una disputa.')
         }
@@ -298,8 +355,8 @@ export const paymentActions = {
     const { data, error } = await supabase
       .from('service_requests')
       .update({ payment_status: 'paid', cash_confirmation_code: null })
-      .eq('id', requestId)
-      .eq('technician_id', technicianId)
+      .eq('id', cleanReqId)
+      .eq('technician_id', cleanTechId)
       .select('id, client_id, title, payment_method')
     if (error) throw error
     if (!data?.length) throw new Error('Sin permiso para confirmar este pago.')
@@ -307,14 +364,14 @@ export const paymentActions = {
     // Actualizar el registro en payments también
     await supabase.from('payments')
       .update({ status: 'completed' })
-      .eq('service_request_id', requestId)
+      .eq('service_request_id', cleanReqId)
 
     const req = data[0]
     supabase.from('notifications').insert({
       user_id: req.client_id, type: 'payment',
       title: 'Pago confirmado',
       body: `El técnico confirmó la recepción del pago de "${req.title}".`,
-      data: JSON.stringify({ request_id: requestId }),
+      data: JSON.stringify({ request_id: cleanReqId }),
     }).then(() => { }).catch(() => { })
 
     return req
@@ -325,11 +382,18 @@ export const paymentActions = {
    * Regresa payment_status a 'unpaid' para que el cliente intente de nuevo.
    */
   async rejectPayment(requestId, technicianId, reasonNote) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanTechId = sanitizeUUID(technicianId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanTechId) throw new Error('ID de técnico inválido.')
+    const cleanNote = sanitizeText(reasonNote, { maxLength: 500 })
+    assertSafe(reasonNote, 'reject_reason')
+
     const { data, error } = await supabase
       .from('service_requests')
       .update({ payment_status: 'unpaid', payment_ref: null, cash_confirmation_code: null, cash_code_attempts: 0 })
-      .eq('id', requestId)
-      .eq('technician_id', technicianId)
+      .eq('id', cleanReqId)
+      .eq('technician_id', cleanTechId)
       .select('id, client_id, title')
     if (error) throw error
     if (!data?.length) throw new Error('Sin permiso.')
@@ -338,8 +402,8 @@ export const paymentActions = {
     supabase.from('notifications').insert({
       user_id: req.client_id, type: 'payment',
       title: 'El técnico no encontró tu pago',
-      body: reasonNote || `Revisa el pago de "${req.title}" e intenta de nuevo o contacta al técnico.`,
-      data: JSON.stringify({ request_id: requestId }),
+      body: cleanNote || `Revisa el pago de "${req.title}" e intenta de nuevo o contacta al técnico.`,
+      data: JSON.stringify({ request_id: cleanReqId }),
     }).then(() => { }).catch(() => { })
 
     return req
@@ -352,30 +416,46 @@ export const receiptActions = {
   async generate({ requestId, clientId, technicianId, serviceTitle,
     serviceDescription, amount, paymentMethod,
     paymentReference, clientName, technicianName }) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanClientId = sanitizeUUID(clientId)
+    const cleanTechId = sanitizeUUID(technicianId)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanClientId) throw new Error('ID de cliente inválido.')
+    if (!cleanTechId) throw new Error('ID de técnico inválido.')
+
     // Verificar si ya existe
     const { data: existing } = await supabase
       .from('receipts')
       .select('*')
-      .eq('service_request_id', requestId)
+      .eq('service_request_id', cleanReqId)
       .single()
     if (existing) return existing
 
+    const cleanTitle = sanitizeString(serviceTitle, { maxLength: 200 })
+    const cleanDesc = sanitizeText(serviceDescription, { maxLength: 2000 })
+    const cleanRef = sanitizeString(paymentReference, { maxLength: 100 })
+    const cleanClient = sanitizeString(clientName, { maxLength: 150 })
+    const cleanTech = sanitizeString(technicianName, { maxLength: 150 })
+    const cleanAmount = sanitizeNumber(amount, { min: 0, max: 999999, default: 0 })
+    const validMethods = ['yappy', 'cash', 'transfer']
+    const cleanMethod = validMethods.includes(paymentMethod) ? paymentMethod : 'cash'
+
     // Crear hash de firma
-    const hashInput = `${clientId}${technicianId}${requestId}${amount}${Date.now()}`
+    const hashInput = `${cleanClientId}${cleanTechId}${cleanReqId}${cleanAmount}${Date.now()}`
     const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashInput))
     const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 
     const { data, error } = await supabase.from('receipts').insert({
-      service_request_id: requestId,
-      client_id: clientId,
-      technician_id: technicianId,
-      service_title: serviceTitle,
-      service_description: serviceDescription || null,
-      amount: parseFloat(amount),
-      payment_method: paymentMethod,
-      payment_reference: paymentReference || null,
-      client_name: clientName,
-      technician_name: technicianName,
+      service_request_id: cleanReqId,
+      client_id: cleanClientId,
+      technician_id: cleanTechId,
+      service_title: cleanTitle,
+      service_description: cleanDesc || null,
+      amount: cleanAmount,
+      payment_method: cleanMethod,
+      payment_reference: cleanRef || null,
+      client_name: cleanClient,
+      technician_name: cleanTech,
       signature_hash: hash,
     }).select().single()
     if (error) throw error
@@ -383,10 +463,12 @@ export const receiptActions = {
   },
 
   async getForRequest(requestId) {
+    const cleanReqId = sanitizeUUID(requestId)
+    if (!cleanReqId) return null
     const { data } = await supabase
       .from('receipts')
       .select('*')
-      .eq('service_request_id', requestId)
+      .eq('service_request_id', cleanReqId)
       .single()
     return data ?? null
   },
@@ -493,18 +575,31 @@ export const receiptActions = {
 // ── HELPERS DE DISPUTAS ──────────────────────────────────────
 export const disputeActions = {
   async open(requestId, openedBy, reason, description) {
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanOpenedBy = sanitizeUUID(openedBy)
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanOpenedBy) throw new Error('ID de usuario inválido.')
+
+    const rl = checkRateLimit(`dispute_${cleanOpenedBy}`, RATE_LIMITS.openDispute.max, RATE_LIMITS.openDispute.window)
+    if (!rl.allowed) throw new Error(`Límite de disputas alcanzado. Espera ${rl.retryAfter} segundos.`)
+
+    const text = sanitizeFormData({ reason, description }, SCHEMAS.dispute)
+    if (!text.reason?.trim()) throw new Error('El motivo es requerido.')
+    assertSafe(reason, 'dispute_reason')
+    assertSafe(description, 'dispute_description')
+
     const { data, error } = await supabase.from('disputes').insert({
-      service_request_id: requestId,
-      opened_by: openedBy,
-      reason,
-      description,
+      service_request_id: cleanReqId,
+      opened_by: cleanOpenedBy,
+      reason: text.reason,
+      description: text.description,
       status: 'open',
     }).select().single()
     if (error) throw error
     // Cambiar estado de la solicitud
     await supabase.from('service_requests')
       .update({ status: 'disputed', dispute_id: data.id })
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
     // Notificar al admin
     const { data: admins } = await supabase
       .from('profiles').select('id').eq('role', 'admin')
@@ -514,8 +609,8 @@ export const disputeActions = {
           user_id: a.id,
           type: 'dispute',
           title: 'Nueva disputa abierta',
-          body: `Solicitud ID ${requestId.slice(0, 8)}... necesita mediación.`,
-          data: { request_id: requestId, dispute_id: data.id },
+          body: `Solicitud ID ${cleanReqId.slice(0, 8)}... necesita mediación.`,
+          data: { request_id: cleanReqId, dispute_id: data.id },
         }))
       )
     }
@@ -523,10 +618,12 @@ export const disputeActions = {
   },
 
   async getForRequest(requestId) {
+    const cleanReqId = sanitizeUUID(requestId)
+    if (!cleanReqId) return null
     const { data } = await supabase
       .from('disputes')
       .select('*')
-      .eq('service_request_id', requestId)
+      .eq('service_request_id', cleanReqId)
       .single()
     return data ?? null
   },
@@ -573,10 +670,14 @@ export const disputeActions = {
 
   /** ADMIN: marcar disputa como "en revisión" */
   async markUnderReview(disputeId, adminId) {
+    const cleanDisputeId = sanitizeUUID(disputeId)
+    const cleanAdminId = sanitizeUUID(adminId)
+    if (!cleanDisputeId) throw new Error('ID de disputa inválido.')
+    if (!cleanAdminId) throw new Error('ID de administrador inválido.')
     const { data, error } = await supabase
       .from('disputes')
-      .update({ status: 'under_review', resolved_by: adminId })
-      .eq('id', disputeId)
+      .update({ status: 'under_review', resolved_by: cleanAdminId })
+      .eq('id', cleanDisputeId)
       .select()
     if (error) throw error
     if (!data?.length) throw new Error('Sin permiso para actualizar esta disputa.')
@@ -589,15 +690,26 @@ export const disputeActions = {
    * Además actualiza el estado de la solicitud relacionada.
    */
   async resolve(disputeId, requestId, resolution, notes, adminId) {
+    const cleanDisputeId = sanitizeUUID(disputeId)
+    const cleanReqId = sanitizeUUID(requestId)
+    const cleanAdminId = sanitizeUUID(adminId)
+    if (!cleanDisputeId) throw new Error('ID de disputa inválido.')
+    if (!cleanReqId) throw new Error('ID de solicitud inválido.')
+    if (!cleanAdminId) throw new Error('ID de administrador inválido.')
+    const validResolutions = ['resolved_client', 'resolved_tech', 'closed']
+    if (!validResolutions.includes(resolution)) throw new Error('Resolución inválida.')
+    const cleanNotes = sanitizeText(notes, { maxLength: 2000 })
+    assertSafe(notes, 'dispute_resolution_notes')
+
     const { data, error } = await supabase
       .from('disputes')
       .update({
         status: resolution,
-        resolution_notes: notes || null,
-        resolved_by: adminId,
+        resolution_notes: cleanNotes || null,
+        resolved_by: cleanAdminId,
         resolved_at: new Date().toISOString(),
       })
-      .eq('id', disputeId)
+      .eq('id', cleanDisputeId)
       .select()
     if (error) throw error
     if (!data?.length) throw new Error('Sin permiso para resolver esta disputa.')
@@ -610,13 +722,13 @@ export const disputeActions = {
 
     await supabase.from('service_requests')
       .update({ status: newReqStatus, dispute_id: null })
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
 
     // Notificar a ambas partes
     const { data: req } = await supabase
       .from('service_requests')
       .select('client_id, technician_id, title')
-      .eq('id', requestId)
+      .eq('id', cleanReqId)
       .single()
 
     if (req) {
@@ -629,7 +741,7 @@ export const disputeActions = {
       if (msg) {
         const payload = [req.client_id, req.technician_id].filter(Boolean).map(uid => ({
           user_id: uid, type: 'dispute', title: msg.title, body: msg.body,
-          data: JSON.stringify({ request_id: requestId, dispute_id: disputeId }),
+          data: JSON.stringify({ request_id: cleanReqId, dispute_id: cleanDisputeId }),
         }))
         supabase.from('notifications').insert(payload)
           .then(() => { }).catch(() => { })
@@ -641,13 +753,17 @@ export const disputeActions = {
 
   /** ADMIN: eliminar disputa (casos inválidos/spam) y devolver la solicitud a su estado anterior */
   async dismiss(disputeId, requestId) {
+    const cleanDisputeId = sanitizeUUID(disputeId)
+    const cleanReqId = sanitizeUUID(requestId)
+    if (!cleanDisputeId) throw new Error('ID de disputa inválido.')
+
     // 1. Primero quitar la referencia dispute_id de la solicitud
     //    (FK service_requests_dispute_id_fkey impide borrar la disputa mientras esté referenciada)
-    if (requestId) {
+    if (cleanReqId) {
       const { error: srErr } = await supabase
         .from('service_requests')
         .update({ status: 'completed', dispute_id: null })
-        .eq('id', requestId)
+        .eq('id', cleanReqId)
       if (srErr) throw srErr
     }
 
@@ -655,7 +771,7 @@ export const disputeActions = {
     const { error: delErr } = await supabase
       .from('disputes')
       .delete()
-      .eq('id', disputeId)
+      .eq('id', cleanDisputeId)
     if (delErr) throw delErr
   },
 }

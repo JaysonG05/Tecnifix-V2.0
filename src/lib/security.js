@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = {
   ],
   preview: [
     /^https:\/\/deploy-preview-\d+--tecnifix\.netlify\.app$/,
+    /^https:\/\/[a-z0-9-]+--tecnifix\.netlify\.app$/,
   ],
   development: [
     'http://localhost:5173',
@@ -22,23 +23,37 @@ const ALLOWED_ORIGINS = {
 }
 
 // ── VALIDAR ORIGEN ────────────────────────────────────────────
-export function isOriginAllowed(origin) {
-  if (!origin) return false
-
+export function assertRunningOnAllowedOrigin() {
+  if (typeof window === 'undefined') return true
+  const origin = window.location.origin
   const isDev = import.meta.env.DEV
-  
   // En desarrollo, permitir localhost
+
   if (isDev) {
     return ALLOWED_ORIGINS.development.includes(origin)
+    if (!ok) console.warn(`[Security] Origen de desarrollo no reconocido: ${origin}`)
+    return true // no bloquear en dev
   }
+  const inProd = ALLOWED_ORIGINS.production.includes(origin)
+  const inPreview = ALLOWED_ORIGINS.preview.some(p => p.test(origin))
+  const allowed = inProd || inPreview
 
-  // Producción: verificar lista fija y patrones de preview
-  const inProduction = ALLOWED_ORIGINS.production.includes(origin)
-  const inPreview = ALLOWED_ORIGINS.preview.some(pattern =>
-    pattern instanceof RegExp ? pattern.test(origin) : pattern === origin
-  )
-  
-  return inProduction || inPreview
+  if (!allowed) {
+    console.error(
+      `🚨 TECNIFIX está siendo servido desde un origen no autorizado: ${origin}\n` +
+      `Si este es un dominio legítimo nuevo, agrégalo a ALLOWED_ORIGINS en src/lib/security.js`
+    )
+  }
+  return allowed
+}
+
+export function isOriginAllowed(origin) {
+  if (!origin) return false
+  const isDev = import.meta.env.DEV
+  if (isDev) return ALLOWED_ORIGINS.development.includes(origin)
+  const inProd = ALLOWED_ORIGINS.production.includes(origin)
+  const inPreview = ALLOWED_ORIGINS.preview.some(p => p.test(origin))
+  return inProd || inPreview
 }
 
 // ── VALIDAR RESPUESTA (protección contra ataques de origen cruzado) ──
@@ -51,13 +66,11 @@ export function validateResponseOrigin(response) {
     'tecnifix.pa',
     'netlify.app',
   ]
-  
+
   try {
     const { hostname } = new URL(url)
     return allowedHosts.some(host => hostname.endsWith(host))
-  } catch {
-    return false
-  }
+  } catch { return false }
 }
 
 // ── CONTENT SECURITY POLICY ──────────────────────────────────
@@ -66,25 +79,25 @@ export function buildCSP() {
   const isDev = import.meta.env.DEV
 
   const directives = {
-    'default-src':     ["'self'"],
-    'script-src':      [
+    'default-src': ["'self'"],
+    'script-src': [
       "'self'",
       // Librerías cargadas dinámicamente (Leaflet, jsPDF)
       'https://unpkg.com',
       'https://cdnjs.cloudflare.com',
       isDev ? "'unsafe-eval'" : '',  // Vite HMR en desarrollo
     ].filter(Boolean),
-    'style-src':       [
+    'style-src': [
       "'self'",
       "'unsafe-inline'",             // Necesario para estilos inline de React
       'https://fonts.googleapis.com',
       'https://unpkg.com',
     ],
-    'font-src':        [
+    'font-src': [
       "'self'",
       'https://fonts.gstatic.com',
     ],
-    'img-src':         [
+    'img-src': [
       "'self'",
       'data:',
       'blob:',
@@ -93,7 +106,7 @@ export function buildCSP() {
       'https://*.openstreetmap.org', // Tiles del mapa
       'https://unpkg.com',
     ],
-    'connect-src':     [
+    'connect-src': [
       "'self'",
       'https://*.supabase.co',
       'https://*.supabase.com',
@@ -102,13 +115,13 @@ export function buildCSP() {
       isDev ? 'ws://localhost:*' : '',
       isDev ? 'http://localhost:*' : '',
     ].filter(Boolean),
-    'frame-src':       ["'none'"],
-    'object-src':      ["'none'"],
-    'base-uri':        ["'self'"],
-    'form-action':     ["'self'"],
-    'manifest-src':    ["'self'"],
-    'worker-src':      ["'self'", 'blob:'],
-    'media-src':       ["'self'", 'blob:'],
+    'frame-src': ["'none'"],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+    'form-action': ["'self'"],
+    'manifest-src': ["'self'"],
+    'worker-src': ["'self'", 'blob:'],
+    'media-src': ["'self'", 'blob:'],
     'upgrade-insecure-requests': [],
   }
 
@@ -268,11 +281,11 @@ export function checkRateLimit(action, maxRequests = 10, windowMs = 60000) {
 
 // Límites predefinidos por acción
 export const RATE_LIMITS = {
-  login:          { max: 5,  window: 15 * 60 * 1000 }, // 5 intentos / 15 min
-  register:       { max: 3,  window: 60 * 60 * 1000 }, // 3 registros / hora
-  resetPassword:  { max: 3,  window: 60 * 60 * 1000 }, // 3 resets / hora
-  uploadFile:     { max: 20, window: 60 * 60 * 1000 }, // 20 uploads / hora
-  sendMessage:    { max: 30, window: 60 * 1000 },       // 30 mensajes / min
-  openDispute:    { max: 3,  window: 24 * 60 * 60 * 1000 }, // 3 / día
-  createRequest:  { max: 10, window: 60 * 60 * 1000 }, // 10 solicitudes / hora
+  login: { max: 5, window: 15 * 60 * 1000 }, // 5 intentos / 15 min
+  register: { max: 3, window: 60 * 60 * 1000 }, // 3 registros / hora
+  resetPassword: { max: 3, window: 60 * 60 * 1000 }, // 3 resets / hora
+  uploadFile: { max: 20, window: 60 * 60 * 1000 }, // 20 uploads / hora
+  sendMessage: { max: 30, window: 60 * 1000 },       // 30 mensajes / min
+  openDispute: { max: 3, window: 24 * 60 * 60 * 1000 }, // 3 / día
+  createRequest: { max: 10, window: 60 * 60 * 1000 }, // 10 solicitudes / hora
 }
