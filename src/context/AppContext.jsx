@@ -19,7 +19,7 @@ export function AppProvider({ children }) {
 
   // ── Sesión / Usuario ───────────────────────────────────
   const [session, setSession] = useState(null)
-  const [user, setUser] = useState(null)   // fila de profiles
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // ── Favoritos ──────────────────────────────────────────
@@ -46,26 +46,49 @@ export function AppProvider({ children }) {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
   const [selectedTech, setSelectedTech] = useState(null)
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [history, setHistory] = useState(['home'])
 
+  // ── navigate: pushea al historial del navegador ─────────────
+  // Esto garantiza que el botón Back físico de Android/iOS
+  // llame a popstate en vez de salir completamente de la app.
   const navigate = useCallback((s) => {
+    window.history.pushState({ tfScreen: s }, '', window.location.pathname)
     setHistory(h => [...h, s])
     setScreen(s)
   }, [])
 
+  // ── goBack: retrocede en el stack interno ───────────────────
   const goBack = useCallback(() => {
     setHistory(h => {
-      if (h.length <= 1) { setScreen('home'); return ['home'] }
-      const prev = h[h.length - 2]
+      const prev = h.length <= 1 ? 'home' : h[h.length - 2]
       setScreen(prev)
-      return h.slice(0, -1)
+      return h.length <= 1 ? ['home'] : h.slice(0, -1)
     })
   }, [])
 
-  // ── Cargar sesión inicial ──────────────────────────────
+  // ── Interceptar botón Back del dispositivo (Android / iOS PWA)
+  // Se añade una entrada "dummy" al historial del navegador para que
+  // el back físico dispare popstate en vez de cerrar/salir de la app.
+  useEffect(() => {
+    // Seed inicial: asegura que siempre haya al menos una entrada "antes"
+    window.history.pushState({ tfScreen: 'home' }, '', window.location.pathname)
+
+    const handlePopState = () => {
+      // Reempuja para mantener el ciclo (no dejar historial vacío)
+      window.history.pushState({ tfScreen: 'keep' }, '', window.location.pathname)
+      // Ejecuta el back interno de la app
+      goBack()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [goBack])
+
+  // ── Cargar sesión inicial ───────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
@@ -105,17 +128,13 @@ export function AppProvider({ children }) {
     } catch { }
   }
 
-  // ── Suscripción tiempo real a notificaciones ───────────
+  // ── Suscripción tiempo real a notificaciones ────────────────
   useEffect(() => {
     if (!user?.id) return
     const channel = notifications.subscribe(user.id, (newNotif) => {
       setNotifs(prev => [newNotif, ...prev])
       setUnreadCount(c => c + 1)
-      // Vibrar si el navegador lo soporta
       if ('vibrate' in navigator) navigator.vibrate(200)
-
-      // Notificación del sistema operativo (si la pestaña está
-      // en segundo plano y el usuario dio permiso)
       let data = {}
       try { data = typeof newNotif.data === 'string' ? JSON.parse(newNotif.data) : (newNotif.data || {}) } catch { }
       const requestId = data.request_id
@@ -129,23 +148,20 @@ export function AppProvider({ children }) {
     return () => supabase.removeChannel(channel)
   }, [user?.id])
 
-  // ── Manejar clic en notificación del sistema (abrir pantalla) ──
+  // ── Manejar clic en notificación del sistema ────────────────
   useEffect(() => {
     const unsub = listenNotificationClicks((url) => {
       try {
         const params = new URL(url, window.location.origin).searchParams
         const target = params.get('screen')
-        if (target === 'request-detail') {
-          setScreen('notifications')
-        } else if (target) {
-          setScreen(target)
-        }
+        if (target === 'request-detail') setScreen('notifications')
+        else if (target) setScreen(target)
       } catch { }
     })
     return unsub
   }, [])
 
-  // ── Toggle favorito ────────────────────────────────────
+  // ── Toggle favorito ─────────────────────────────────────────
   const toggleFavorite = useCallback(async (techId) => {
     if (!user) { navigate('login'); return }
     const isFav = favoriteIds.includes(techId)
@@ -219,7 +235,6 @@ export function AppProvider({ children }) {
       <div style={{ width: 160, height: 2, background: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{ height: '100%', background: '#FFD600', borderRadius: 2, animation: 'tfProgress 1.6s ease infinite' }} />
       </div>
-
       <style>{`
         @keyframes tfFadeIn { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
         @keyframes tfProgress {
@@ -259,56 +274,24 @@ function buildTheme(dark) {
     red: dark ? '#FF6B6B' : '#E5282D',
     blue: dark ? '#5EA3FF' : '#1E6FFF',
   }
-
   if (dark) return {
     ...shared,
-    bg: '#06101A',
-    surface: '#0D1E2D',
-    surface2: '#122334',
-    border: '#1A3347',
-    ink: '#F0F6FF',
-    paper: '#06101A',
-    text: '#F0F6FF',
-    textSec: '#6A8DA3',
-    // ── Azul acento (turquesa dark) ──
-    primary: '#00B4D8',
-    primaryDark: '#009ABD',
-    primaryLight: '#00243A',
-    primaryText: '#5CDEFF',
-    accent: '#00B4D8',
-    accentDark: '#009ABD',
-    accentLight: '#00243A',
-    accentText: '#5CDEFF',
-    navBg: '#0D1E2D',
-    inputBg: '#122334',
-    inputBorder: '#1F3D54',
-    shadow: '0 16px 40px rgba(0,0,0,0.55)',
-    shadowSm: '0 4px 16px rgba(0,0,0,0.40)',
+    bg: '#06101A', surface: '#0D1E2D', surface2: '#122334',
+    border: '#1A3347', ink: '#F0F6FF', paper: '#06101A',
+    text: '#F0F6FF', textSec: '#6A8DA3',
+    primary: '#00B4D8', primaryDark: '#009ABD', primaryLight: '#00243A', primaryText: '#5CDEFF',
+    accent: '#00B4D8', accentDark: '#009ABD', accentLight: '#00243A', accentText: '#5CDEFF',
+    navBg: '#0D1E2D', inputBg: '#122334', inputBorder: '#1F3D54',
+    shadow: '0 16px 40px rgba(0,0,0,0.55)', shadowSm: '0 4px 16px rgba(0,0,0,0.40)',
   }
-
   return {
     ...shared,
-    bg: '#F0F5FA',
-    surface: '#FFFFFF',
-    surface2: '#E8F1F8',
-    border: '#D1E0ED',
-    ink: '#00214D',
-    paper: '#F0F5FA',
-    text: '#00214D',
-    textSec: '#4A6A8A',
-    // ── Azul TECNIFIX navy ──
-    primary: '#0053A0',
-    primaryDark: '#003F80',
-    primaryLight: '#DDEEFF',
-    primaryText: '#00214D',
-    accent: '#0053A0',
-    accentDark: '#003F80',
-    accentLight: '#DDEEFF',
-    accentText: '#00214D',
-    navBg: '#FFFFFF',
-    inputBg: '#FFFFFF',
-    inputBorder: '#C5D8EC',
-    shadow: '0 12px 32px rgba(0,33,77,0.12)',
-    shadowSm: '0 4px 14px rgba(0,33,77,0.07)',
+    bg: '#F0F5FA', surface: '#FFFFFF', surface2: '#E8F1F8',
+    border: '#D1E0ED', ink: '#00214D', paper: '#F0F5FA',
+    text: '#00214D', textSec: '#4A6A8A',
+    primary: '#0053A0', primaryDark: '#003F80', primaryLight: '#DDEEFF', primaryText: '#00214D',
+    accent: '#0053A0', accentDark: '#003F80', accentLight: '#DDEEFF', accentText: '#00214D',
+    navBg: '#FFFFFF', inputBg: '#FFFFFF', inputBorder: '#C5D8EC',
+    shadow: '0 12px 32px rgba(0,33,77,0.12)', shadowSm: '0 4px 14px rgba(0,33,77,0.07)',
   }
 }

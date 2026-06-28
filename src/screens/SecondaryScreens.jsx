@@ -281,9 +281,11 @@ function OAuthButtons({ th, lang, onSelect, loadingProvider }) {
     </div>
   )
 }
-
+// ─────────────────────────────────────────────────────────────
+// LOGIN SCREEN (con botón ✕ para volver al inicio)
+// ─────────────────────────────────────────────────────────────
 export function LoginScreen() {
-  const { th, navigate, refreshUser, lang } = useApp()
+  const { th, navigate, refreshUser, lang, goBack } = useApp()
   const t = T[lang]
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -294,7 +296,7 @@ export function LoginScreen() {
   const [resetSent, setResetSent] = useState(false)
 
   const [oauthLoading, setOauthLoading] = useState(null) // 'google' | 'facebook' | null
-
+ 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completa todos los campos.'); return }
     setLoading(true); setError('')
@@ -308,7 +310,7 @@ export function LoginScreen() {
       setLoading(false)
     }
   }
-
+ 
   const handleOAuth = async (provider) => {
     setOauthLoading(provider); setError('')
     try {
@@ -322,7 +324,7 @@ export function LoginScreen() {
       setOauthLoading(null)
     }
   }
-
+ 
   const handleReset = async () => {
     if (!email) { setError('Ingresa tu email.'); return }
     setLoading(true); setError('')
@@ -335,11 +337,11 @@ export function LoginScreen() {
       setLoading(false)
     }
   }
-
+ 
   return (
     <div style={{ background: th.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-
-      {/* Hero navy con logo */}
+ 
+      {/* Hero navy con logo + botón cerrar */}
       <div style={{
         background: 'linear-gradient(145deg, #00214D 0%, #00369A 100%)',
         padding: '44px 24px 36px', textAlign: 'center', position: 'relative', overflow: 'hidden'
@@ -349,10 +351,30 @@ export function LoginScreen() {
           position: 'absolute', top: -30, right: -30, width: 120, height: 120,
           borderRadius: '50%', background: 'rgba(255,214,0,0.08)', pointerEvents: 'none'
         }} />
-
-        {/* Logo TECNIFIX */}
+ 
+        {/* ── BOTÓN CERRAR / VOLVER AL INICIO ── */}
+        <button
+          onClick={() => navigate('home')}
+          style={{
+            position: 'absolute', top: 16, left: 16,
+            width: 36, height: 36, borderRadius: 18,
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: '#fff', fontSize: 20, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 150ms',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+          title={lang === 'en' ? 'Back to home' : 'Volver al inicio'}
+        >
+          ←
+        </button>
+ 
+        {/* Logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <img src="./favicon.png" alt="TECNIFIX Logo" width="56" height="56" style={{ borderRadius: 10, objectFit: 'cover' }} />
+          <img src="./favicon.png" alt="TECNIFIX Logo" width="56" height="56"
+            style={{ borderRadius: 10, objectFit: 'cover' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 0, marginBottom: 6 }}>
           <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 28, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
@@ -362,7 +384,7 @@ export function LoginScreen() {
           Técnicos en todo Panamá
         </p>
       </div>
-
+ 
       <div style={{ flex: 1, padding: '24px 24px 40px' }}>
         <div style={{
           background: th.surface, borderRadius: 20, padding: 24,
@@ -374,7 +396,7 @@ export function LoginScreen() {
           }}>
             {resetMode ? t.forgotPassword : t.loginTitle}
           </h2>
-
+ 
           {resetSent ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{
@@ -386,7 +408,9 @@ export function LoginScreen() {
                 </svg>
               </div>
               <p style={{ fontSize: 14, color: th.textSec }}>{t.resetSent}</p>
-              <Btn variant="ghost" onClick={() => { setResetMode(false); setResetSent(false) }} style={{ marginTop: 16 }}>Volver al login</Btn>
+              <Btn variant="ghost" onClick={() => { setResetMode(false); setResetSent(false) }} style={{ marginTop: 16 }}>
+                Volver al login
+              </Btn>
             </div>
           ) : (
             <>
@@ -414,12 +438,9 @@ export function LoginScreen() {
                   </div>
                 </div>
               )}
-
+ 
               {error && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, background: `${th.red}14`,
-                  border: `1px solid ${th.red}33`, borderRadius: 10, padding: '10px 12px', margin: '10px 0 0'
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${th.red}14`, border: `1px solid ${th.red}33`, borderRadius: 10, padding: '10px 12px', margin: '10px 0 0' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={th.red} strokeWidth="2">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
@@ -427,47 +448,45 @@ export function LoginScreen() {
                 </div>
               )}
               <div style={{ height: 16 }} />
-
+ 
               {resetMode
                 ? <Btn onClick={handleReset} loading={loading}>Enviar email de recuperación</Btn>
                 : <Btn onClick={handleLogin} loading={loading}>{t.enter}</Btn>
               }
-
+ 
               <button onClick={() => { setResetMode(v => !v); setError('') }}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'center', marginTop: 14,
-                  background: 'none', border: 'none', color: th.primary, fontSize: 13,
-                  cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600
-                }}>
+                style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: 14, background: 'none', border: 'none', color: th.primary, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                 {resetMode ? '← Volver al login' : t.forgotPassword}
               </button>
-
-              {!resetMode && (
-                <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
-              )}
+ 
+              {!resetMode && <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />}
             </>
           )}
         </div>
-
+ 
         <p style={{ textAlign: 'center', fontSize: 13, color: th.textSec, marginTop: 20 }}>
           {t.noAccount}{' '}
-          <button onClick={() => navigate('register')} style={{
-            background: 'none', border: 'none',
-            color: th.primary, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit'
-          }}>
+          <button onClick={() => navigate('register')} style={{ background: 'none', border: 'none', color: th.primary, fontWeight: 700, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
             {t.signUp}
+          </button>
+        </p>
+ 
+        {/* Volver al inicio — enlace secundario en el footer */}
+        <p style={{ textAlign: 'center', marginTop: 8 }}>
+          <button onClick={() => navigate('home')}
+            style={{ background: 'none', border: 'none', color: th.textSec, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+            {lang === 'en' ? '← Back to home' : '← Volver al inicio'}
           </button>
         </p>
       </div>
     </div>
   )
 }
-
 // ─────────────────────────────────────────────────────────────
-// REGISTER
+// REGISTER SCREEN (con botón ← para volver)
 // ─────────────────────────────────────────────────────────────
 export function RegisterScreen() {
-  const { th, navigate, refreshUser, lang } = useApp()
+  const { th, navigate, refreshUser, lang, goBack } = useApp()
   const t = T[lang]
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '', role: 'user' })
   const [errors, setErrors] = useState({})
@@ -477,27 +496,25 @@ export function RegisterScreen() {
   const [termsError, setTermsError] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(null)
   const [oauthError, setOauthError] = useState('')
-
+ 
   const handleOAuth = async (provider) => {
     if (!acceptedTerms) { setTermsError(true); return }
-    setTermsError(false)
-    setOauthLoading(provider); setOauthError('')
-    try {
-      await auth.signInWithOAuth(provider)
-    } catch (err) {
+    setTermsError(false); setOauthLoading(provider); setOauthError('')
+    try { await auth.signInWithOAuth(provider) }
+    catch {
       setOauthError(lang === 'en'
         ? `Could not connect with ${provider === 'google' ? 'Google' : 'Facebook'}.`
         : `No se pudo conectar con ${provider === 'google' ? 'Google' : 'Facebook'}.`)
       setOauthLoading(null)
     }
   }
-
+ 
   const F = (k) => ({
     value: form[k],
     onChange: v => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })) },
     error: errors[k],
   })
-
+ 
   const validate = () => {
     const e = {}
     if (!form.name.trim()) e.name = t.required
@@ -507,22 +524,19 @@ export function RegisterScreen() {
     setErrors(e)
     return Object.keys(e).length === 0
   }
-
+ 
   const handleRegister = async () => {
     if (!validate()) return
     if (!acceptedTerms) { setTermsError(true); return }
-    setTermsError(false)
-    setLoading(true)
+    setTermsError(false); setLoading(true)
     try {
       await auth.signUp({ email: form.email.trim(), password: form.password, fullName: form.name.trim(), role: form.role })
       setSuccess(true)
     } catch (err) {
       setErrors({ email: err.message || 'Error al registrarse.' })
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
-
+ 
   if (success) return (
     <div style={{ background: th.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 40 }}>
       <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
@@ -531,13 +545,34 @@ export function RegisterScreen() {
       <Btn onClick={() => navigate('login')}>Ir al login</Btn>
     </div>
   )
-
+ 
   return (
     <div style={{ background: th.bg, minHeight: '100vh', padding: '24px 24px 60px' }}>
-      <button onClick={() => navigate('login')} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: th.text, marginBottom: 16 }}>←</button>
-      <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: th.text }}>{t.registerTitle}</h2>
-      <p style={{ margin: '0 0 24px', fontSize: 13, color: th.textSec }}>¿Eres cliente o técnico?</p>
-
+ 
+      {/* ── BOTÓN VOLVER (← a login o a home) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <button onClick={goBack}
+          style={{
+            width: 38, height: 38, borderRadius: 19,
+            background: th.surface2,
+            border: `1px solid ${th.border}`,
+            fontSize: 18, cursor: 'pointer', color: th.text,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, transition: 'all 140ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = th.primaryLight; e.currentTarget.style.borderColor = th.primary }}
+          onMouseLeave={e => { e.currentTarget.style.background = th.surface2; e.currentTarget.style.borderColor = th.border }}
+          title={lang === 'en' ? 'Go back' : 'Volver'}
+        >
+          ←
+        </button>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: th.text }}>{t.registerTitle}</h2>
+          <p style={{ margin: 0, fontSize: 13, color: th.textSec }}>¿Eres cliente o técnico?</p>
+        </div>
+      </div>
+ 
+      {/* Selector cliente / técnico */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
         {[{ v: 'user', label: t.iAmClient, desc: t.lookingTechs }, { v: 'technician', label: t.iAmTech, desc: t.offerServices }].map(r => (
           <button key={r.v} onClick={() => setForm(f => ({ ...f, role: r.v }))}
@@ -547,61 +582,53 @@ export function RegisterScreen() {
           </button>
         ))}
       </div>
-
-      <Input label={t.fullName} placeholder="Juan Pérez"        {...F('name')} />
-      <Input label={t.email} placeholder="tu@email.com" type="email"    {...F('email')} />
-      <Input label={t.phone} placeholder="+507 6000-0000"     {...F('phone')} />
+ 
+      <Input label={t.fullName} placeholder="Juan Pérez" {...F('name')} />
+      <Input label={t.email} placeholder="tu@email.com" type="email" {...F('email')} />
+      <Input label={t.phone} placeholder="+507 6000-0000" {...F('phone')} />
       <Input label={t.password} placeholder="Mínimo 6 caracteres" type="password" {...F('password')} />
       <Input label={t.confirmPassword} placeholder="Repite tu contraseña" type="password" {...F('confirm')} />
-
+ 
       <div style={{ height: 8 }} />
-
+ 
       {/* Aceptación de términos */}
       <div onClick={() => { setAcceptedTerms(v => !v); setTermsError(false) }}
-        style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
-          cursor: 'pointer', padding: '10px 12px', borderRadius: 12,
-          background: termsError ? '#fee2e2' : th.surface2,
-          border: `1px solid ${termsError ? '#fca5a5' : th.border}`
-        }}>
-        <div style={{
-          width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
-          border: `2px solid ${acceptedTerms ? th.primary : th.border}`,
-          background: acceptedTerms ? th.primary : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', fontSize: 13, fontWeight: 900
-        }}>
+        style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, cursor: 'pointer', padding: '10px 12px', borderRadius: 12, background: termsError ? '#fee2e2' : th.surface2, border: `1px solid ${termsError ? '#fca5a5' : th.border}` }}>
+        <div style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1, border: `2px solid ${acceptedTerms ? th.primary : th.border}`, background: acceptedTerms ? th.primary : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 900 }}>
           {acceptedTerms && '✓'}
         </div>
         <p style={{ margin: 0, fontSize: 12, color: termsError ? '#991b1b' : th.textSec, lineHeight: 1.6 }}>
           Acepto los{' '}
-          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
-            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
+          <span onClick={e => { e.stopPropagation(); navigate('legal') }} style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
             Términos y Condiciones
-          </span>{' '}
-          y la{' '}
-          <span onClick={(e) => { e.stopPropagation(); navigate('legal') }}
-            style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
+          </span>{' '}y la{' '}
+          <span onClick={e => { e.stopPropagation(); navigate('legal') }} style={{ color: th.primary, fontWeight: 700, textDecoration: 'underline' }}>
             Política de Privacidad
-          </span>{' '}
-          de TECNIFIX.
+          </span>.
         </p>
       </div>
-
+ 
       <Btn onClick={handleRegister} loading={loading}>{t.create}</Btn>
-
+ 
       {oauthError && (
-        <p style={{
-          color: th.red, fontSize: 13, margin: '10px 0 0', textAlign: 'center',
-          background: '#fef2f2', padding: '8px', borderRadius: 8
-        }}>{oauthError}</p>
+        <p style={{ color: th.red, fontSize: 13, margin: '10px 0 0', textAlign: 'center', background: '#fef2f2', padding: '8px', borderRadius: 8 }}>
+          {oauthError}
+        </p>
       )}
-
+ 
       <OAuthButtons th={th} lang={lang} loadingProvider={oauthLoading} onSelect={handleOAuth} />
+ 
+      {/* Link volver al inicio */}
+      <p style={{ textAlign: 'center', marginTop: 16 }}>
+        <button onClick={() => navigate('home')}
+          style={{ background: 'none', border: 'none', color: th.textSec, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+          {lang === 'en' ? '← Back to home' : '← Volver al inicio'}
+        </button>
+      </p>
     </div>
   )
 }
-
+ 
 // ─────────────────────────────────────────────────────────────
 // EDIT PROFILE (info personal)
 // ─────────────────────────────────────────────────────────────

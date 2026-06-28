@@ -295,7 +295,7 @@ export function CertificatesScreen() {
                         marginBottom: 12, border: '1px solid #fde68a'
                       }}>
                         <p style={{ margin: 0, fontSize: 12, color: th.yellowText }}>
-                          ⏳ Pendiente de verificación por el equipo de Changuinola Pro.
+                          ⏳ Pendiente de verificación por el equipo de Tecnifix.
                           Recibirás una notificación cuando sea verificado.
                         </p>
                       </div>
@@ -328,7 +328,7 @@ export function CertificatesScreen() {
           onSuccess={(newCert) => {
             setCerts(prev => [newCert, ...prev])
             setShowForm(false)
-            showToast('✅ Documento agregado. El admin lo revisará pronto.')
+            showToast('✅ Documento agregado. Tecnifix lo revisará pronto.')
           }}
         />
       )}
@@ -563,9 +563,9 @@ function AddCertForm({ userId, th, lang, onClose, onSuccess }) {
           border: '1px solid #bbf7d0', marginBottom: 20
         }}>
           <p style={{ margin: 0, fontSize: 12, color: th.verifiedText, lineHeight: 1.6 }}>
-            🔒 Tu documento se almacena de forma segura. Solo el admin de Changuinola Pro
-            puede verlo para verificarlo. Los clientes solo ven el nombre y la institución,
-            nunca el archivo completo a menos que lo marques como público.
+            🔒 Tu documento se almacena de forma segura. Solo Tecnifx puede verlo para verificarlo. 
+            Los clientes solo ven el nombre y la institución, nunca el archivo completo 
+            a menos que lo marques como público.
           </p>
         </div>
 

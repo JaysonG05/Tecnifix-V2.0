@@ -168,7 +168,7 @@ export function MyReceiptsScreen() {
 
                 {/* Cabecera verde */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                  background: 'linear-gradient(135deg, #3516a3, #3222c5)',
                   padding: '12px 16px', display: 'flex',
                   justifyContent: 'space-between', alignItems: 'center'
                 }}>
