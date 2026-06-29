@@ -6,8 +6,9 @@
   <!-- Rutas relativas (./) previenen MIME type octet-stream en Netlify/subdirectorios -->
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#00214D" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#00214D" />
+    <meta name="msapplication-TileColor" content="#00214D" />
 
   <!-- SEO -->
   <title>TECNIFIX — Técnicos profesionales en todo Panamá</title>
@@ -68,7 +69,8 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      /* Evitar zoom en inputs en iOS */
+      /* Evitar zoom en inputs en iOS y soportes modernos */
+      text-size-adjust: 100%;
       -webkit-text-size-adjust: 100%;
     }
 
