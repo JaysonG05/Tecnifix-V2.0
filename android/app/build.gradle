@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 
 android {
     namespace = "com.Tecnifix.app"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdkVersion compileSdkVersion
     defaultConfig {
         applicationId "com.Tecnifix.app"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        targetSdkVersion targetSdkVersion
         versionCode 2
         versionName '1.0.1'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
