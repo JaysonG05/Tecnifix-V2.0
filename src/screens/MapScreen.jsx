@@ -1,28 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '../context/AppContext.jsx'
-import { Icon } from '../components/Icons.jsx'
 import { Avatar, StarRating, Spinner, Btn } from '../components/UI.jsx'
-import { supabase, technicians } from '../lib/supabase.js'
+import { technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 export function MapScreen() {
   const { th, navigate, setSelectedTech, lang } = useApp()
   const t = T[lang]
 
-  const mapRef = useRef(null)
-  const mapInstance = useRef(null)
-  const markersRef = useRef([])
+  const mapRef         = useRef(null)
+  const mapInstance    = useRef(null)
+  const markersRef     = useRef([])
   const [leafletReady, setLeafletReady] = useState(!!window.L)
-  const [techList, setTechList] = useState([])
-  const [userPos, setUserPos] = useState(null)
-  const [locating, setLocating] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [techList,     setTechList]     = useState([])
+  const [userPos,      setUserPos]      = useState(null)
+  const [locating,     setLocating]     = useState(false)
+  const [loading,      setLoading]      = useState(true)
 
   // Cargar técnicos
   useEffect(() => {
     technicians.list()
       .then(data => setTechList(data.filter(x => x.latitude && x.longitude)))
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
@@ -68,7 +67,7 @@ export function MapScreen() {
     markersRef.current = []
 
     list.forEach(tech => {
-      const color = tech.is_available ? th.verified : th.textSec
+      const color = tech.is_available ? '#1d4ed8' : '#64748b'
       const icon = L.divIcon({
         html: `
           <div style="
@@ -101,12 +100,12 @@ export function MapScreen() {
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
               <span style="color:#fbbf24">★ ${Number(tech.average_rating).toFixed(1)}</span>
               <span style="font-size:11px;color:#64748b">(${tech.total_reviews} reseñas)</span>
-              <span style="margin-left:auto;font-weight:700;color:#16a34a">Desde $${tech.min_price}</span>
+              <span style="margin-left:auto;font-weight:700;color:#1d4ed8">Desde $${tech.min_price}</span>
             </div>
-            <a href="https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name || '')},%20vi%20tu%20perfil%20en%20Panamá%20Pro"
+            <a href="https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name || '')},%20vi%20tu%20perfil%20en%20Changuinola%20Pro"
               target="_blank"
               style="display:block;background:#25d366;color:#fff;text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">
-              WhatsApp
+              📱 WhatsApp
             </a>
           </div>
         `, { maxWidth: 220 })
@@ -118,6 +117,14 @@ export function MapScreen() {
 
       markersRef.current.push(marker)
     })
+
+    // Encuadrar el mapa a todos los técnicos (vista nacional si están repartidos)
+    if (list.length > 1) {
+      const bounds = L.latLngBounds(list.map(x => [x.latitude, x.longitude]))
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 })
+    } else if (list.length === 1) {
+      map.setView([list[0].latitude, list[0].longitude], 13)
+    }
   }, [setSelectedTech])
 
   // Geolocalización del usuario
@@ -139,7 +146,7 @@ export function MapScreen() {
           })
           L.marker([lat, lng], { icon: userIcon })
             .addTo(mapInstance.current)
-            .bindPopup(' Tu ubicación')
+            .bindPopup('📍 Tu ubicación')
             .openPopup()
           mapInstance.current.setView([lat, lng], 14)
 
@@ -148,7 +155,7 @@ export function MapScreen() {
             .then(nearby => {
               if (nearby.length > 0) setTechList(nearby)
             })
-            .catch(() => { })
+            .catch(() => {})
         }
       },
       () => setLocating(false),
@@ -158,18 +165,19 @@ export function MapScreen() {
 
   return (
     <div style={{ background: th.bg, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 16px 12px', background: th.surface, borderBottom: `1px solid ${th.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Header exótico (aurora + glass) */}
+      <div style={{ position: 'relative', overflow: 'hidden', padding: '18px 16px 16px', background: 'linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 55%,#2563eb 100%)', borderRadius: '0 0 24px 24px' }}>
+        <div style={{ position: 'absolute', top: -40, right: -20, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle,#60a5fa,transparent 70%)', filter: 'blur(8px)', opacity: 0.45, pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: th.text }}>{t.nearbyTechs}</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: th.textSec }}>
-              {loading ? '...' : techList.length} {t.techsOnMap}
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: 0, textShadow: '0 1px 8px rgba(0,0,0,0.2)' }}>🗺️ {t.nearbyTechs}</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
+              {loading ? '…' : techList.length} {t.techsOnMap}
             </p>
           </div>
           <button onClick={locateUser} disabled={locating}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: th.primaryLight, color: th.primaryText, border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-            {locating ? <Spinner size={14} /> : ''}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', flexShrink: 0 }}>
+            {locating ? <Spinner size={14} /> : '📍'}
             {locating ? t.locating : t.useMyLocation}
           </button>
         </div>
@@ -178,7 +186,7 @@ export function MapScreen() {
       {/* Mapa */}
       {!leafletReady ? (
         <div style={{ margin: 16, background: th.surface2, borderRadius: 18, height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, border: `1px dashed ${th.border}` }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>
+          <span style={{ fontSize: 52 }}>🗺️</span>
           <p style={{ margin: 0, color: th.textSec, fontSize: 14, textAlign: 'center', maxWidth: 220 }}>
             Mapa interactivo con OpenStreetMap (gratuito, sin API key)
           </p>
@@ -206,7 +214,7 @@ export function MapScreen() {
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <p style={{ margin: 0, fontWeight: 700, color: th.primaryText, fontSize: 13 }}>Desde ${tech.min_price}</p>
                 {tech.distance_km !== undefined && (
-                  <p style={{ margin: 0, fontSize: 11, color: th.textSec }}> {tech.distance_km} km</p>
+                  <p style={{ margin: 0, fontSize: 11, color: th.textSec }}>📍 {tech.distance_km} km</p>
                 )}
               </div>
             </div>

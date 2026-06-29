@@ -1,37 +1,13 @@
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-
-// ── Guard de variables de entorno ────────────────────────────
-// Si faltan las env vars la app NO se congela en la pantalla azul;
-// cada query simplemente devuelve [] o null con un error en consola.
-const ENV_OK = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
-
-if (!ENV_OK) {
-  console.error(
-    '🚨 TECNIFIX — Variables de entorno faltantes:\n' +
-    '  1. Crea un archivo .env en la raíz del proyecto.\n' +
-    '  2. Agrega:\n' +
-    '       VITE_SUPABASE_URL=https://tu-proyecto.supabase.co\n' +
-    '       VITE_SUPABASE_ANON_KEY=tu-anon-key\n' +
-    '  3. Las encuentras en: supabase.com → tu proyecto → Settings → API\n' +
-    '  4. En Netlify: Site settings → Environment variables.'
-  )
-}
-
-// Cliente Supabase — funciona aunque las env vars estén vacías
-// (las queries fallarán con 401/400 pero NO congelarán la UI)
-export const supabase = createClient(
-  SUPABASE_URL || 'https://placeholder.supabase.co',
-  SUPABASE_ANON_KEY || 'placeholder-key',
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  })
+// ─────────────────────────────────────────────────────────────
+// Tecnifix — Capa de datos (Supabase)
+//
+// El cliente Supabase y el modo demo viven en client.js. Aquí están los helpers
+// por dominio (auth, profiles, technicians, payments, etc.). La verificación de
+// técnicos se movió a verification.js y se re-exporta al final para no romper
+// los imports existentes (`import { verificationApi } from './supabase.js'`).
+// ─────────────────────────────────────────────────────────────
+import { supabase, isSupabaseConfigured } from './client.js'
+export { supabase, isSupabaseConfigured }
 
 // ─────────────────────────────────────────────
 // AUTH helpers
@@ -51,6 +27,16 @@ export const auth = {
   /** Login */
   async signIn({ email, password }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
+  },
+
+  /** Login con Google OAuth */
+  async signInWithGoogle() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
     if (error) throw error
     return data
   },
@@ -80,53 +66,18 @@ export const auth = {
     const { data } = await supabase.auth.getUser()
     return data.user
   },
+}
 
-  /**
-   * Iniciar sesión / registrarse con un proveedor OAuth (Google o Facebook).
-   * Redirige al usuario al proveedor y luego de vuelta a la app.
-   * El trigger handle_new_user crea automáticamente el perfil
-   * en public.profiles la primera vez que el usuario inicia sesión.
-   */
-  async signInWithOAuth(provider) {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider, // 'google' | 'facebook'
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: provider === 'google'
-          ? { access_type: 'offline', prompt: 'consent' }
-          : undefined,
-      },
-    })
+// ─────────────────────────────────────────────
+// AI helpers (Edge Functions — la API key vive en el servidor)
+// ─────────────────────────────────────────────
+export const ai = {
+  /** Genera título, bio (ES/EN) y slogan del técnico a partir de unas notas. */
+  async generateBio(input) {
+    const { data, error } = await supabase.functions.invoke('generate-bio', { body: input })
     if (error) throw error
+    if (data?.error) throw new Error(data.error)
     return data
-  },
-
-  /**
-   * Lista los proveedores de inicio de sesión vinculados a la cuenta
-   * actual (útil para mostrar en Configuración → Seguridad).
-   */
-  async getLinkedProviders() {
-    const { data } = await supabase.auth.getUserIdentities()
-    return (data?.identities ?? []).map(i => i.provider)
-  },
-
-  /**
-   * Vincular un proveedor OAuth adicional a la cuenta ya autenticada
-   * (p.ej. usuario que se registró con email y quiere agregar Google).
-   */
-  async linkOAuthIdentity(provider) {
-    const { data, error } = await supabase.auth.linkIdentity({
-      provider,
-      options: { redirectTo: window.location.origin },
-    })
-    if (error) throw error
-    return data
-  },
-
-  /** Desvincular un proveedor OAuth (requiere quedar con al menos 1 método de acceso) */
-  async unlinkOAuthIdentity(identity) {
-    const { error } = await supabase.auth.unlinkIdentity(identity)
-    if (error) throw error
   },
 }
 
@@ -142,6 +93,39 @@ export const profiles = {
       .single()
     if (error) throw error
     return data
+  },
+
+  async ensureFromAuth(authUser) {
+    if (!authUser?.id) throw new Error('No hay usuario autenticado.')
+    const existing = await profiles.get(authUser.id).catch(() => null)
+    if (existing) return { ...existing, email: existing.email || authUser.email }
+
+    const payload = {
+      id: authUser.id,
+      full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuario Tecnifix',
+      role: authUser.user_metadata?.role || 'user',
+      account_status: 'active',
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (!error) return { ...data, email: data.email || authUser.email }
+
+    const fallbackPayload = {
+      id: authUser.id,
+      full_name: payload.full_name,
+      role: payload.role,
+    }
+    const fallback = await supabase
+      .from('profiles')
+      .insert(fallbackPayload)
+      .select()
+      .single()
+    if (fallback.error) throw error
+    return { ...fallback.data, email: fallback.data.email || authUser.email }
   },
 
   async update(userId, updates) {
@@ -174,12 +158,12 @@ export const profiles = {
 // ─────────────────────────────────────────────
 export const technicians = {
   /** Lista completa (vista technicians_full) */
-  async list({ categorySlug, onlyAvailable, onlyVerified, sortBy = 'average_rating' } = {}) {
+  async list({ categorySlug, onlyAvailable, includeUnverified = false, sortBy = 'average_rating' } = {}) {
     let q = supabase.from('technicians_full').select('*')
     // Filtrar por slug: busca en category_slug principal O en el array category_slugs
     if (categorySlug) q = q.or(`category_slug.eq.${categorySlug},category_slugs.cs.{${categorySlug}}`)
     if (onlyAvailable) q = q.eq('is_available', true)
-    if (onlyVerified) q = q.eq('verification_status', 'verified')
+    if (!includeUnverified) q = q.eq('verification_status', 'verified')
     q = q.order(sortBy, { ascending: sortBy === 'min_price' })
     const { data, error } = await q
     if (error) throw error
@@ -192,7 +176,7 @@ export const technicians = {
       lat, lng, radius_km: radiusKm,
     })
     if (error) throw error
-    return data ?? []
+    return (data ?? []).filter(t => t.verification_status === 'verified')
   },
 
   /** Perfil completo de un técnico */
@@ -415,6 +399,7 @@ export const favorites = {
       .from('technicians_full')
       .select('*')
       .in('user_id', ids)
+      .eq('verification_status', 'verified')
     if (error) throw error
     return data ?? []
   },
@@ -440,6 +425,12 @@ export const reviews = {
     return data ?? []
   },
 
+  /**
+   * Crea una reseña. Entra como 'pending' y solo se publica tras moderación
+   * (admin → approveReview). La RLS además exige que el autor haya tenido un
+   * servicio completado con ese técnico, evitando reseñas falsas.
+   * Antes se insertaba como 'approved' directamente desde el cliente.
+   */
   async create({ serviceRequestId, reviewerId, technicianId, rating, comment }) {
     const { data, error } = await supabase
       .from('reviews')
@@ -449,7 +440,7 @@ export const reviews = {
         technician_id: technicianId,
         rating,
         comment,
-        moderation_status: 'approved',
+        moderation_status: 'pending',
       })
       .select()
       .single()
@@ -659,66 +650,6 @@ export const serviceCatalog = {
 }
 
 // ─────────────────────────────────────────────
-// CHAT helpers (mensajería por solicitud)
-// ─────────────────────────────────────────────
-export const chatApi = {
-  /** Listar mensajes de una solicitud */
-  async list(requestId) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('request_id', requestId)
-      .order('created_at', { ascending: true })
-    if (error) throw error
-    return data ?? []
-  },
-
-  /** Enviar mensaje */
-  async send(requestId, senderId, body) {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({ request_id: requestId, sender_id: senderId, body: body.trim() })
-      .select()
-      .single()
-    if (error) throw error
-    return data
-  },
-
-  /** Marcar como leídos todos los mensajes que NO son del usuario actual */
-  async markRead(requestId, userId) {
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('request_id', requestId)
-      .neq('sender_id', userId)
-      .eq('is_read', false)
-  },
-
-  /** Contar mensajes no leídos de una solicitud (de la otra parte) */
-  async countUnread(requestId, userId) {
-    const { count } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('request_id', requestId)
-      .neq('sender_id', userId)
-      .eq('is_read', false)
-    return count ?? 0
-  },
-
-  /** Suscribirse en tiempo real a nuevos mensajes de una solicitud */
-  subscribe(requestId, onInsert) {
-    const channel = supabase
-      .channel(`messages:${requestId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages',
-        filter: `request_id=eq.${requestId}`,
-      }, (payload) => onInsert(payload.new))
-      .subscribe()
-    return () => supabase.removeChannel(channel)
-  },
-}
-
-// ─────────────────────────────────────────────
 // ARCHIVE helpers
 // ─────────────────────────────────────────────
 export const archiveApi = {
@@ -843,15 +774,12 @@ export const receiptsApi = {
       .sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at))
   },
 
-  /** Marcar recibo como descargado */
+  /** Marcar recibo como descargado (el contador download_count lo lleva un trigger en prod) */
   async markDownloaded(receiptId, userId, role) {
     const field = role === 'technician' ? 'downloaded_by_tech' : 'downloaded_by_client'
     await supabase
       .from('receipts')
-      .update({
-        [field]: true,
-        download_count: supabase.rpc ? undefined : undefined, // incrementado via trigger en prod
-      })
+      .update({ [field]: true })
       .eq('id', receiptId)
       .or(`client_id.eq.${userId},technician_id.eq.${userId}`)
   },
@@ -865,7 +793,7 @@ export const contracts = {
 CONTRATO DE PRESTACIÓN DE SERVICIOS TÉCNICOS — CHANGUINOLA PRO
 Versión 1.0
 
-PARTES: El presente contrato se celebra entre el USUARIO (cliente) y el TÉCNICO, ambos identificados en la plataforma TECNIFIX.
+PARTES: El presente contrato se celebra entre el USUARIO (cliente) y el TÉCNICO, ambos identificados en la plataforma Tecnifix.
 
 OBJETO: El Técnico se compromete a prestar el servicio solicitado conforme a los estándares profesionales y las especificaciones acordadas.
 
@@ -875,19 +803,32 @@ RESPONSABILIDADES DEL TÉCNICO: Responde por daños causados por negligencia com
 
 RESPONSABILIDADES DEL USUARIO: Facilitar el acceso al lugar del servicio y proporcionar información veraz sobre el problema.
 
-INTERMEDIARIO: TECNIFIX actúa únicamente como plataforma de conexión y no es responsable de la ejecución del servicio.
+INTERMEDIARIO: Tecnifix actúa únicamente como plataforma de conexión y no es responsable de la ejecución del servicio.
 
-DISPUTAS: Ante cualquier conflicto, ambas partes se comprometen a resolver primero mediante mediación a través de TECNIFIX antes de acudir a instancias legales.
+DISPUTAS: Ante cualquier conflicto, ambas partes se comprometen a resolver primero mediante mediación a través de Tecnifix antes de acudir a instancias legales.
 
 VIGENCIA: Este contrato entra en vigor al ser aceptado digitalmente por el Usuario y es válido hasta la finalización del servicio.
 
-Nota legal: Este contrato es de carácter referencial. Para servicios de alta envergadura se recomienda consultar con un abogado.
+⚖️ Nota legal: Este contrato es de carácter referencial. Para servicios de alta envergadura se recomienda consultar con un abogado.
   `.trim(),
 
+  /** IP pública del firmante (best-effort, failsafe). Refuerza la prueba de firma. */
+  async _fetchClientIp() {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout?.(3000) })
+      const json = await res.json()
+      return json?.ip ?? null
+    } catch { return null }
+  },
+
   async create({ serviceRequestId, clientId, technicianId, clientIp }) {
+    // Si el llamador no pasó IP, la obtenemos aquí para que la firma quede sellada con ella.
+    const ip = clientIp ?? await contracts._fetchClientIp()
+    const signedAt = new Date().toISOString()
+    // El hash incluye la IP y la marca de tiempo exacta: prueba reproducible.
     const hash = await crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(`${clientId}${technicianId}${Date.now()}`)
+      new TextEncoder().encode(`${clientId}${technicianId}${ip ?? 'sin-ip'}${signedAt}`)
     )
     const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
 
@@ -898,8 +839,8 @@ Nota legal: Este contrato es de carácter referencial. Para servicios de alta en
         client_id: clientId,
         technician_id: technicianId,
         terms_snapshot: contracts.TERMS_TEXT,
-        client_signed_at: new Date().toISOString(),
-        client_ip: clientIp ?? null,
+        client_signed_at: signedAt,
+        client_ip: ip,
         client_user_agent: navigator.userAgent,
         status: 'signed_client',
         signature_hash: hashHex,
@@ -991,28 +932,43 @@ export const payments = {
     return `https://yappy.com.pa/pay?phone=${phone}&amount=${amount}&description=${desc}`
   },
 
-  /** Registrar un pago en la BD */
+  /**
+   * Registrar un pago Yappy reportado por el cliente.
+   * NO lo marca como 'completed': queda 'pending_confirmation' hasta que el
+   * técnico confirme que recibió el dinero (paymentActions.confirmPayment).
+   * Antes este método marcaba el pago pagado sin verificación alguna.
+   */
   async record({ serviceRequestId, payerId, technicianId, amount, yappyPhone, yappyReference }) {
     const { data, error } = await supabase
       .from('payments')
       .insert({
-        service_request_id: serviceRequestId,
+        service_request_id: serviceRequestId ?? null,
         payer_id: payerId,
         technician_id: technicianId,
         amount,
         method: 'yappy',
         yappy_phone: yappyPhone,
         yappy_reference: yappyReference ?? null,
-        status: 'completed',
+        status: 'pending_confirmation',
         paid_at: new Date().toISOString(),
       })
       .select()
       .single()
     if (error) throw error
-    // Actualizar estado de solicitud
-    await supabase.from('service_requests')
-      .update({ payment_status: 'paid', payment_method: 'yappy', payment_ref: yappyReference ?? null })
-      .eq('id', serviceRequestId)
+    // Si va ligado a una solicitud, marcarla pendiente de confirmación (no pagada).
+    if (serviceRequestId) {
+      await supabase.from('service_requests')
+        .update({ payment_status: 'pending_confirmation', payment_method: 'yappy', payment_ref: yappyReference ?? null })
+        .eq('id', serviceRequestId)
+    }
+    // Avisar al técnico para que confirme la recepción en su app Yappy.
+    supabase.from('notifications').insert({
+      user_id: technicianId,
+      type: 'payment',
+      title: '\u{1F49A} El cliente reportó un pago por Yappy',
+      body: `Monto: $${amount}. Verifica tu app Yappy y confirma la recepción.`,
+      data: { request_id: serviceRequestId ?? null, amount },
+    }).then(() => {}).catch(() => {})
     return data
   },
 
@@ -1028,9 +984,28 @@ export const payments = {
 }
 
 // ─────────────────────────────────────────────
+// TECHNICIAN VERIFICATION CENTER
+// ─────────────────────────────────────────────
+
+// ── Verificación de técnicos (KYC) → verification.js ─────────
+// Se re-exporta para mantener la API pública (VERIFICATION_*, PANAMA_PROVINCES,
+// verificationApi, verificationAdminApi).
+export * from './verification.js'
+
+// ─────────────────────────────────────────────
 // ADMIN helpers
 // ─────────────────────────────────────────────
 export const admin = {
+  /** El dueño (admin) crea una cuenta de vendedor y recibe las credenciales. */
+  async createVendorAccount({ email, password, fullName }) {
+    const { data, error } = await supabase.functions.invoke('admin-create-vendor', {
+      body: { email, password, full_name: fullName },
+    })
+    if (error) throw error
+    if (data?.error) throw new Error(data.error)
+    return data
+  },
+
   async listAllUsers() {
     const { data, error } = await supabase
       .from('profiles')
@@ -1044,6 +1019,16 @@ export const admin = {
     const { data, error } = await supabase
       .from('technicians_full')
       .select('*')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data ?? []
+  },
+
+  async listPendingTechnicians() {
+    const { data, error } = await supabase
+      .from('technicians_full')
+      .select('*')
+      .in('verification_status', ['pending', 'pending_review', 'under_review'])
       .order('created_at', { ascending: false })
     if (error) throw error
     return data ?? []
@@ -1133,76 +1118,97 @@ export const admin = {
 
   async getDashboardStats() {
     try {
-      const [
-        users, techs, requests, reviews_,
-        pendingReviews, pendingCerts, pendingDisputes, pendingTechs,
-        completedRequests, paidPayments, recentRequests, recentUsers,
-      ] = await Promise.all([
+      const [users, techs, pendingTechs, requests, reviews_] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('technician_profiles').select('user_id', { count: 'exact', head: true }),
+        supabase.from('technician_profiles').select('user_id', { count: 'exact', head: true }).in('verification_status', ['pending', 'pending_review', 'under_review']),
         supabase.from('service_requests').select('id', { count: 'exact', head: true }),
         supabase.from('reviews').select('id', { count: 'exact', head: true }),
-        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('moderation_status', 'pending'),
-        supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('is_verified', false),
-        supabase.from('disputes').select('id', { count: 'exact', head: true }).in('status', ['open', 'under_review']),
-        supabase.from('technician_profiles').select('user_id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-        supabase.from('service_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-        supabase.from('payments').select('amount').eq('status', 'completed'),
-        supabase.from('service_requests')
-          .select('id, title, status, created_at, client_id, technician_id')
-          .order('created_at', { ascending: false }).limit(5),
-        supabase.from('profiles')
-          .select('id, full_name, role, created_at')
-          .order('created_at', { ascending: false }).limit(5),
       ])
-
-      const totalRevenue = (paidPayments.data ?? [])
-        .reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
-
       return {
         totalUsers: users.count ?? 0,
         totalTechs: techs.count ?? 0,
+        pendingTechs: pendingTechs.count ?? 0,
         totalRequests: requests.count ?? 0,
         totalReviews: reviews_.count ?? 0,
-        completedRequests: completedRequests.count ?? 0,
-        totalRevenue,
-        pending: {
-          reviews: pendingReviews.count ?? 0,
-          certs: pendingCerts.count ?? 0,
-          disputes: pendingDisputes.count ?? 0,
-          techs: pendingTechs.count ?? 0,
-        },
-        recentRequests: recentRequests.data ?? [],
-        recentUsers: recentUsers.data ?? [],
       }
     } catch {
-      return {
-        totalUsers: 0, totalTechs: 0, totalRequests: 0, totalReviews: 0,
-        completedRequests: 0, totalRevenue: 0,
-        pending: { reviews: 0, certs: 0, disputes: 0, techs: 0 },
-        recentRequests: [], recentUsers: [],
-      }
+      return { totalUsers: 0, totalTechs: 0, pendingTechs: 0, totalRequests: 0, totalReviews: 0 }
     }
   },
+}
 
-  /** Exportar usuarios o técnicos a CSV (descarga directa en el navegador) */
-  exportToCSV(rows, columns, filename) {
-    const header = columns.map(c => `"${c.label}"`).join(',')
-    const lines = rows.map(row =>
-      columns.map(c => {
-        let val = row[c.key]
-        if (val === null || val === undefined) val = ''
-        val = String(val).replace(/"/g, '""')
-        return `"${val}"`
-      }).join(',')
-    )
-    const csv = [header, ...lines].join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+// ─────────────────────────────────────────────
+// EXOTIC APIs (Phase 1)
+// ─────────────────────────────────────────────
+export const sosApi = {
+  async trigger(clientId, clientName, lat, lng, description) {
+    const { data, error } = await supabase
+      .from('emergency_requests')
+      .insert({ client_id: clientId, client_name: clientName, lat, lng, description })
+      .select()
+      .single()
+    if (error) throw error
+    return data
   },
+  
+  async accept(emergencyId, technicianId) {
+    const { data, error } = await supabase
+      .from('emergency_requests')
+      .update({ status: 'accepted', accepted_by: technicianId })
+      .eq('id', emergencyId)
+      .eq('status', 'pending')
+      .select()
+      .single()
+    if (error) throw error
+    if (!data) throw new Error('La emergencia ya fue aceptada por otro técnico.')
+    return data
+  },
+
+  async resolve(emergencyId) {
+    const { error } = await supabase
+      .from('emergency_requests')
+      .update({ status: 'resolved' })
+      .eq('id', emergencyId)
+    if (error) throw error
+  },
+
+  subscribe(callback) {
+    return supabase.channel('emergency_radar')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'emergency_requests' }, callback)
+      .subscribe()
+  }
+}
+
+export const gamificationApi = {
+  async addXp(technicianId, xpToAdd) {
+    const { data: profile, error: getErr } = await supabase
+      .from('technician_profiles')
+      .select('xp, level')
+      .eq('user_id', technicianId)
+      .single()
+    if (getErr) throw getErr
+
+    let newXp = (profile.xp || 0) + xpToAdd
+    // Fórmula simple: nivel = floor(sqrt(xp / 100)) + 1
+    let newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1
+
+    const { error: updateErr } = await supabase
+      .from('technician_profiles')
+      .update({ xp: newXp, level: newLevel })
+      .eq('user_id', technicianId)
+    if (updateErr) throw updateErr
+
+    return { xp: newXp, level: newLevel, levelUp: newLevel > (profile.level || 1) }
+  },
+  
+  getRankName(level) {
+    const l = level || 1
+    if (l < 5) return 'Aprendiz'
+    if (l < 15) return 'Oficial'
+    if (l < 30) return 'Especialista'
+    if (l < 50) return 'Maestro'
+    if (l < 100) return 'Gran Maestro'
+    return 'Leyenda'
+  }
 }

@@ -1,93 +1,57 @@
 <!doctype html>
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#112740" />
 
-<head>
-  <meta charset="UTF-8" />
-  <!-- Rutas relativas (./) previenen MIME type octet-stream en Netlify/subdirectorios -->
-  <link rel="icon" type="image/png" href="./favicon.png" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#00214D" />
-    <meta name="msapplication-TileColor" content="#00214D" />
+    <!-- SEO -->
+    <title>Tecnifix — Encuentra técnicos en todo Panamá</title>
+    <meta name="description" content="Tecnifix conecta clientes con técnicos verificados en todo Panamá: electricistas, plomeros, aire acondicionado, cerrajeros, soporte técnico, pintura y más. Busca por oficio y provincia, compara perfiles y contacta directo." />
+    <meta name="keywords" content="técnicos Panamá, electricista, plomero, aire acondicionado, cerrajero, reparaciones, mantenimiento, Tecnifix" />
+    <link rel="canonical" href="https://tecnifix.com/" />
 
-  <!-- SEO -->
-  <title>TECNIFIX — Técnicos profesionales en todo Panamá</title>
-  <meta name="description"
-    content="Encuentra electricistas, plomeros, técnicos en climatización y más en todo Panamá. Perfiles verificados, reseñas reales, precios claros y pagos seguros." />
-  <meta name="keywords"
-    content="técnicos Panamá, electricista Panamá, plomero Panamá, TECNIFIX, servicios técnicos, técnicos verificados" />
-  <link rel="canonical" href="https://tecnifix.pa/" />
+    <!-- Open Graph (WhatsApp, Facebook) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tecnifix" />
+    <meta property="og:title" content="Tecnifix — Encuentra técnicos en todo Panamá" />
+    <meta property="og:description" content="Busca técnicos verificados por oficio y provincia en todo Panamá. Compara perfiles, reseñas y disponibilidad, y contacta directo." />
+    <meta property="og:image" content="https://tecnifix.com/hero-tecnifix.png" />
+    <meta property="og:url" content="https://tecnifix.com/" />
+    <meta property="og:locale" content="es_PA" />
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="TECNIFIX" />
-  <meta property="og:title" content="TECNIFIX — Técnicos en todo Panamá" />
-  <meta property="og:description"
-    content="Conecta con técnicos verificados: electricistas, plomeros, climatización y más. Contratos digitales y pagos seguros." />
-  <meta property="og:image" content="./og-image.png" />
-  <meta property="og:url" content="https://tecnifix.pa/" />
-  <meta property="og:locale" content="es_PA" />
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tecnifix — Encuentra técnicos en todo Panamá" />
+    <meta name="twitter:description" content="Técnicos verificados en todo Panamá. Busca por oficio y provincia, compara y contacta directo." />
+    <meta name="twitter:image" content="https://tecnifix.com/hero-tecnifix.png" />
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TECNIFIX — Técnicos en todo Panamá" />
-  <meta name="twitter:description" content="Encuentra y contrata técnicos verificados en todo Panamá." />
-  <meta name="twitter:image" content="./og-image.png" />
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Tecnifix" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" href="./favicon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="TECNIFIX" />
+    <!-- Fuentes (Outfit para un look más moderno y premium) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <!-- Tipografía desde Google Fonts (Space Grotesk + Inter + JetBrains Mono) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
-    rel="stylesheet" />
-
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
-
-    html,
-    body,
-    #root {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      /* Fondo base TECNIFIX navy mientras carga React */
-      background: #00214D;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      /* Evitar zoom en inputs en iOS y soportes modernos */
-      text-size-adjust: 100%;
-      -webkit-text-size-adjust: 100%;
-    }
-
-    ::-webkit-scrollbar {
-      display: none;
-    }
-
-    * {
-      -webkit-tap-highlight-color: transparent;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="root"></div>
-  <!-- Ruta relativa ./src/main.jsx para Netlify SPA -->
-  <script type="module" src="./src/main.jsx"></script>
-</body>
-
+    <style>
+      html,body,#root{ height:100%; margin:0; padding:0; }
+      body{
+        background:#f8fafc;
+        font-family:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+        -webkit-font-smoothing:antialiased;
+        -moz-osx-font-smoothing:grayscale;
+        text-rendering:optimizeLegibility;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
