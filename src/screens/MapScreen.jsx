@@ -6,7 +6,7 @@ import { supabase, technicians } from '../lib/supabase.js'
 import { T } from '../i18n/translations.js'
 
 export function MapScreen() {
-  const { th, navigate, setSelectedTech, lang } = useApp()
+  const { th, navigate, setSelectedTech, lang, isDesktop } = useApp()
   const t = T[lang]
 
   const mapRef = useRef(null)
@@ -185,34 +185,48 @@ export function MapScreen() {
           <Btn onClick={loadLeaflet} style={{ maxWidth: 220 }}>{t.loadMap}</Btn>
         </div>
       ) : (
-        <div ref={mapRef} style={{ height: 360, width: '100%' }} />
+        <div ref={mapRef} style={{ height: isDesktop ? 480 : 360, width: '100%' }} />
       )}
 
       {/* Lista de técnicos debajo del mapa */}
-      <div style={{ padding: '16px 16px 90px' }}>
-        <p style={{ fontWeight: 700, fontSize: 15, color: th.text, margin: '0 0 14px' }}>{t.techsInZone}</p>
-        {loading
-          ? <p style={{ color: th.textSec, fontSize: 14 }}>Cargando técnicos...</p>
-          : techList.map(tech => (
-            <div key={tech.user_id}
-              onClick={() => { setSelectedTech(tech); navigate('tech-profile') }}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${th.border}`, cursor: 'pointer' }}>
-              <Avatar photo={tech.avatar_url} name={tech.full_name} size={50} online={tech.is_available} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: th.text }}>{tech.full_name}</p>
-                <p style={{ margin: '1px 0', fontSize: 12, color: th.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tech.professional_title}</p>
-                <StarRating rating={tech.average_rating} size={12} />
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ margin: 0, fontWeight: 700, color: th.primaryText, fontSize: 13 }}>Desde ${tech.min_price}</p>
-                {tech.distance_km !== undefined && (
-                  <p style={{ margin: 0, fontSize: 11, color: th.textSec }}> {tech.distance_km} km</p>
-                )}
-              </div>
+      <div style={{ padding: isDesktop ? '0' : '16px 16px 90px' }}>
+       <p style={{ fontWeight: 700, fontSize: 15, color: th.text, margin: '0 0 14px' }}>{t.techsInZone}</p>
+     {loading
+    ? <p style={{ color: th.textSec, fontSize: 14 }}>Cargando técnicos...</p>
+    : (
+      <div style={isDesktop ? {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: 12,
+      } : undefined}>
+        {techList.map(tech => (
+          <div key={tech.user_id}
+            onClick={() => { setSelectedTech(tech); navigate('tech-profile') }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: isDesktop ? '12px' : '12px 0',
+              borderBottom: isDesktop ? 'none' : `1px solid ${th.border}`,
+              border: isDesktop ? `1px solid ${th.border}` : 'none',
+              borderRadius: isDesktop ? 12 : 0,
+              background: isDesktop ? th.surface : 'transparent',
+              cursor: 'pointer',
+            }}>
+            <Avatar photo={tech.avatar_url} name={tech.full_name} size={50} online={tech.is_available} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: th.text }}>{tech.full_name}</p>
+              <p style={{ margin: '1px 0', fontSize: 12, color: th.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tech.professional_title}</p>
+              <StarRating rating={tech.average_rating} size={12} />
             </div>
-          ))
-        }
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontWeight: 700, color: th.primaryText, fontSize: 13 }}>Desde ${tech.min_price}</p>
+              {tech.distance_km !== undefined && (
+                <p style={{ margin: 0, fontSize: 11, color: th.textSec }}> {tech.distance_km} km</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
+    )}
     </div>
-  )
-}
+    </div>
+  )}

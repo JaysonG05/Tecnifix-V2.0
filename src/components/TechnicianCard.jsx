@@ -26,7 +26,7 @@ const CAT_ES = { climatizacion: 'Climatización', electricidad: 'Electricidad', 
 const CAT_EN = { climatizacion: 'A/C & HVAC', electricidad: 'Electrical', plomeria: 'Plumbing', albanileria: 'Masonry', limpieza: 'Cleaning', cerrajeria: 'Locksmith', pintura: 'Painting', tecnologia: 'IT Support' }
 
 export function TechnicianCard({ tech, onPress }) {
-  const { th, favoriteIds, toggleFavorite, lang } = useApp()
+  const { th, favoriteIds, toggleFavorite, lang, isDesktop } = useApp() 
   const isFav = favoriteIds.includes(tech.user_id)
   const [hovered, setHovered] = useState(false)
   const [pressed, setPressed] = useState(false)
@@ -50,8 +50,9 @@ export function TechnicianCard({ tech, onPress }) {
         background: th.surface,
         borderRadius: 16,
         border: `1.5px solid ${hovered ? th.primary + '55' : th.border}`,
-        marginBottom: 12,
+        marginBottom: isDesktop ? 0 : 12, 
         cursor: 'pointer',
+        height: isDesktop ? '100%' : undefined,
         overflow: 'hidden',
         position: 'relative',
         transform: pressed ? 'scale(0.985)' : hovered ? 'translateY(-2px)' : 'none',

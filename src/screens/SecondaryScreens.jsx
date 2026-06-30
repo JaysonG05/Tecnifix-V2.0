@@ -23,41 +23,70 @@ import { getPermissionStatus, requestPermission } from '../lib/pushNotifications
 // FAVORITES
 // ─────────────────────────────────────────────────────────────
 export function FavoritesScreen() {
-  const { th, user, navigate, setSelectedTech, favoriteIds, lang } = useApp()
+  const { th, user, navigate, setSelectedTech, favoriteIds, lang, isDesktop } = useApp()
   const t = T[lang]
   const [techList, setTechList] = useState([])
   const [loading, setLoading] = useState(true)
-
+ 
   useEffect(() => {
     if (!user) { setLoading(false); return }
     favApi.listFull(user.id)
-      .then(setTechList).catch(() => { }).finally(() => setLoading(false))
+      .then(setTechList).catch(() => {}).finally(() => setLoading(false))
   }, [user, favoriteIds.length])
-
+ 
   if (!user) return (
     <EmptyState emoji="⭐" title={t.myFavorites} sub={t.loginRequired}
       action={<Btn onClick={() => navigate('login')} style={{ maxWidth: 200, margin: '0 auto' }}>{t.login}</Btn>}
     />
   )
-
+ 
   return (
-    <div style={{ background: th.bg, minHeight: '100vh', padding: '20px 16px 90px' }}>
-      <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: th.text }}>⭐ {t.myFavorites}</h2>
-      <p style={{ margin: '0 0 20px', fontSize: 13, color: th.textSec }}>{t.savedTechs}</p>
-      {loading
-        ? [1, 2].map(i => <SkeletonCard key={i} />)
-        : techList.length === 0
-          ? <EmptyState emoji="⭐" title={t.noFavorites} sub={t.tapToSave} />
-          : techList.map(tech => (
-            <TechnicianCard key={tech.user_id} tech={tech}
+    <div style={{
+      background: th.bg,
+      minHeight: isDesktop ? 'unset' : '100vh',
+      padding: isDesktop ? '0' : '20px 16px 90px',
+    }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: th.text }}>
+          ⭐ {t.myFavorites}
+        </h2>
+        <p style={{ margin: 0, fontSize: 13, color: th.textSec }}>{t.savedTechs}</p>
+      </div>
+ 
+      {loading ? (
+        /* Skeleton grid */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isDesktop ? 'repeat(auto-fill, minmax(320px, 1fr))' : '1fr',
+          gap: isDesktop ? 16 : 0,
+        }}>
+          {[1,2,3].map(i => <SkeletonCard key={i} />)}
+        </div>
+      ) : techList.length === 0 ? (
+        <EmptyState emoji="⭐" title={t.noFavorites} sub={t.tapToSave} />
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isDesktop
+            ? 'repeat(auto-fill, minmax(320px, 1fr))'
+            : '1fr',
+          gap: isDesktop ? 16 : 0,
+          alignItems: 'start',
+        }}>
+          {techList.map(tech => (
+            <TechnicianCard
+              key={tech.user_id}
+              tech={tech}
               onPress={t2 => { setSelectedTech(t2); navigate('tech-profile') }}
             />
-          ))
-      }
+          ))}
+        </div>
+      )}
     </div>
   )
 }
-
+ 
 // ─────────────────────────────────────────────────────────────
 // PROFILE
 // ─────────────────────────────────────────────────────────────

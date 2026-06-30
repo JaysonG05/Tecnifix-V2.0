@@ -1,3 +1,8 @@
+// ============================================================
+//  PATCH — SearchScreen
+//  Reemplaza el archivo completo src/screens/SearchScreen.jsx
+//  Añade grid de 3 columnas en desktop para los resultados
+// ============================================================
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 import { Icon } from '../components/Icons.jsx'
@@ -18,7 +23,7 @@ const CATS = [
 ]
 
 export function SearchScreen() {
-  const { th, selectedCategory, navigate, setSelectedTech, lang } = useApp()
+  const { th, selectedCategory, navigate, setSelectedTech, lang, isDesktop } = useApp()
   const t = T[lang]
 
   const [filter, setFilter] = useState(selectedCategory?.slug || 'all')
@@ -55,10 +60,29 @@ export function SearchScreen() {
 
   const openTech = (tech) => { setSelectedTech(tech); navigate('tech-profile') }
 
+  // ── Grid de resultados: 3 columnas en desktop, 1 en mobile ──
+  const gridStyle = isDesktop
+    ? {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+        gap: 16,
+        alignItems: 'start',
+      }
+    : {}
+
   return (
-    <div style={{ background: th.bg, minHeight: '100vh' }}>
+    <div style={{ background: th.bg, minHeight: isDesktop ? 'unset' : '100vh' }}>
       {/* Filtros sticky */}
-      <div style={{ background: th.surface, borderBottom: `1px solid ${th.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{
+        background: th.surface,
+        borderBottom: `1px solid ${th.border}`,
+        position: 'sticky',
+        top: isDesktop ? 60 : 0,
+        zIndex: 10,
+        borderRadius: isDesktop ? 16 : 0,
+        marginBottom: isDesktop ? 16 : 0,
+        border: isDesktop ? `1px solid ${th.border}` : undefined,
+      }}>
         {/* Categorías scroll horizontal */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '12px 16px 0', scrollbarWidth: 'none' }}>
           <Chip active={filter === 'all'} onClick={() => setFilter('all')}>{t.allCategories}</Chip>
@@ -94,7 +118,13 @@ export function SearchScreen() {
 
         {/* Panel de filtros avanzados */}
         {showFilters && (
-          <div style={{ padding: '4px 16px 14px', borderTop: `1px solid ${th.border}` }}>
+          <div style={{
+            padding: '4px 16px 14px',
+            borderTop: `1px solid ${th.border}`,
+            display: isDesktop ? 'grid' : 'block',
+            gridTemplateColumns: isDesktop ? '1fr 1fr' : undefined,
+            gap: isDesktop ? 24 : 0,
+          }}>
             {/* Precio máximo */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -136,7 +166,7 @@ export function SearchScreen() {
                 style={{
                   marginTop: 10, background: 'none', border: 'none', color: th.red,
                   fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  textDecoration: 'underline'
+                  textDecoration: 'underline', gridColumn: isDesktop ? '1 / -1' : undefined,
                 }}>
                 {lang === 'en' ? 'Clear advanced filters' : 'Limpiar filtros avanzados'}
               </button>
@@ -145,18 +175,23 @@ export function SearchScreen() {
         )}
       </div>
 
-      <div style={{ padding: '12px 16px 90px' }}>
+      <div style={{ padding: isDesktop ? '0' : '12px 16px 90px' }}>
         <p style={{ color: th.textSec, fontSize: 13, margin: '0 0 14px' }}>
           {loading ? '...' : results.length} {t.techniciansFound}
         </p>
-        {loading
-          ? [1, 2, 3].map(i => <SkeletonCard key={i} />)
-          : results.length === 0
-            ? <EmptyState emoji="😔" title={t.noTechsFilter}
-              action={<Btn onClick={() => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(false); setMaxPrice(100); setMinRating(0) }} style={{ maxWidth: 200, margin: '0 auto' }}>{t.clearFilters}</Btn>}
-            />
-            : results.map(tech => <TechnicianCard key={tech.user_id} tech={tech} onPress={openTech} />)
-        }
+        {loading ? (
+          <div style={gridStyle}>
+            {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+          </div>
+        ) : results.length === 0 ? (
+          <EmptyState emoji="😔" title={t.noTechsFilter}
+            action={<Btn onClick={() => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(false); setMaxPrice(100); setMinRating(0) }} style={{ maxWidth: 200, margin: '0 auto' }}>{t.clearFilters}</Btn>}
+          />
+        ) : (
+          <div style={gridStyle}>
+            {results.map(tech => <TechnicianCard key={tech.user_id} tech={tech} onPress={openTech} />)}
+          </div>
+        )}
       </div>
     </div>
   )
