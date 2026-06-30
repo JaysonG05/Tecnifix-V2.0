@@ -21,7 +21,7 @@ const FILE_TYPES = [
 const TYPE_COLORS = {
   certificate: { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
   title: { bg: '#ede9fe', text: '#5b21b6', border: '#ddd6fe' },
-  license: { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
+  license: { bg: '#dbeafe', text: '#1e40af', border: '#bbf7d0' },
   course: { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
   other: { bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' },
 }
@@ -162,8 +162,8 @@ export function CertificatesScreen() {
                       </p>
                       {cert.is_verified && (
                         <span style={{
-                          fontSize: 11, fontWeight: 700, color: '#166534',
-                          background: '#dcfce7', padding: '2px 7px', borderRadius: 20, flexShrink: 0
+                          fontSize: 11, fontWeight: 700, color: '#1e40af',
+                          background: '#dbeafe', padding: '2px 7px', borderRadius: 20, flexShrink: 0
                         }}>
                           ✓ Verificado
                         </span>
@@ -274,7 +274,7 @@ export function CertificatesScreen() {
                         marginBottom: 12, border: '1px solid #fde68a'
                       }}>
                         <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>
-                          ⏳ Pendiente de verificación por el equipo de Changuinola Pro.
+                          ⏳ Pendiente de verificación por el equipo de Tecnifix.
                           Recibirás una notificación cuando sea verificado.
                         </p>
                       </div>
@@ -541,8 +541,8 @@ function AddCertForm({ userId, th, lang, onClose, onSuccess }) {
           background: '#f0fdf4', borderRadius: 12, padding: 12,
           border: '1px solid #bbf7d0', marginBottom: 20
         }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.6 }}>
-            🔒 Tu documento se almacena de forma segura. Solo el admin de Changuinola Pro
+          <p style={{ margin: 0, fontSize: 12, color: '#1e40af', lineHeight: 1.6 }}>
+            🔒 Tu documento se almacena de forma segura. Solo el admin de Tecnifix
             puede verlo para verificarlo. Los clientes solo ven el nombre y la institución,
             nunca el archivo completo a menos que lo marques como público.
           </p>

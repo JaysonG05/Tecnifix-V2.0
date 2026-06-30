@@ -1,0 +1,121 @@
+# ============================================================
+#  netlify.toml — Configuración de despliegue TECNIFIX en Netlify
+#  Incluye: CORS, Security Headers, CSP, HSTS, y más
+# ============================================================
+
+[build]
+  publish   = "dist"
+  command   = "npm run build"
+
+# Variables de entorno de Netlify (se sobreescriben en el dashboard)
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Redirect SPA: cualquier ruta → index.html ──────────────
+# Permite que React Router / navegación interna funcione
+# al refrescar la página o entrar directamente a una URL.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# ── Security Headers globales ────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Previene clickjacking (embebido en iframes de terceros)
+    X-Frame-Options = "DENY"
+
+    # Previene MIME-type sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # Protección XSS del navegador (legacy, compatibilidad)
+    X-XSS-Protection = "1; mode=block"
+
+    # Controla el referrer enviado a terceros
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Permisos de APIs del navegador
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), fullscreen=(self), accelerometer=(), gyroscope=()"
+
+    # HSTS — forzar HTTPS por 1 año con preload
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Previene que la app sea abierta en contextos cross-origin no seguros
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+
+    # Controla cómo los recursos son compartidos entre orígenes
+    Cross-Origin-Resource-Policy = "cross-origin"
+
+    # Embedder — unsafe-none para compatibilidad con Supabase Storage
+    Cross-Origin-Embedder-Policy = "unsafe-none"
+
+    # Content Security Policy
+    # ─ script-src: solo self + CDNs necesarios (Leaflet, jsPDF)
+    # ─ connect-src: Supabase HTTP + WSS para Realtime
+    # ─ img-src: Supabase Storage + OpenStreetMap tiles
+    # ─ frame-src / object-src: bloqueados completamente
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.com https://*.openstreetmap.org https://unpkg.com https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://*.supabase.com wss://*.supabase.co https://fonts.googleapis.com https://api.anthropic.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self' blob:; upgrade-insecure-requests"
+
+# ── MIME correcto para el Service Worker ─────────────────────
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type  = "application/javascript; charset=utf-8"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    # Permite que el SW controle toda la app desde la raíz
+    Service-Worker-Allowed = "/"
+
+# ── PWA Manifest ─────────────────────────────────────────────
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600"
+    # El manifest debe ser accesible por el navegador (CORS abierto)
+    Access-Control-Allow-Origin = "*"
+
+# ── Assets con hash de Vite (cache permanente) ────────────────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Fuentes web ───────────────────────────────────────────────
+[[headers]]
+  for = "*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "*.woff"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+
+# ── Imágenes estáticas ────────────────────────────────────────
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    # SVGs necesitan tipo explícito para evitar MIME sniffing
+    Content-Type = "image/svg+xml"
+
+# ── favicon ───────────────────────────────────────────────────
+[[headers]]
+  for = "/favicon.*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# ── index.html — sin cache para que el SW siempre sirva la última versión ──
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"

@@ -244,7 +244,7 @@ export function ServiceCatalogScreen() {
             gap: 10, marginBottom: 20 }}>
             {[
               { val: items.length,    label: 'Total',    color: '#dbeafe', text: '#1e40af' },
-              { val: activeCount,     label: 'Activos',  color: '#dcfce7', text: '#166534' },
+              { val: activeCount,     label: 'Activos',  color: '#dbeafe', text: '#1e40af' },
               { val: inactiveCount,   label: 'Ocultos',  color: '#f1f5f9', text: '#475569' },
             ].map((s, i) => (
               <div key={i} style={{ background: s.color, borderRadius: 12,

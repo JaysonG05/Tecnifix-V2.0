@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { registerServiceWorker, showLocalNotification, listenNotificationClicks } from '../lib/pushNotifications.js'
 import { supabase, auth, profiles, favorites as favoritesApi, notifications } from '../lib/supabase.js'
 
 const AppContext = createContext(null)
@@ -28,11 +27,6 @@ export function AppProvider({ children }) {
   // ── Navegación ─────────────────────────────────────────
   const [screen, setScreen] = useState('home')
 
-  // ── Registrar Service Worker para notificaciones push ──────
-  useEffect(() => {
-    registerServiceWorker()
-  }, [])
-
   // ── Detección de tamaño de pantalla (responsive desktop/mobile) ──
   const [isDesktop, setIsDesktop] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= 900 : false
@@ -50,37 +44,66 @@ export function AppProvider({ children }) {
   const navigate = useCallback((s) => {
     setHistory(h => [...h, s])
     setScreen(s)
+    // Empuja una entrada al historial del navegador para que el botón
+    // "atrás" del navegador funcione de forma nativa.
+    if (typeof window !== 'undefined') window.history.pushState({ cpScreen: s }, '')
   }, [])
 
   const goBack = useCallback(() => {
     setHistory(h => {
-      if (h.length <= 1) { setScreen('home'); return ['home'] }
-      const prev = h[h.length - 2]
-      setScreen(prev)
-      return h.slice(0, -1)
+      // Si hay historial dentro de la app, delega en el navegador
+      // (dispara popstate, que actualiza la pantalla). Si no, va a home.
+      if (h.length <= 1) {
+        setScreen('home')
+        return ['home']
+      }
+      if (typeof window !== 'undefined') window.history.back()
+      return h
     })
+  }, [])
+
+  // ── Sincronización con el historial del navegador ──────
+  useEffect(() => {
+    window.history.replaceState({ cpScreen: 'home' }, '')
+    const onPop = (e) => {
+      const s = e.state?.cpScreen || 'home'
+      setScreen(s)
+      setHistory(h => (h.length > 1 ? h.slice(0, -1) : ['home']))
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   // ── Cargar sesión inicial ──────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
-      if (s) loadProfile(s.user.id)
+      if (s) loadProfile(s.user.id, s.user)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
-      if (s) loadProfile(s.user.id)
+      if (s) loadProfile(s.user.id, s.user)
       else { setUser(null); setFavoriteIds([]); setNotifs([]); setLoading(false) }
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  const loadProfile = async (userId) => {
+  const profileFromAuth = (authUser) => ({
+    id: authUser.id,
+    full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuario Tecnifix',
+    email: authUser.email,
+    role: authUser.user_metadata?.role || 'user',
+    avatar_url: authUser.user_metadata?.avatar_url || null,
+  })
+
+  const loadProfile = async (userId, authUser = null) => {
     try {
-      const profile = await profiles.get(userId)
-      setUser(profile)
+      const profile = authUser
+        ? await profiles.ensureFromAuth(authUser).catch(() => profileFromAuth(authUser))
+        : await profiles.get(userId)
+      setUser(profile.email ? profile : { ...profile, email: authUser?.email })
       // Cargar favoritos
       const fids = await favoritesApi.list(userId)
       setFavoriteIds(fids)
@@ -109,37 +132,9 @@ export function AppProvider({ children }) {
       setUnreadCount(c => c + 1)
       // Vibrar si el navegador lo soporta
       if ('vibrate' in navigator) navigator.vibrate(200)
-
-      // Notificación del sistema operativo (si la pestaña está
-      // en segundo plano y el usuario dio permiso)
-      let data = {}
-      try { data = typeof newNotif.data === 'string' ? JSON.parse(newNotif.data) : (newNotif.data || {}) } catch { }
-      const requestId = data.request_id
-      showLocalNotification({
-        title: newNotif.title,
-        body: newNotif.body || '',
-        tag: `notif-${newNotif.type}`,
-        url: requestId ? `/?screen=request-detail&request=${requestId}` : '/',
-      })
     })
     return () => supabase.removeChannel(channel)
   }, [user?.id])
-
-  // ── Manejar clic en notificación del sistema (abrir pantalla) ──
-  useEffect(() => {
-    const unsub = listenNotificationClicks((url) => {
-      try {
-        const params = new URL(url, window.location.origin).searchParams
-        const target = params.get('screen')
-        if (target === 'request-detail') {
-          setScreen('notifications')
-        } else if (target) {
-          setScreen(target)
-        }
-      } catch { }
-    })
-    return unsub
-  }, [])
 
   // ── Toggle favorito ────────────────────────────────────
   const toggleFavorite = useCallback(async (techId) => {
@@ -158,13 +153,17 @@ export function AppProvider({ children }) {
 
   // ── Refresh user ───────────────────────────────────────
   const refreshUser = useCallback(async () => {
-    if (!session?.user?.id) return
-    const profile = await profiles.get(session.user.id)
+    const authUser = session?.user || await auth.getUser().catch(() => null)
+    if (!authUser?.id) return
+    const profile = await profiles.ensureFromAuth(authUser).catch(() => profileFromAuth(authUser))
     setUser(profile)
   }, [session])
 
   // ── Tema (colores) ─────────────────────────────────────
-  const th = buildTheme(darkMode)
+  // El landing (home) replica la plantilla DEWATT en tema CLARO, así que se
+  // fuerza claro en esa pantalla aunque el usuario tenga el modo oscuro
+  // activado. El resto de pantallas respeta el toggle normalmente.
+  const th = buildTheme(darkMode && screen !== 'home')
 
   const value = {
     // Auth
@@ -190,126 +189,42 @@ export function AppProvider({ children }) {
   }
 
   if (loading) return (
-    <div style={{
-      position: 'fixed', inset: 0, background: '#00214D',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32
-    }}>
-
-      {/* Logo TECNIFIX animado */}
-      <div style={{ textAlign: 'center', animation: 'tfFadeIn 0.6s ease forwards' }}>
-        {/* Ícono: llave inglesa + rayo (SVG inline) */}
-        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <rect width="72" height="72" rx="18" fill="#FFD600" />
-            <path d="M50 22c-2.2-2.2-5.1-3.4-8.2-3.4-1.2 0-2.4.2-3.6.5l5.9 5.9-4.2 4.2-5.9-5.9c-.3 1.2-.5 2.4-.5 3.6 0 3.1 1.2 6 3.4 8.2 2 2 4.7 3.2 7.6 3.4L52 50.5c.9.9 2.4.9 3.3 0l2.2-2.2c.9-.9.9-2.4 0-3.3L45.4 33c.2-.5.3-1 .4-1.5.2-3-.9-5.7-2.9-7.7L50 22z" fill="#00214D" />
-            <path d="M22 50l14-14-3-3-14 14c-.8.8-.8 2.2 0 3l3 3c.8.8 2.2.8 3 0z" fill="#00214D" opacity="0.6" />
-            <circle cx="24" cy="48" r="2" fill="#00214D" opacity="0.4" />
-          </svg>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 1 }}>
-          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
-          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, color: '#FFD600', letterSpacing: -1 }}>FIX</span>
-        </div>
-        <p style={{ margin: '6px 0 0', fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, textTransform: 'uppercase' }}>
-          Técnicos en todo Panamá
-        </p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: th.bg, flexDirection: 'column', gap: 16 }}>
+      <div style={{ width: 48, height: 48, borderRadius: 24, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🔧</div>
+      <div style={{ width: 32, height: 4, borderRadius: 2, background: '#e2e8f0', overflow: 'hidden' }}>
+        <div style={{ width: '60%', height: '100%', background: '#2563eb', animation: 'slideIn 1s infinite' }} />
       </div>
-
-      {/* Barra de carga minimalista */}
-      <div style={{ width: 160, height: 2, background: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', background: '#FFD600', borderRadius: 2, animation: 'tfProgress 1.6s ease infinite' }} />
-      </div>
-
-      <style>{`
-        @keyframes tfFadeIn { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes tfProgress {
-          0%   { width: 0%;   margin-left: 0 }
-          50%  { width: 70%;  margin-left: 0 }
-          100% { width: 0%;   margin-left: 100% }
-        }
-      `}</style>
     </div>
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
 
-// ============================================================
-//  Sistema de diseño TECNIFIX — Profesional · Panamá
-//  Navy profundo (#00214D) + Amarillo acento (#FFD600)
-//  + Verde confianza (#00C47D) + Blanco puro
-// ============================================================
 function buildTheme(dark) {
-  const shared = {
-    fontDisplay: "'Space Grotesk','Inter',system-ui,sans-serif",
-    fontBody: "'Inter',system-ui,-apple-system,sans-serif",
-    fontMono: "'JetBrains Mono','SFMono-Regular',monospace",
-    whatsapp: '#25D366',
-    // ── Amarillo TECNIFIX ──
-    yellow: '#FFD600',
-    yellowDark: '#E0BC00',
-    yellowLight: dark ? '#2A2400' : '#FFFAD6',
-    yellowText: dark ? '#FFE55C' : '#7A5E00',
-    brass: '#FFD600',
-    // ── Verde TECNIFIX ──
-    verified: '#00C47D',
-    verifiedLight: dark ? '#003626' : '#D6F7EC',
-    verifiedText: dark ? '#5FFCC0' : '#00704A',
-    // ── Rojo / azul ──
-    red: dark ? '#FF6B6B' : '#E5282D',
-    blue: dark ? '#5EA3FF' : '#1E6FFF',
-  }
-
-  if (dark) return {
-    ...shared,
-    bg: '#06101A',
-    surface: '#0D1E2D',
-    surface2: '#122334',
-    border: '#1A3347',
-    ink: '#F0F6FF',
-    paper: '#06101A',
-    text: '#F0F6FF',
-    textSec: '#6A8DA3',
-    // ── Azul acento (turquesa dark) ──
-    primary: '#00B4D8',
-    primaryDark: '#009ABD',
-    primaryLight: '#00243A',
-    primaryText: '#5CDEFF',
-    accent: '#00B4D8',
-    accentDark: '#009ABD',
-    accentLight: '#00243A',
-    accentText: '#5CDEFF',
-    navBg: '#0D1E2D',
-    inputBg: '#122334',
-    inputBorder: '#1F3D54',
-    shadow: '0 16px 40px rgba(0,0,0,0.55)',
-    shadowSm: '0 4px 16px rgba(0,0,0,0.40)',
-  }
-
   return {
-    ...shared,
-    bg: '#F0F5FA',
-    surface: '#FFFFFF',
-    surface2: '#E8F1F8',
-    border: '#D1E0ED',
-    ink: '#00214D',
-    paper: '#F0F5FA',
-    text: '#00214D',
-    textSec: '#4A6A8A',
-    // ── Azul TECNIFIX navy ──
-    primary: '#0053A0',
-    primaryDark: '#003F80',
-    primaryLight: '#DDEEFF',
-    primaryText: '#00214D',
-    accent: '#0053A0',
-    accentDark: '#003F80',
-    accentLight: '#DDEEFF',
-    accentText: '#00214D',
-    navBg: '#FFFFFF',
-    inputBg: '#FFFFFF',
-    inputBorder: '#C5D8EC',
-    shadow: '0 12px 32px rgba(0,33,77,0.12)',
-    shadowSm: '0 4px 14px rgba(0,33,77,0.07)',
+    bg: dark ? '#0f172a' : '#f8fafc',
+    surface: dark ? '#1e293b' : '#ffffff',
+    surface2: dark ? '#334155' : '#f1f5f9',
+    border: dark ? '#334155' : '#e2e8f0',
+    text: dark ? '#f1f5f9' : '#0f172a',
+    textSec: dark ? '#94a3b8' : '#64748b',
+    primary: '#2563eb',
+    primaryDark: '#1d4ed8',
+    primaryLight: dark ? '#1e3a8a' : '#dbeafe',
+    primaryText: dark ? '#93c5fd' : '#1e40af',
+    red: dark ? '#f87171' : '#ef4444',
+    yellow: '#fbbf24',
+    blue: dark ? '#60a5fa' : '#3b82f6',
+    navBg: dark ? '#1e293b' : '#ffffff',
+    inputBg: dark ? '#334155' : '#ffffff',
+    inputBorder: dark ? '#475569' : '#d1d5db',
+    whatsapp: '#25d366',
+    // Sombras en capas para mayor profundidad y realismo
+    shadow: dark
+      ? '0 1px 2px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.35)'
+      : '0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.07)',
+    shadowLg: dark
+      ? '0 8px 32px rgba(0,0,0,0.55)'
+      : '0 12px 32px rgba(15,23,42,0.12)',
   }
 }

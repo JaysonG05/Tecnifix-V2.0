@@ -227,12 +227,6 @@ export const paymentActions = {
    * Igual que Yappy, requiere confirmación del TÉCNICO.
    */
   async recordCash(requestId, payerId, technicianId, amount) {
-    // Código de 4 dígitos: el cliente lo muestra al técnico EN PERSONA
-    // al momento de entregar el dinero. El técnico debe ingresarlo
-    // para confirmar — esto prueba el encuentro físico y reduce el
-    // riesgo de que cualquiera de las partes reporte un pago falso.
-    const code = String(Math.floor(1000 + Math.random() * 9000))
-
     await supabase.from('payments').insert({
       service_request_id: requestId,
       payer_id: payerId,
@@ -245,18 +239,14 @@ export const paymentActions = {
     await supabase.from('service_requests').update({
       payment_status: 'pending_confirmation',
       payment_method: 'cash',
-      cash_confirmation_code: code,
-      cash_code_attempts: 0,
     }).eq('id', requestId)
 
     supabase.from('notifications').insert({
       user_id: technicianId, type: 'payment',
       title: '💵 El cliente reportó un pago en efectivo',
-      body: `Monto: $${amount}. Pídele al cliente el código de 4 dígitos que aparece en su pantalla para confirmar la recepción.`,
+      body: `Monto: $${amount}. Confirma que recibiste el dinero.`,
       data: JSON.stringify({ request_id: requestId }),
     }).then(() => { }).catch(() => { })
-
-    return { code }
   },
 
   /**
@@ -264,40 +254,10 @@ export const paymentActions = {
    * Solo entonces payment_status pasa a 'paid' y se habilita
    * marcar el servicio como completado.
    */
-  /**
-   * El técnico confirma haber recibido el pago.
-   * Para efectivo, `enteredCode` es OBLIGATORIO y debe coincidir
-   * con el código de 4 dígitos que el cliente le mostró en persona.
-   */
-  async confirmPayment(requestId, technicianId, enteredCode) {
-    // Validar primero la solicitud y, si es efectivo, el código
-    const { data: sr, error: srErr } = await supabase
-      .from('service_requests')
-      .select('id, client_id, title, payment_method, cash_confirmation_code, cash_code_attempts, technician_id')
-      .eq('id', requestId)
-      .single()
-    if (srErr || !sr) throw new Error('Solicitud no encontrada.')
-    if (sr.technician_id !== technicianId) throw new Error('Sin permiso para confirmar este pago.')
-
-    if (sr.payment_method === 'cash') {
-      if (!enteredCode || !enteredCode.trim()) {
-        throw new Error('Ingresa el código de 4 dígitos que te mostró el cliente.')
-      }
-      if (enteredCode.trim() !== sr.cash_confirmation_code) {
-        const attempts = (sr.cash_code_attempts ?? 0) + 1
-        await supabase.from('service_requests')
-          .update({ cash_code_attempts: attempts })
-          .eq('id', requestId)
-        if (attempts >= 3) {
-          throw new Error('Código incorrecto 3 veces. Si el cliente no tiene el código correcto, abre una disputa.')
-        }
-        throw new Error(`Código incorrecto. Pídele al cliente que te muestre el código de 4 dígitos. (Intento ${attempts}/3)`)
-      }
-    }
-
+  async confirmPayment(requestId, technicianId) {
     const { data, error } = await supabase
       .from('service_requests')
-      .update({ payment_status: 'paid', cash_confirmation_code: null })
+      .update({ payment_status: 'paid' })
       .eq('id', requestId)
       .eq('technician_id', technicianId)
       .select('id, client_id, title, payment_method')
@@ -327,7 +287,7 @@ export const paymentActions = {
   async rejectPayment(requestId, technicianId, reasonNote) {
     const { data, error } = await supabase
       .from('service_requests')
-      .update({ payment_status: 'unpaid', payment_ref: null, cash_confirmation_code: null, cash_code_attempts: 0 })
+      .update({ payment_status: 'unpaid', payment_ref: null })
       .eq('id', requestId)
       .eq('technician_id', technicianId)
       .select('id, client_id, title')
@@ -415,7 +375,7 @@ export const receiptActions = {
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    doc.text('Changuinola Pro', W / 2, 12, { align: 'center' })
+    doc.text('Tecnifix', W / 2, 12, { align: 'center' })
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text('Recibo de servicio técnico', W / 2, 20, { align: 'center' })
@@ -484,9 +444,88 @@ export const receiptActions = {
     doc.setTextColor(148, 163, 184)
     doc.text(`Firma digital: ${receipt.signature_hash?.slice(0, 32)}...`, 12, y)
     y += 4
-    doc.text('Este recibo es un documento digital válido generado por Changuinola Pro.', 12, y)
+    doc.text('Este recibo es un documento digital válido generado por Tecnifix.', 12, y)
 
     doc.save(`recibo-${receipt.receipt_number}.pdf`)
+  },
+}
+
+// ── HELPERS DE ACTA DE CONFORMIDAD (firma de obra verificable) ─
+export const conformityActions = {
+  /**
+   * Pide la ubicación del navegador (best-effort, no bloquea).
+   * Resuelve a null si el usuario niega permiso o no hay GPS.
+   */
+  getGeo(timeout = 8000) {
+    return new Promise((resolve) => {
+      if (!('geolocation' in navigator)) return resolve(null)
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? null,
+        }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout, maximumAge: 60000 }
+      )
+    })
+  },
+
+  /** SHA-256 hex de un texto (sella el contenido del acta). */
+  async _hash(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+  },
+
+  /**
+   * Firma el acta de conformidad. Calcula el hash de integridad y la
+   * archiva. A PRUEBA DE FALLOS: si la tabla no existe (SQL no corrido),
+   * devuelve el acta con stored:false para que el flujo igual complete.
+   */
+  async sign({ request, clientId, signatureDataUrl, geo, beforePhotoUrl, afterPhotoUrl }) {
+    const signedAt = new Date().toISOString()
+    const amount = request.agreed_price ?? 0
+    // Contenido canónico sellado por el hash (orden fijo = reproducible).
+    const canonical = [
+      request.id, clientId, request.technician_id ?? '', amount, signedAt,
+      geo ? `${geo.lat},${geo.lng}` : 'sin-geo',
+      beforePhotoUrl ?? '', afterPhotoUrl ?? '', signatureDataUrl ?? '',
+    ].join('|')
+    const integrityHash = await this._hash(canonical)
+
+    const row = {
+      service_request_id: request.id,
+      client_id: clientId,
+      technician_id: request.technician_id ?? null,
+      amount,
+      signature_data: signatureDataUrl ?? null,
+      geo_lat: geo?.lat ?? null,
+      geo_lng: geo?.lng ?? null,
+      geo_accuracy: geo?.accuracy ?? null,
+      before_photo_url: beforePhotoUrl ?? null,
+      after_photo_url: afterPhotoUrl ?? null,
+      integrity_hash: integrityHash,
+      signed_at: signedAt,
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('conformity_acts').insert(row).select().single()
+      if (error) throw error
+      return { ...data, stored: true }
+    } catch (err) {
+      console.warn('conformity_acts no disponible (¿corriste conformity_acts.sql?):', err?.message)
+      return { ...row, id: null, stored: false }
+    }
+  },
+
+  async getForRequest(requestId) {
+    try {
+      const { data } = await supabase
+        .from('conformity_acts').select('*')
+        .eq('service_request_id', requestId).maybeSingle()
+      return data ?? null
+    } catch { return null }
   },
 }
 
@@ -623,7 +662,7 @@ export const disputeActions = {
       const RESOLUTION_MSG = {
         resolved_client: { title: '✅ Disputa resuelta a favor del cliente', body: `La disputa sobre "${req.title}" fue resuelta a favor del cliente.` },
         resolved_tech: { title: '✅ Disputa resuelta a favor del técnico', body: `La disputa sobre "${req.title}" fue resuelta a favor del técnico.` },
-        closed: { title: '🔒 Disputa cerrada', body: `La disputa sobre "${req.title}" fue cerrada por el equipo de Changuinola Pro.` },
+        closed: { title: '🔒 Disputa cerrada', body: `La disputa sobre "${req.title}" fue cerrada por el equipo de Tecnifix.` },
       }
       const msg = RESOLUTION_MSG[resolution]
       if (msg) {

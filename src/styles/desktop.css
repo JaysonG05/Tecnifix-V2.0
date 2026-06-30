@@ -1,0 +1,1284 @@
+/* ============================================================
+   desktop.css — TECNIFIX Desktop Web (≥900px)
+   Sistema de diseño SaaS Premium — Navy + Amarillo
+   ============================================================ */
+
+/* ── Variables del sistema de diseño ────────────────────── */
+:root {
+  --d-sidebar-w: 240px;
+  --d-topbar-h: 60px;
+
+  /* Colores principales */
+  --d-navy: #00214D;
+  --d-navy-mid: #00369A;
+  --d-navy-light: #0053A0;
+  --d-blue-pale: #DDEEFF;
+  --d-yellow: #FFD600;
+  --d-yellow-dim: rgba(255, 214, 0, 0.12);
+  --d-green: #00C47D;
+  --d-red: #E5282D;
+
+  /* Superficies */
+  --d-bg: #F0F5FA;
+  --d-surface: #FFFFFF;
+  --d-surface2: #E8F1F8;
+  --d-border: #D1E0ED;
+  --d-sidebar-bg: #00214D;
+  --d-sidebar-hover: rgba(255,255,255,0.07);
+  --d-sidebar-active-bg: rgba(255, 214, 0, 0.14);
+
+  /* Tipografía */
+  --d-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --d-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --d-font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+
+  /* Texto */
+  --d-text: #00214D;
+  --d-text-sec: #4A6A8A;
+  --d-text-light: #8FAFC5;
+  --d-text-white: #FFFFFF;
+  --d-text-white-dim: rgba(255,255,255,0.55);
+
+  /* Sombras */
+  --d-shadow-sm: 0 1px 3px rgba(0,33,77,0.06), 0 1px 2px rgba(0,33,77,0.04);
+  --d-shadow-md: 0 4px 16px rgba(0,33,77,0.10), 0 2px 6px rgba(0,33,77,0.06);
+  --d-shadow-lg: 0 12px 40px rgba(0,33,77,0.14), 0 4px 12px rgba(0,33,77,0.08);
+  --d-shadow-card-hover: 0 8px 32px rgba(0,83,160,0.16), 0 2px 8px rgba(0,83,160,0.08);
+  --d-shadow-yellow: 0 0 0 3px rgba(255,214,0,0.25);
+
+  /* Radios */
+  --d-radius-sm: 8px;
+  --d-radius-md: 12px;
+  --d-radius-lg: 16px;
+  --d-radius-xl: 20px;
+
+  /* Transiciones */
+  --d-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --d-transition: all 180ms var(--d-ease);
+}
+
+/* ── Reset para el shell de escritorio ──────────────────── */
+.d-shell {
+  display: block;          /* ← FIX: block en vez de flex */
+  min-height: 100vh;
+  background: var(--d-bg);
+  font-family: var(--d-font-body);
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.d-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--d-sidebar-w);
+  background: var(--d-sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+.d-sidebar__logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.d-sidebar__logo img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.d-sidebar__logo-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.d-sidebar__logo-text span:first-child {
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.d-sidebar__logo-text span:last-child {
+  font-family: var(--d-font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--d-yellow);
+  letter-spacing: -0.5px;
+}
+
+.d-sidebar__nav {
+  flex: 1;
+  padding: 12px 12px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.d-sidebar__section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  padding: 12px 8px 6px;
+}
+
+.d-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--d-radius-md);
+  cursor: pointer;
+  transition: var(--d-transition);
+  color: rgba(255,255,255,0.55);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: var(--d-font-display);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.d-nav-item:hover {
+  background: var(--d-sidebar-hover);
+  color: rgba(255,255,255,0.88);
+}
+
+.d-nav-item.active {
+  background: var(--d-sidebar-active-bg);
+  color: var(--d-yellow);
+}
+
+.d-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--d-yellow);
+  border-radius: 0 3px 3px 0;
+}
+
+.d-nav-item .d-nav-badge {
+  margin-left: auto;
+  background: var(--d-yellow);
+  color: var(--d-navy);
+  font-size: 9px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.d-sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.d-sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--d-radius-md);
+  cursor: pointer;
+  transition: var(--d-transition);
+}
+
+.d-sidebar__user:hover {
+  background: var(--d-sidebar-hover);
+}
+
+.d-sidebar__user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--d-navy-mid);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--d-yellow);
+  border: 1.5px solid rgba(255,214,0,0.3);
+}
+
+.d-sidebar__user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.d-sidebar__user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--d-font-display);
+}
+
+.d-sidebar__user-role {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.d-topbar {
+  position: fixed;
+  top: 0;
+  left: var(--d-sidebar-w);
+  right: 0;
+  height: var(--d-topbar-h);
+  background: var(--d-surface);
+  border-bottom: 1px solid var(--d-border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  z-index: 90;
+}
+
+.d-topbar__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--d-text);
+  font-family: var(--d-font-display);
+  flex-shrink: 0;
+}
+
+.d-topbar__search {
+  flex: 1;
+  max-width: 440px;
+  position: relative;
+}
+
+.d-topbar__search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 14px 8px 38px;
+  border-radius: 100px;
+  border: 1.5px solid var(--d-border);
+  background: var(--d-bg);
+  color: var(--d-text);
+  font-size: 13.5px;
+  font-family: var(--d-font-body);
+  outline: none;
+  transition: var(--d-transition);
+}
+
+.d-topbar__search input:focus {
+  border-color: var(--d-navy-light);
+  background: var(--d-surface);
+  box-shadow: var(--d-shadow-yellow);
+}
+
+.d-topbar__search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--d-text-light);
+  pointer-events: none;
+}
+
+.d-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.d-topbar__icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--d-radius-sm);
+  border: 1px solid var(--d-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--d-text-sec);
+  transition: var(--d-transition);
+  position: relative;
+}
+
+.d-topbar__icon-btn:hover {
+  background: var(--d-bg);
+  color: var(--d-text);
+}
+
+.d-topbar__notif-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--d-yellow);
+  border-radius: 50%;
+  border: 2px solid var(--d-surface);
+}
+
+/* ============================================================
+   MAIN CONTENT AREA
+   ============================================================ */
+.d-main {
+  /* ── FIX PRINCIPAL: ancho = viewport - sidebar ─────────── */
+  /* Con display:block en .d-shell, el div hijo (d-main)      */
+  /* necesita width explícito para no encogerse al contenido. */
+  width: calc(100% - var(--d-sidebar-w));
+  margin-left: var(--d-sidebar-w);
+  margin-top: var(--d-topbar-h);
+  min-height: calc(100vh - var(--d-topbar-h));
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+   BENTO GRID — STAT CARDS
+   ============================================================ */
+.d-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1280px) {
+  .d-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.d-stat-card {
+  background: var(--d-surface);
+  border-radius: var(--d-radius-lg);
+  padding: 20px 22px;
+  border: 1px solid var(--d-border);
+  box-shadow: var(--d-shadow-sm);
+  cursor: default;
+  transition: var(--d-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.d-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--d-shadow-card-hover);
+  border-color: rgba(0,83,160,0.2);
+}
+
+.d-stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--d-navy-light));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 200ms var(--d-ease);
+}
+
+.d-stat-card:hover::after { transform: scaleX(1); }
+
+.d-stat-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--d-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  font-size: 20px;
+}
+
+.d-stat-card__value {
+  font-family: var(--d-font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--d-text);
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -1px;
+}
+
+.d-stat-card__label {
+  font-size: 12px;
+  color: var(--d-text-sec);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.d-stat-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.d-stat-card__trend.up {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.d-stat-card__trend.down {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.d-stat-card__trend.neutral {
+  background: var(--d-blue-pale);
+  color: var(--d-navy-light);
+}
+
+/* ============================================================
+   MAIN GRID LAYOUT (content + sidebar panel)
+   ============================================================ */
+.d-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .d-content-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.d-card {
+  background: var(--d-surface);
+  border-radius: var(--d-radius-lg);
+  border: 1px solid var(--d-border);
+  box-shadow: var(--d-shadow-sm);
+  overflow: hidden;
+}
+
+.d-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.d-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--d-text);
+  font-family: var(--d-font-display);
+}
+
+.d-card__subtitle {
+  font-size: 12px;
+  color: var(--d-text-sec);
+  margin-top: 1px;
+}
+
+.d-card__body {
+  padding: 16px 20px;
+}
+
+.d-card__action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-navy-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--d-radius-sm);
+  transition: var(--d-transition);
+  font-family: var(--d-font-body);
+}
+
+.d-card__action:hover {
+  background: var(--d-blue-pale);
+}
+
+/* ============================================================
+   TECH ROW (técnico en lista de escritorio)
+   ============================================================ */
+.d-tech-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  transition: background 120ms;
+  cursor: pointer;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.d-tech-row:last-child { border-bottom: none; }
+
+.d-tech-row:hover {
+  background: var(--d-bg);
+}
+
+.d-tech-row__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--d-blue-pale);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--d-navy-light);
+  position: relative;
+}
+
+.d-tech-row__online-dot {
+  position: absolute;
+  bottom: 1px; right: 1px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--d-surface);
+}
+
+.d-tech-row__info { flex: 1; min-width: 0; }
+.d-tech-row__name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--d-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--d-font-display);
+}
+
+.d-tech-row__title {
+  font-size: 12px;
+  color: var(--d-text-sec);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.d-tech-row__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.d-tech-row__price {
+  font-family: var(--d-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--d-navy-light);
+}
+
+.d-tech-row__rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--d-text-sec);
+}
+
+/* ============================================================
+   BADGE / CHIP
+   ============================================================ */
+.d-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+
+.d-badge--blue { background: var(--d-blue-pale); color: var(--d-navy-light); }
+.d-badge--green { background: #d1fae5; color: #065f46; }
+.d-badge--yellow { background: #fef9c3; color: #92400e; }
+.d-badge--red { background: #fee2e2; color: #991b1b; }
+.d-badge--gray { background: var(--d-surface2); color: var(--d-text-sec); }
+
+/* ============================================================
+   REQUEST TABLE (solicitudes en escritorio)
+   ============================================================ */
+.d-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.d-table thead {
+  background: var(--d-bg);
+}
+
+.d-table th {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--d-text-sec);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  text-align: left;
+  border-bottom: 1px solid var(--d-border);
+  font-family: var(--d-font-display);
+}
+
+.d-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--d-text);
+  border-bottom: 1px solid var(--d-border);
+  vertical-align: middle;
+}
+
+.d-table tbody tr {
+  transition: background 100ms;
+  cursor: pointer;
+}
+
+.d-table tbody tr:hover {
+  background: var(--d-bg);
+}
+
+.d-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============================================================
+   ACTIVITY FEED (panel derecho)
+   ============================================================ */
+.d-activity-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.d-activity-item:last-child { border-bottom: none; }
+
+.d-activity-item__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--d-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.d-activity-item__content { flex: 1; min-width: 0; }
+.d-activity-item__text {
+  font-size: 12.5px;
+  color: var(--d-text);
+  line-height: 1.5;
+}
+
+.d-activity-item__text strong { font-weight: 600; }
+
+.d-activity-item__time {
+  font-size: 11px;
+  color: var(--d-text-light);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   QUICK STATS PANEL (panel derecho superior)
+   ============================================================ */
+.d-mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--d-border);
+}
+
+.d-mini-stat:last-child { border-bottom: none; }
+
+.d-mini-stat__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.d-mini-stat__label { flex: 1; font-size: 13px; color: var(--d-text); }
+.d-mini-stat__value {
+  font-family: var(--d-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--d-text);
+}
+
+/* ============================================================
+   WELCOME BANNER
+   ============================================================ */
+.d-welcome {
+  background: linear-gradient(135deg, #00214D 0%, #00369A 100%);
+  border-radius: var(--d-radius-xl);
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.d-welcome::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,214,0,0.07);
+  pointer-events: none;
+}
+
+.d-welcome::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; right: 180px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(0,196,125,0.07);
+  pointer-events: none;
+}
+
+.d-welcome__greeting {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-family: var(--d-font-display);
+  margin-bottom: 6px;
+}
+
+.d-welcome__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  font-family: var(--d-font-display);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.d-welcome__sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+}
+
+.d-welcome__cta {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   BOTONES DESKTOP
+   ============================================================ */
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--d-font-display);
+  cursor: pointer;
+  border: none;
+  transition: var(--d-transition);
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.d-btn--primary {
+  background: linear-gradient(135deg, var(--d-navy-light), var(--d-navy));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,83,160,0.35);
+}
+
+.d-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,83,160,0.45);
+}
+
+.d-btn--yellow {
+  background: var(--d-yellow);
+  color: var(--d-navy);
+  box-shadow: 0 4px 14px rgba(255,214,0,0.35);
+}
+
+.d-btn--yellow:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255,214,0,0.45);
+}
+
+.d-btn--ghost {
+  background: var(--d-surface);
+  color: var(--d-text);
+  border: 1px solid var(--d-border);
+}
+
+.d-btn--ghost:hover {
+  background: var(--d-bg);
+  border-color: rgba(0,83,160,0.3);
+}
+
+.d-btn--whatsapp {
+  background: linear-gradient(135deg, #25D366, #1DA851);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37,211,102,0.3);
+}
+
+.d-btn--whatsapp:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37,211,102,0.45);
+}
+
+.d-btn:active { transform: scale(0.97); }
+
+/* ============================================================
+   SKELETON LOADING — WEB GRID
+   ============================================================ */
+.d-skeleton-pulse {
+  animation: d-pulse 1.4s ease-in-out infinite;
+  background: var(--d-border);
+  border-radius: var(--d-radius-sm);
+}
+
+@keyframes d-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.d-skeleton-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.d-skeleton-stat {
+  height: 110px;
+  border-radius: var(--d-radius-lg);
+}
+
+.d-skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+.d-skeleton-main { height: 400px; border-radius: var(--d-radius-lg); }
+.d-skeleton-side { height: 400px; border-radius: var(--d-radius-lg); }
+
+/* ============================================================
+   CATEGORY PILLS (búsqueda desktop)
+   ============================================================ */
+.d-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.d-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1.5px solid var(--d-border);
+  background: var(--d-surface);
+  color: var(--d-text-sec);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--d-transition);
+  font-family: var(--d-font-body);
+}
+
+.d-filter-chip:hover {
+  border-color: var(--d-navy-light);
+  color: var(--d-navy-light);
+  background: var(--d-blue-pale);
+}
+
+.d-filter-chip.active {
+  background: var(--d-blue-pale);
+  border-color: var(--d-navy-light);
+  color: var(--d-navy-light);
+}
+
+/* ============================================================
+   TECH CARDS GRID (búsqueda escritorio — 3 columnas)
+   ============================================================ */
+.d-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1400px) {
+  .d-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.d-tech-card {
+  background: var(--d-surface);
+  border-radius: var(--d-radius-lg);
+  border: 1.5px solid var(--d-border);
+  padding: 18px;
+  cursor: pointer;
+  transition: var(--d-transition);
+  box-shadow: var(--d-shadow-sm);
+}
+
+.d-tech-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--d-shadow-card-hover);
+  border-color: rgba(0,83,160,0.25);
+}
+
+.d-tech-card__header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.d-tech-card__price {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.d-tech-card__price-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--d-text-sec);
+  font-family: var(--d-font-display);
+}
+
+.d-tech-card__price-value {
+  font-family: var(--d-font-mono);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--d-navy-light);
+  line-height: 1;
+}
+
+.d-tech-card__cats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   NOTIFICACIONES / MODALS DESKTOP
+   ============================================================ */
+.d-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,33,77,0.3);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: var(--d-topbar-h) 0 0 0;
+}
+
+.d-panel-drawer {
+  width: 380px;
+  height: calc(100vh - var(--d-topbar-h));
+  background: var(--d-surface);
+  border-left: 1px solid var(--d-border);
+  box-shadow: -12px 0 40px rgba(0,33,77,0.12);
+  overflow-y: auto;
+  animation: d-slideLeft 220ms var(--d-ease);
+}
+
+@keyframes d-slideLeft {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.d-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.d-page-header__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--d-text);
+  font-family: var(--d-font-display);
+  letter-spacing: -0.5px;
+}
+
+.d-page-header__sub {
+  font-size: 13px;
+  color: var(--d-text-sec);
+  margin-top: 3px;
+}
+
+.d-page-header__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   EMPTY STATE DESKTOP
+   ============================================================ */
+.d-empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.d-empty__icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.d-empty__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--d-text);
+  font-family: var(--d-font-display);
+  margin-bottom: 6px;
+}
+
+.d-empty__sub {
+  font-size: 13px;
+  color: var(--d-text-sec);
+  max-width: 280px;
+  margin: 0 auto 20px;
+  line-height: 1.6;
+}
+
+
+/* ============================================================
+   ADAPTACIONES PARA PANTALLAS MOBILE EN CONTEXTO DESKTOP
+   Estas reglas se aplican cuando una pantalla mobile se
+   renderiza dentro de .d-main a través de DesktopAdaptWrapper
+   ============================================================ */
+
+/* ── 1. Ocultar sticky PageHeader mobile ────────────────────
+   El topbar del desktop ya provee navegación superior.
+   El PageHeader mobile (fondo blanco, back button, título)
+   queda redundante y choca visualmente. Lo ocultamos. */
+.tf-adapted > div:first-child > div:first-child[style*="sticky"],
+.tf-adapted > div:first-child > div:first-child[style*="top: 0"],
+.tf-adapted > div:first-child > div:first-child[style*="top:0"] {
+  display: none !important;
+}
+
+/* ── 2. Limpiar el contenedor raíz de la pantalla mobile ────
+   Quitamos: background duplicado, minHeight que causa scroll
+   doble, paddingBottom del NavBar inexistente en desktop. */
+.tf-adapted > div:first-child {
+  background: transparent !important;
+  min-height: unset !important;
+  padding-bottom: 24px !important;
+}
+
+/* ── 3. El área de contenido dentro de la pantalla ──────────
+   Garantiza que la sección de padding/contenido real
+   ocupe todo el ancho disponible del wrapper. */
+.tf-adapted > div:first-child > div:not(:first-child),
+.tf-adapted > div:first-child > div:last-child {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ── 4. Cards y secciones: sombra sutil de escritorio ───────
+   En mobile no había sombra. En desktop se ve más premium. */
+.tf-adapted div[style*="background: rgb(255, 255, 255)"],
+.tf-adapted div[style*="background: #fff"],
+.tf-adapted div[style*="background: white"] {
+  box-shadow: 0 1px 4px rgba(0, 33, 77, 0.06) !important;
+}
+
+/* ── 5. Botones: tamaño máximo razonable en desktop ─────────
+   En mobile los botones ocupan 100% del ancho (~400px).
+   En desktop eso se ve enorme. Limitamos a 260px salvo
+   excepciones (botones dentro de flex que sí deben crecer). */
+.tf-adapted button[style*="width: 100%"]:not([style*="flex"]) {
+  max-width: 260px !important;
+}
+
+/* ── 6. Inputs y selects: ancho completo en desktop ─────────
+   Los formularios sí deben usar todo el ancho del wrapper. */
+.tf-adapted input,
+.tf-adapted select,
+.tf-adapted textarea {
+  max-width: 100% !important;
+}
+
+/* ── 7. Grid de pantallas de detalle y catálogo ─────────────
+   Para pantallas anchas (960px+) algunos grids de 2 columnas
+   en mobile quedan con columnas demasiado anchas.
+   Esto ajusta el grid de configuración de precios. */
+.tf-adapted div[style*="grid-template-columns: 1fr 1fr"] {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+}
+
+/* ── 8. LoginScreen y RegisterScreen: centrado con card ─────
+   Estas pantallas en desktop se ven mejor como una card
+   centrada sobre fondo gris, igual que webs tipo Supabase. */
+.tf-adapted-login {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 60px) !important;
+  background: var(--d-bg) !important;
+  padding: 40px 24px !important;
+}
+
+/* ── 9. Foto de perfil / avatar en formularios desktop ──────
+   En la pantalla EditProfile el avatar queda centrado;
+   en desktop lo alineamos a la izquierda con el contenido. */
+.tf-adapted div[style*="flexDirection: column"][style*="alignItems: center"] {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 24px !important;
+}
+
+/* ── 10. Scrolls internos — quitar overflow hidden en modales
+   que en desktop no necesitan scroll independiente */
+.tf-adapted div[style*="maxHeight"] {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+
+/* ============================================================
+   GRIDS DESKTOP PARA PANTALLAS FULL-WIDTH
+   Estas reglas convierten los layouts mobile de columna única
+   en grids web apropiados cuando se renderizan en .d-main
+   ============================================================ */
+
+/* ── Favoritos: grid 3 columnas ─────────────────────────────
+   FavoritesScreen → padding 20px 16px → TechnicianCards       */
+.d-main > div[style*="padding: 20px"] > div,
+.d-main > div[style*="padding:20px"] > div {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+/* ── Búsqueda: cards en grid 3 columnas ─────────────────────
+   SearchScreen → listado de TechnicianCards                    */
+.d-main > div > div[style*="padding: 12px 16px 90px"],
+.d-main > div > div[style*="padding:12px 16px 90px"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+
+/* ── Mapa: altura mayor y lista en 3 columnas ───────────────  */
+.d-main > div[style*="minHeight: 100vh"] > div[style*="padding: 16px 16px 90px"],
+.d-main > div[style*="min-height: 100vh"] > div[style*="padding: 16px 16px 90px"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+  gap: 0 20px !important;
+  align-items: start !important;
+}
+
+/* El header de cada screen mobile ocupa todo el ancho (no grid) */
+.d-main > div > div:first-child,
+.d-main > div > div[style*="padding: 16px 16px 12px"],
+.d-main > div > div[style*="background: rgb(255, 255, 255)"][style*="border-bottom"] {
+  grid-column: 1 / -1 !important;
+  display: block !important;
+}
+
+/* ── Mapa: más alto en desktop ──────────────────────────────
+   El div del mapa Leaflet debe aprovechar el espacio           */
+.d-main div[style*="height: 360px"][style*="width: 100%"] {
+  height: 480px !important;
+}
+
+/* ── Certificados: grid 2 columnas en desktop ───────────────  */
+/* Certificates grid handled by adapter; no desktop-specific overrides needed */
+
+/* ── Todas las pantallas: header siempre ancho completo ─────  */
+.d-main > div > div:first-child {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ── Pantallas con padding interno — forzar ancho completo ──  */
+.d-main > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ── TechnicianCards en grids desktop: ancho auto ───────────
+   Cuando están en un grid auto-fill, los cards no deben
+   tener margin-bottom que rompa el gap del grid             */
+.d-main div[style*="marginBottom: 12px"][style*="borderRadius: 16"],
+.d-main div[style*="margin-bottom: 12px"][style*="border-radius: 16"] {
+  margin-bottom: 0 !important;
+}
+
+/* ── Botón de mapa "Cargar mapa": ancho razonable ───────────  */
+.d-main button[style*="maxWidth: 220px"] {
+  max-width: 220px !important;
+}
+
+/* ── Sección de filtros en búsqueda: sticky funcional ────────  */
+.d-main > div > div[style*="sticky"],
+.d-main > div > div[style*="position: sticky"] {
+  position: sticky !important;
+  top: var(--d-topbar-h) !important;
+  z-index: 40 !important;
+}

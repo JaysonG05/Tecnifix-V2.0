@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tecnifix</string>
+    <string name="title_activity_main">Tecnifix</string>
+    <string name="package_name">com.Tecnifix.app</string>
+    <string name="custom_url_scheme">com.Tecnifix.app</string>
+</resources>

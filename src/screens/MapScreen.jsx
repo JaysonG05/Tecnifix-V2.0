@@ -67,7 +67,7 @@ export function MapScreen() {
     markersRef.current = []
 
     list.forEach(tech => {
-      const color = tech.is_available ? '#16a34a' : '#64748b'
+      const color = tech.is_available ? '#1d4ed8' : '#64748b'
       const icon = L.divIcon({
         html: `
           <div style="
@@ -100,7 +100,7 @@ export function MapScreen() {
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
               <span style="color:#fbbf24">★ ${Number(tech.average_rating).toFixed(1)}</span>
               <span style="font-size:11px;color:#64748b">(${tech.total_reviews} reseñas)</span>
-              <span style="margin-left:auto;font-weight:700;color:#16a34a">Desde $${tech.min_price}</span>
+              <span style="margin-left:auto;font-weight:700;color:#1d4ed8">Desde $${tech.min_price}</span>
             </div>
             <a href="https://wa.me/${(tech.public_whatsapp || '').replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(tech.full_name || '')},%20vi%20tu%20perfil%20en%20Changuinola%20Pro"
               target="_blank"
@@ -117,6 +117,14 @@ export function MapScreen() {
 
       markersRef.current.push(marker)
     })
+
+    // Encuadrar el mapa a todos los técnicos (vista nacional si están repartidos)
+    if (list.length > 1) {
+      const bounds = L.latLngBounds(list.map(x => [x.latitude, x.longitude]))
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 })
+    } else if (list.length === 1) {
+      map.setView([list[0].latitude, list[0].longitude], 13)
+    }
   }, [setSelectedTech])
 
   // Geolocalización del usuario
@@ -157,17 +165,18 @@ export function MapScreen() {
 
   return (
     <div style={{ background: th.bg, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ padding: '16px 16px 12px', background: th.surface, borderBottom: `1px solid ${th.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Header exótico (aurora + glass) */}
+      <div style={{ position: 'relative', overflow: 'hidden', padding: '18px 16px 16px', background: 'linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 55%,#2563eb 100%)', borderRadius: '0 0 24px 24px' }}>
+        <div style={{ position: 'absolute', top: -40, right: -20, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle,#60a5fa,transparent 70%)', filter: 'blur(8px)', opacity: 0.45, pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: th.text }}>🗺️ {t.nearbyTechs}</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: th.textSec }}>
-              {loading ? '...' : techList.length} {t.techsOnMap}
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: 0, textShadow: '0 1px 8px rgba(0,0,0,0.2)' }}>🗺️ {t.nearbyTechs}</h2>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
+              {loading ? '…' : techList.length} {t.techsOnMap}
             </p>
           </div>
           <button onClick={locateUser} disabled={locating}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: th.primaryLight, color: th.primaryText, border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', flexShrink: 0 }}>
             {locating ? <Spinner size={14} /> : '📍'}
             {locating ? t.locating : t.useMyLocation}
           </button>

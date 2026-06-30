@@ -135,7 +135,7 @@ export function MyReceiptsScreen() {
                 border: `1px solid ${th.border}`, marginBottom: 12, overflow: 'hidden' }}>
 
                 {/* Cabecera verde */}
-                <div style={{ background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                <div style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
                   padding: '12px 16px', display: 'flex',
                   justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
@@ -189,8 +189,8 @@ export function MyReceiptsScreen() {
                     alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px',
                       borderRadius: 20,
-                      background: isClient ? '#dbeafe' : '#dcfce7',
-                      color: isClient ? '#1e40af' : '#166534' }}>
+                      background: isClient ? '#dbeafe' : '#dbeafe',
+                      color: isClient ? '#1e40af' : '#1e40af' }}>
                       {isClient ? '👤 Tú eres el cliente' : '🛠️ Tú eres el técnico'}
                     </span>
                     {/* Indicador de si ya descargó */}

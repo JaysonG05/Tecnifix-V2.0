@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "favicon.png",
       "sizes": "any",
-      "type": "image/ png+xml",
+      "type": "image/png+xml",
       "purpose": "any maskable"
     }
   ]
