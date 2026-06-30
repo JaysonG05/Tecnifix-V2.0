@@ -23,6 +23,8 @@ export function LoginScreen() {
   const [resetMode, setResetMode] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [sliderActive, setSliderActive] = useState(false)
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
+  const [confirmationSent, setConfirmationSent] = useState(false)
 
   const goRegister = () => {
     setSliderActive(true)
@@ -58,7 +60,7 @@ export function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completa todos los campos.'); return }
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setUnconfirmedEmail(''); setConfirmationSent(false)
     try {
       const loginData = await auth.signIn({ email: email.trim(), password })
       const authUser = loginData?.user || await auth.getUser()
@@ -67,8 +69,26 @@ export function LoginScreen() {
     } catch (err) {
       const msg = String(err?.message || '')
       if (msg.toLowerCase().includes('invalid login')) setError('Correo o contraseña incorrectos.')
-      else if (msg.toLowerCase().includes('email not confirmed')) setError('Confirma tu correo antes de iniciar sesión.')
+      else if (msg.toLowerCase().includes('email not confirmed')) {
+        setUnconfirmedEmail(email.trim())
+        setError('Ese correo existe, pero falta confirmarlo. Revisa tu bandeja o reenvía el enlace de confirmación.')
+      }
       else setError(`No pude iniciar sesión: ${msg || t.wrongCredentials}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = (unconfirmedEmail || email).trim()
+    if (!targetEmail) { setError('Escribe tu correo para reenviar la confirmación.'); return }
+    setLoading(true); setError(''); setConfirmationSent(false)
+    try {
+      await auth.resendConfirmation(targetEmail)
+      setUnconfirmedEmail(targetEmail)
+      setConfirmationSent(true)
+    } catch (err) {
+      setError(err?.message || 'No pude reenviar la confirmación. Revisa el correo e inténtalo otra vez.')
     } finally {
       setLoading(false)
     }
@@ -163,8 +183,23 @@ export function LoginScreen() {
                   </div>
                 )}
 
-                {!resetMode && <button type="button" className="tf-slider-link" onClick={() => { setResetMode(true); setError('') }}>{t.forgotPassword}</button>}
+                {!resetMode && <button type="button" className="tf-slider-link" onClick={() => { setResetMode(true); setError(''); setUnconfirmedEmail(''); setConfirmationSent(false) }}>{t.forgotPassword}</button>}
                 {error && <p className="tf-slider-error">{error}</p>}
+                {confirmationSent && (
+                  <p className="tf-slider-success">
+                    Te envié un nuevo enlace de confirmación a {unconfirmedEmail}. Confirma el correo y vuelve a iniciar sesión.
+                  </p>
+                )}
+                {!resetMode && unconfirmedEmail && !confirmationSent && (
+                  <button
+                    type="button"
+                    className="tf-slider-resend"
+                    onClick={handleResendConfirmation}
+                    disabled={loading}
+                  >
+                    Reenviar correo de confirmación
+                  </button>
+                )}
 
                 <button type="submit" className="tf-slider-main-btn" disabled={loading}>
                   {loading ? 'Procesando...' : resetMode ? 'Enviar recuperación' : 'Iniciar sesión'}
@@ -466,6 +501,32 @@ const authFormCss = `
     font-size:12px;
     font-weight:800;
   }
+  .tf-slider-success{
+    width:100%;
+    margin:4px 0 12px;
+    background:#ecfdf5;
+    border:1px solid #bbf7d0;
+    color:#047857;
+    border-radius:12px;
+    padding:10px;
+    font-size:12px;
+    line-height:1.45;
+    font-weight:850;
+  }
+  .tf-slider-resend{
+    width:100%;
+    border:1px solid #bfdbfe;
+    background:#eff6ff;
+    color:#1d4ed8;
+    border-radius:12px;
+    padding:11px 14px;
+    margin:-2px 0 14px;
+    font-size:12px;
+    font-weight:950;
+    cursor:pointer;
+    box-shadow:0 10px 22px rgba(37,99,235,.08);
+  }
+  .tf-slider-resend:disabled{ opacity:.65; cursor:not-allowed; }
   .tf-slider-reset-done div{ font-size:48px; margin-bottom:10px; }
   .tf-slider-reset-done p{ color:#64748b; margin:0 0 18px; }
   @media (max-width:760px){
@@ -992,7 +1053,7 @@ const authFormCss = `
   }
   @media (max-width:520px){
     .tf-login-visual{ display:none; }
-    .tf-login-hero{ min-height:calc(100vh - 84px); align-items:center; }
+    .tf-login-hero{ min-height:calc(100dvh - 84px); align-items:center; }
     .tf-login-card-top{ align-items:center; }
     .tf-login-card-top p{ max-width:118px; }
     .tf-login-social-row{ grid-template-columns:1fr 48px; }

@@ -31,6 +31,18 @@ export const auth = {
     return data
   },
 
+  /** Reenviar confirmación de correo */
+  async resendConfirmation(email) {
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+    })
+    if (error) throw error
+    return data
+  },
+
   /** Login con Google OAuth */
   async signInWithGoogle() {
     const { data, error } = await supabase.auth.signInWithOAuth({
