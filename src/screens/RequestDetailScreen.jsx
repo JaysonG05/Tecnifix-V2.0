@@ -6,22 +6,20 @@
 // ============================================================
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext.jsx'
-import { Avatar, Btn, Spinner, Toast } from '../components/UI.jsx'
-import { supabase } from '../lib/supabase.js'
+import { Avatar, Btn, Badge, Spinner, Toast, Input } from '../components/UI.jsx'
+import { Icon } from '../components/Icons.jsx'
+import { supabase, chatApi } from '../lib/supabase.js'
 import {
-  requestActions, paymentActions, receiptActions, disputeActions, conformityActions,
+  requestActions, paymentActions, receiptActions, disputeActions,
   REQUEST_STATUS, STATUS_LABELS, STATUS_COLORS,
 } from '../lib/payments.js'
 import { T } from '../i18n/translations.js'
-import {
-  PayModal, ProofModal, PhotoUploadModal, DisputeModal,
-  ReceiptDetailModal, ConformityModal, Modal,
-} from './requestDetail/modals.jsx'
 
 // ── Colores de estado ─────────────────────────────────────────
 function StatusChip({ status, lang }) {
   const label = STATUS_LABELS[lang]?.[status] ?? status
-  const colors = STATUS_COLORS[status] ?? { bg: '#f1f5f9', text: '#64748b' }
+  // Fallback hardcodeado TECNIFIX — no usa th.* (puede estar fuera del scope del hook)
+  const colors = STATUS_COLORS[status] ?? { bg: '#F0F5FA', text: '#4A6A8A' }
   return (
     <span style={{
       background: colors.bg, color: colors.text, fontSize: 12,
@@ -69,7 +67,6 @@ export function RequestDetailScreen() {
   const [proofs, setProofs] = useState([])
   const [receipt, setReceipt] = useState(null)
   const [dispute, setDispute] = useState(null)
-  const [act, setAct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -80,8 +77,6 @@ export function RequestDetailScreen() {
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [showReceiptModal, setShowReceiptModal] = useState(false)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
-  const [showConformityModal, setShowConformityModal] = useState(false)
-  const [showQREscrowModal, setShowQREscrowModal] = useState(false)
 
   const isClient = user?.id === request?.client_id
   const isTech = user?.id === request?.technician_id
@@ -99,9 +94,8 @@ export function RequestDetailScreen() {
       paymentActions.getProofs(request.id).catch(() => []),
       receiptActions.getForRequest(request.id).catch(() => null),
       disputeActions.getForRequest(request.id).catch(() => null),
-      conformityActions.getForRequest(request.id).catch(() => null),
-    ]).then(([p, pr, rec, dis, ac]) => {
-      setPhotos(p); setProofs(pr); setReceipt(rec); setDispute(dis); setAct(ac)
+    ]).then(([p, pr, rec, dis]) => {
+      setPhotos(p); setProofs(pr); setReceipt(rec); setDispute(dis)
     }).finally(() => setLoading(false))
   }, [request?.id])
 
@@ -129,18 +123,15 @@ export function RequestDetailScreen() {
     </div>
   )
 
-  // El cliente reportó un pago (Yappy/efectivo) y falta que el técnico lo
-  // confirme. Mientras tanto NO se considera pagado ni se puede re-pagar.
   const isPendingConfirmation = request.payment_status === 'pending_confirmation'
   const canPay = isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT
     && !['paid', 'pending_confirmation'].includes(request.payment_status)
   const canComplete = isClient && request.payment_status === 'paid' && request.status !== REQUEST_STATUS.COMPLETED
   const canDispute = (isClient || isTech) && !['completed', 'cancelled', 'disputed'].includes(request.status)
   const isPaid = request.payment_status === 'paid'
-  const isEscrow = request.payment_status === 'escrow'
   const isDone = request.status === REQUEST_STATUS.COMPLETED
 
-  const methodLabel = { yappy: '💚 Yappy', cash: '💵 Efectivo', transfer: '🏦 Transferencia', escrow: '🛡️ En Garantía' }
+  const methodLabel = { yappy: 'Yappy', cash: 'Efectivo', transfer: 'Transferencia' }
 
   return (
     <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 40 }}>
@@ -173,7 +164,7 @@ export function RequestDetailScreen() {
         <ProgressBar status={request.status} th={th} lang={lang} />
 
         {/* ── Info general ── */}
-        <Section title="📋 Detalles del servicio" th={th}>
+        <Section title="Detalles del servicio" th={th}>
           <InfoRow label="Servicio" value={request.title} th={th} />
           {request.description && <InfoRow label="Descripción" value={request.description} th={th} />}
           {request.address && <InfoRow label="Dirección" value={request.address} th={th} />}
@@ -183,13 +174,13 @@ export function RequestDetailScreen() {
             value={methodLabel[request.payment_method] ?? 'No definido'} th={th} />
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: th.textSec }}>Estado del pago</span>
-            <StatusChip status={isPaid ? 'paid' : isEscrow ? 'escrow' : 'unpaid'} lang={lang} />
+            <StatusChip status={isPaid ? 'paid' : 'unpaid'} lang={lang} />
           </div>
           {/* Info bancaria del técnico (para transferencia) */}
           {request.payment_method === 'transfer' && request.technician_bank_account && (
             <div style={{ marginTop: 10, background: th.surface2, borderRadius: 12, padding: 12 }}>
               <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: th.textSec }}>
-                🏦 Cuenta bancaria del técnico
+                Cuenta bancaria del técnico
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: th.text, flex: 1 }}>
@@ -202,7 +193,7 @@ export function RequestDetailScreen() {
                   background: th.primaryLight, color: th.primaryText, border: 'none',
                   borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer'
                 }}>
-                  📋 Copiar
+                  Copiar
                 </button>
               </div>
             </div>
@@ -210,25 +201,28 @@ export function RequestDetailScreen() {
         </Section>
 
         {/* ── Partes involucradas ── */}
-        <Section title="👥 Partes del servicio" th={th}>
+        <Section title="Partes del servicio" th={th}>
           <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
             <Avatar photo={request.client_avatar} name={request.client_name} size={44} />
             <div>
               <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: 14, color: th.text }}>{request.client_name}</p>
-              <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>👤 Cliente</p>
+              <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>Cliente</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <Avatar photo={request.technician_avatar} name={request.technician_name} size={44} />
             <div>
               <p style={{ margin: '0 0 2px', fontWeight: 600, fontSize: 14, color: th.text }}>{request.technician_name}</p>
-              <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>🛠️ Técnico · {request.technician_title}</p>
+              <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>Técnico · {request.technician_title}</p>
             </div>
           </div>
         </Section>
 
+        {/* ── Chat interno ── */}
+        <ChatSection request={request} user={user} isClient={isClient} th={th} lang={lang} />
+
         {/* ── Fotos del trabajo ── */}
-        <Section title="📸 Fotos del trabajo" th={th}>
+        <Section title="Fotos del trabajo" th={th}>
           {photos.length === 0
             ? <p style={{ color: th.textSec, fontSize: 13, margin: 0 }}>Sin fotos aún.</p>
             : (
@@ -268,7 +262,7 @@ export function RequestDetailScreen() {
 
         {/* ── Comprobantes de pago ── */}
         {proofs.length > 0 && (
-          <Section title="🧾 Comprobantes de pago" th={th}>
+          <Section title="Comprobantes de pago" th={th}>
             {proofs.map(proof => (
               <div key={proof.id} style={{
                 display: 'flex', gap: 12, alignItems: 'center',
@@ -283,7 +277,7 @@ export function RequestDetailScreen() {
                 )}
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 600, color: th.text }}>
-                    {proof.proof_type === 'transfer' ? '🏦 Transferencia' : '💚 Yappy'}
+                    {proof.proof_type === 'transfer' ? 'Transferencia' : 'Yappy'}
                   </p>
                   {proof.reference_number && (
                     <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>Ref: {proof.reference_number}</p>
@@ -294,8 +288,8 @@ export function RequestDetailScreen() {
                 </div>
                 {proof.verified_by_tech
                   ? <span style={{
-                    fontSize: 11, fontWeight: 700, color: '#1e40af',
-                    background: '#dbeafe', padding: '3px 8px', borderRadius: 20
+                    fontSize: 11, fontWeight: 700, color: th.verifiedText,
+                    background: th.verifiedLight, padding: '3px 8px', borderRadius: 20
                   }}>✓ Verificado</span>
                   : isTech && (
                     <button onClick={async () => {
@@ -305,11 +299,11 @@ export function RequestDetailScreen() {
                         setProofs(prev => prev.map(p => p.id === proof.id
                           ? { ...p, verified_by_tech: true } : p))
                         setRequest(r => ({ ...r, payment_status: 'paid' }))
-                        showToast('✅ Pago verificado correctamente')
+                        showToast('Pago verificado')
                       } catch { showToast('Error al verificar', 'error') }
                       finally { setBusy(false) }
                     }} style={{
-                      background: '#dbeafe', color: '#1e40af', border: 'none',
+                      background: th.verifiedLight, color: th.verifiedText, border: 'none',
                       borderRadius: 10, padding: '6px 12px', fontSize: 12,
                       fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                     }}>
@@ -324,22 +318,22 @@ export function RequestDetailScreen() {
 
         {/* ── Recibo digital ── */}
         {receipt && (
-          <Section title="🧾 Recibo de pago" th={th}>
+          <Section title="Recibo de pago" th={th}>
             <div style={{
               background: '#f0fdf4', borderRadius: 12, padding: 14,
               border: '1px solid #bbf7d0'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
-                  <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 15, color: '#1e40af' }}>
+                  <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 15, color: '#15803d' }}>
                     {receipt.receipt_number}
                   </p>
-                  <p style={{ margin: 0, fontSize: 12, color: '#1e40af' }}>
+                  <p style={{ margin: 0, fontSize: 12, color: th.verifiedText }}>
                     {new Date(receipt.issued_at).toLocaleDateString('es-PA', { dateStyle: 'medium' })}
                   </p>
                 </div>
                 <span style={{
-                  background: '#dbeafe', color: '#1e40af', fontSize: 12,
+                  background: th.verifiedLight, color: th.verifiedText, fontSize: 12,
                   fontWeight: 700, padding: '4px 10px', borderRadius: 20, alignSelf: 'flex-start'
                 }}>
                   ✓ Pagado
@@ -349,13 +343,13 @@ export function RequestDetailScreen() {
                 borderTop: '1px solid #bbf7d0', paddingTop: 10,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
-                <span style={{ fontSize: 14, color: '#1e40af' }}>Total</span>
-                <span style={{ fontSize: 20, fontWeight: 900, color: '#1e40af' }}>${Number(receipt.amount).toFixed(2)}</span>
+                <span style={{ fontSize: 14, color: th.verifiedText }}>Total</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#15803d' }}>${Number(receipt.amount).toFixed(2)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <Btn onClick={() => setShowReceiptModal(true)} variant="ghost" size="sm" style={{ flex: 1 }}>
-                👁️ Ver detalles
+                Ver detalles
               </Btn>
               <Btn onClick={async () => {
                 setBusy(true)
@@ -363,34 +357,8 @@ export function RequestDetailScreen() {
                 catch { showToast('Error al generar PDF', 'error') }
                 finally { setBusy(false) }
               }} variant="primary" size="sm" style={{ flex: 1 }} loading={busy}>
-                ⬇️ Descargar PDF
+                Descargar PDF
               </Btn>
-            </div>
-          </Section>
-        )}
-
-        {/* ── Acta de conformidad verificable ── */}
-        {act && (
-          <Section title="✍️ Acta de conformidad" th={th}>
-            <div style={{ background: '#eff6ff', borderRadius: 12, padding: 14, border: '1px solid #bfdbfe' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#1e40af' }}>🔒 Trabajo aceptado y sellado</span>
-              </div>
-              {act.signature_data && (
-                <img src={act.signature_data} alt="Firma" style={{ width: '100%', maxHeight: 90, objectFit: 'contain', background: '#fff', borderRadius: 8, border: '1px solid #bfdbfe', marginBottom: 8 }} />
-              )}
-              <InfoRow th={th} label="Firmado" value={new Date(act.signed_at).toLocaleString('es-PA', { dateStyle: 'medium', timeStyle: 'short' })} />
-              {(act.geo_lat != null) && (
-                <InfoRow th={th} label="Ubicación" value={`${Number(act.geo_lat).toFixed(5)}, ${Number(act.geo_lng).toFixed(5)}`} />
-              )}
-              <div style={{ marginTop: 8, fontSize: 10, color: '#64748b', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                Sello de integridad (SHA-256):<br />{act.integrity_hash}
-              </div>
-              {act.stored === false && (
-                <p style={{ margin: '8px 0 0', fontSize: 11, color: '#92400e', fontStyle: 'italic' }}>
-                  Acta calculada localmente — corre <code>conformity_acts.sql</code> para archivarla de forma permanente.
-                </p>
-              )}
             </div>
           </Section>
         )}
@@ -402,7 +370,7 @@ export function RequestDetailScreen() {
             border: '1px solid #fed7aa', marginBottom: 14
           }}>
             <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 15, color: '#9a3412' }}>
-              ⚠️ Disputa abierta
+              Disputa abierta
             </p>
             <p style={{ margin: '0 0 4px', fontSize: 13, color: '#9a3412' }}>Motivo: {dispute.reason}</p>
             {dispute.description && (
@@ -417,10 +385,9 @@ export function RequestDetailScreen() {
         {/* ── ACCIONES SEGÚN ROL Y ESTADO ── */}
         <ActionButtons
           request={request} setRequest={setRequest}
-          isClient={isClient} isTech={isTech}
+          isClient={isClient} isTech={isTech} isPendingConfirmation={isPendingConfirmation}
           canPay={canPay} canComplete={canComplete}
-          canDispute={canDispute} isPaid={isPaid} isEscrow={isEscrow} isDone={isDone}
-          isPendingConfirmation={isPendingConfirmation}
+          canDispute={canDispute} isPaid={isPaid} isDone={isDone}
           receipt={receipt} setReceipt={setReceipt}
           user={user} th={th} lang={lang}
           setBusy={setBusy} busy={busy}
@@ -428,8 +395,6 @@ export function RequestDetailScreen() {
           setShowPayModal={setShowPayModal}
           setShowProofModal={setShowProofModal}
           setShowDisputeModal={setShowDisputeModal}
-          setShowConformityModal={setShowConformityModal}
-          setShowQREscrowModal={setShowQREscrowModal}
           setProofs={setProofs}
           goBack={goBack}
         />
@@ -441,17 +406,22 @@ export function RequestDetailScreen() {
           request={request} user={user} th={th} lang={lang}
           onClose={() => setShowPayModal(false)}
           onSuccess={(method, ref) => {
-            // Yappy/efectivo quedan 'pending_confirmation': NO se marca pagado
-            // ni se genera recibo hasta que el técnico confirme la recepción
-            // (paymentActions.confirmPayment). El recibo se emite al completar.
-            const nextStatus = method === 'escrow' ? 'escrow' : 'pending_confirmation'
-            setRequest(r => ({ ...r, payment_status: nextStatus, payment_method: method, payment_ref: ref }))
+            setRequest(r => ({ ...r, payment_status: 'paid', payment_method: method, payment_ref: ref }))
             setShowPayModal(false)
-            showToast(
-              method === 'escrow'
-                ? '🛡️ Fondos depositados en garantía'
-                : '📨 Pago reportado. El técnico debe confirmar que lo recibió.'
-            )
+            showToast('✅ Pago registrado correctamente')
+            // Generar recibo
+            receiptActions.generate({
+              requestId: request.id,
+              clientId: request.client_id,
+              technicianId: request.technician_id,
+              serviceTitle: request.title,
+              serviceDescription: request.description,
+              amount: request.agreed_price ?? 0,
+              paymentMethod: method,
+              paymentReference: ref,
+              clientName: request.client_name,
+              technicianName: request.technician_name,
+            }).then(rec => setReceipt(rec)).catch(e => console.warn('Recibo:', e))
           }}
         />
       )}
@@ -476,7 +446,7 @@ export function RequestDetailScreen() {
             setDispute(d)
             setRequest(r => ({ ...r, status: 'disputed' }))
             setShowDisputeModal(false)
-            showToast('⚠️ Disputa abierta. El equipo de soporte revisará el caso.')
+            showToast('Disputa abierta. El equipo de soporte revisará el caso.')
           }}
         />
       )}
@@ -493,22 +463,6 @@ export function RequestDetailScreen() {
         />
       )}
 
-      {showConformityModal && (
-        <ConformityModal
-          request={request} user={user} photos={photos} th={th}
-          onClose={() => setShowConformityModal(false)}
-          onSuccess={({ act: newAct, receipt: newReceipt }) => {
-            setAct(newAct)
-            if (newReceipt) setReceipt(newReceipt)
-            setRequest(r => ({ ...r, status: REQUEST_STATUS.COMPLETED }))
-            setShowConformityModal(false)
-            showToast(newAct?.stored
-              ? '✅ Acta firmada y archivada. Servicio completado.'
-              : '✅ Servicio completado (acta no archivada: falta correr conformity_acts.sql).')
-          }}
-        />
-      )}
-
       {showReceiptModal && receipt && (
         <ReceiptDetailModal
           receipt={receipt} th={th}
@@ -520,23 +474,6 @@ export function RequestDetailScreen() {
             finally { setBusy(false) }
           }}
         />
-      )}
-      {showQREscrowModal && (
-        <Modal title="🛡️ QR de Liberación" onClose={() => setShowQREscrowModal(false)}>
-          <div style={{ textAlign: 'center', padding: '10px 0 20px' }}>
-            <p style={{ fontSize: 14, color: th.textSec, marginBottom: 20 }}>
-              Muestra este código al cliente cara a cara. Cuando lo escanee con su celular, los fondos en garantía serán transferidos inmediatamente a tu cuenta.
-            </p>
-            <div style={{ background: '#fff', padding: 20, borderRadius: 16, display: 'inline-block', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/?release=${request.id}`)}`} 
-                alt="QR Code" 
-                style={{ display: 'block', width: 200, height: 200 }} 
-              />
-            </div>
-            <h3 style={{ margin: '20px 0 8px', color: th.text, fontSize: 20 }}>Monto a liberar: ${request.agreed_price}</h3>
-          </div>
-        </Modal>
       )}
     </div>
   )
@@ -617,33 +554,11 @@ function ProgressBar({ status, th, lang }) {
 // BOTONES DE ACCIÓN
 // ─────────────────────────────────────────────────────────────
 function ActionButtons({ request, setRequest, isClient, isTech, canPay, canComplete,
-  canDispute, isPaid, isEscrow, isDone, isPendingConfirmation, receipt, setReceipt, user, th, lang,
+  canDispute, isPaid, isDone, isPendingConfirmation, receipt, setReceipt, user, th, lang,
   setBusy, busy, showToast, setShowPayModal, setShowProofModal,
-  setShowDisputeModal, setShowConformityModal, setShowQREscrowModal, setProofs, goBack }) {
+  setShowDisputeModal, setProofs, goBack }) {
 
-  // El técnico confirma o rechaza un pago reportado por el cliente.
-  const handleConfirmPayment = async () => {
-    setBusy(true)
-    try {
-      await paymentActions.confirmPayment(request.id, user.id)
-      setRequest(r => ({ ...r, payment_status: 'paid' }))
-      showToast('✅ Pago confirmado')
-    } catch (err) {
-      showToast('Error: ' + (err?.message ?? 'intenta de nuevo'), 'error')
-    } finally { setBusy(false) }
-  }
-
-  const handleRejectPayment = async () => {
-    if (!window.confirm('¿Confirmas que NO recibiste este pago? El cliente deberá intentar de nuevo.')) return
-    setBusy(true)
-    try {
-      await paymentActions.rejectPayment(request.id, user.id)
-      setRequest(r => ({ ...r, payment_status: 'unpaid', payment_ref: null }))
-      showToast('Pago marcado como no recibido', 'error')
-    } catch (err) {
-      showToast('Error: ' + (err?.message ?? ''), 'error')
-    } finally { setBusy(false) }
-  }
+  const [cashCodeInput, setCashCodeInput] = useState('')
 
   const changeStatus = async (newStatus) => {
     setBusy(true)
@@ -724,61 +639,89 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
         </Btn>
       )}
 
-      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT && isPendingConfirmation && (
+      {/* Técnico: aún no hay ningún pago reportado */}
+      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT
+        && !isPaid && !isPendingConfirmation && (
+          <div style={{
+            background: th.yellowLight, borderRadius: 14, padding: 14,
+            border: '1px solid #fde047', marginBottom: 4
+          }}>
+            <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
+              Esperando que el cliente pague
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: th.yellowText }}>
+              Cuando el cliente reporte su pago (Yappy, efectivo o transferencia), aparecerá aquí para que lo confirmes.
+            </p>
+          </div>
+        )}
+
+      {/* Técnico: el cliente reportó pago Yappy/efectivo — requiere CONFIRMAR */}
+      {isTech && isPendingConfirmation && (
         <div style={{
-          background: '#ecfccb', borderRadius: 14, padding: 14,
-          border: '1px solid #bef264', marginBottom: 4
+          background: '#eff6ff', borderRadius: 14, padding: 14,
+          border: '1px solid #bfdbfe', marginBottom: 4
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#3f6212' }}>
-            💚 El cliente reportó un pago {request.payment_method === 'cash' ? 'en efectivo' : 'por Yappy'}
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: th.primary }}>
+            El cliente reportó un pago de ${request.agreed_price ?? '0.00'} por {request.payment_method === 'yappy' ? 'Yappy' : 'efectivo'}
           </p>
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: '#4d7c0f' }}>
-            Verifica que el dinero esté en tu cuenta antes de confirmar.
-            {request.payment_ref ? ` Referencia: ${request.payment_ref}.` : ''}
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#1e3a8a' }}>
+            {request.payment_method === 'yappy'
+              ? 'Revisa tu app Yappy y confirma si recibiste el dinero.'
+              : 'El cliente debe mostrarte un código de 4 dígitos al entregarte el efectivo. Ingrésalo abajo para confirmar.'}
           </p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Btn onClick={handleConfirmPayment} loading={busy} style={{ flex: 1 }}>
-              ✅ Sí, lo recibí
+
+          {request.payment_method === 'cash' && (
+            <input
+              value={cashCodeInput}
+              onChange={e => setCashCodeInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              inputMode="numeric"
+              maxLength={4}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '12px',
+                marginBottom: 10, borderRadius: 12, border: '1.5px solid #bfdbfe',
+                fontSize: 22, fontWeight: 900, letterSpacing: 10, textAlign: 'center',
+                color: th.primary, background: '#fff', outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={async () => {
+              setBusy(true)
+              try {
+                await paymentActions.confirmPayment(request.id, user.id, cashCodeInput)
+                setRequest(r => ({ ...r, payment_status: 'paid' }))
+                setCashCodeInput('')
+                showToast('Pago confirmado')
+              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
+              finally { setBusy(false) }
+            }} loading={busy}
+              disabled={request.payment_method === 'cash' && cashCodeInput.length !== 4}
+              style={{ flex: 1 }}>
+              Confirmar recepción
             </Btn>
-            <Btn onClick={handleRejectPayment} variant="danger" loading={busy} style={{ flex: 1 }}>
-              ✗ No lo recibí
+            <Btn onClick={async () => {
+              if (!window.confirm('¿Confirmas que NO recibiste este pago? Se notificará al cliente para que lo intente de nuevo.')) return
+              setBusy(true)
+              try {
+                await paymentActions.rejectPayment(request.id, user.id)
+                setRequest(r => ({ ...r, payment_status: 'unpaid' }))
+                setCashCodeInput('')
+                showToast('Pago rechazado. Se notificó al cliente.')
+              } catch (err) { showToast(err?.message ?? 'Error', 'error') }
+              finally { setBusy(false) }
+            }} loading={busy} variant="danger" style={{ flex: 1 }}>
+              No lo recibí
             </Btn>
           </div>
-        </div>
-      )}
 
-      {isTech && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && !isPendingConfirmation && (
-        <div style={{
-          background: '#fef9c3', borderRadius: 14, padding: 14,
-          border: '1px solid #fde047', marginBottom: 4
-        }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
-            ⏳ Esperando confirmación de pago
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-            El cliente debe realizar el pago. Cuando suba el comprobante, podrás verificarlo aquí.
-          </p>
+          {request.payment_method === 'cash' && (
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#1e3a8a' }}>
+              Si el cliente no tiene el código correcto, no confirmes el pago — abre una disputa.
+            </p>
+          )}
         </div>
-      )}
-
-      {isClient && isPendingConfirmation && (
-        <div style={{
-          background: '#ecfccb', borderRadius: 14, padding: 14,
-          border: '1px solid #bef264', marginBottom: 4
-        }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#3f6212' }}>
-            📨 Pago reportado
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#4d7c0f' }}>
-            Avisamos al técnico. En cuanto confirme que recibió el dinero, podrás firmar la conformidad y completar el servicio.
-          </p>
-        </div>
-      )}
-
-      {isTech && isEscrow && !isDone && (
-        <Btn onClick={() => setShowQREscrowModal(true)} style={{ background: '#0f766e' }}>
-          🛡️ Generar QR de Cobro (Liberación)
-        </Btn>
       )}
 
       {isTech && isPaid && !isDone && (
@@ -788,36 +731,37 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
       )}
 
       {/* ── CLIENTE ── */}
-      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && !isEscrow && (
+      {isClient && request.status === REQUEST_STATUS.PENDING_PAYMENT && !isPaid && !isPendingConfirmation && (
         <>
           <Btn onClick={() => setShowPayModal(true)}>
-            💳 Realizar pago — ${request.agreed_price ?? '0.00'}
+            Realizar pago — ${request.agreed_price ?? '0.00'}
           </Btn>
           {request.payment_method === 'transfer' && (
             <Btn onClick={() => setShowProofModal(true)} variant="outline">
-              📎 Subir comprobante de transferencia
+              Subir comprobante de transferencia
             </Btn>
           )}
         </>
       )}
 
-      {isClient && isEscrow && !isDone && (
+      {/* Cliente: ya reportó el pago, esperando que el técnico confirme */}
+      {isClient && isPendingConfirmation && (
         <div style={{
-          background: '#f0fdf4', borderRadius: 14, padding: 14,
-          border: '1px solid #bbf7d0', marginBottom: 4
+          background: th.yellowLight, borderRadius: 14, padding: 14,
+          border: '1px solid #fde047'
         }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#166534' }}>
-            🛡️ Fondos en Garantía
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: '#854d0e' }}>
+            Esperando confirmación del técnico
           </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#15803d' }}>
-            Tu dinero está protegido. Escanea el código QR del técnico cuando termine para liberar los fondos.
+          <p style={{ margin: 0, fontSize: 13, color: th.yellowText }}>
+            Reportaste tu pago de ${request.agreed_price ?? '0.00'}. El técnico debe confirmar que lo recibió.
           </p>
         </div>
       )}
 
       {isClient && isPaid && !isDone && (
-        <Btn onClick={() => setShowConformityModal(true)} loading={busy}>
-          ✍️ Firmar conformidad y completar
+        <Btn onClick={handleComplete} loading={busy}>
+          ✅ Confirmar que el trabajo quedó bien
         </Btn>
       )}
 
@@ -841,3 +785,688 @@ function ActionButtons({ request, setRequest, isClient, isTech, canPay, canCompl
 // ─────────────────────────────────────────────────────────────
 // MODAL: PAGAR
 // ─────────────────────────────────────────────────────────────
+function PayModal({ request, user, th, onClose, onSuccess }) {
+  const [method, setMethod] = useState(request.payment_method ?? 'yappy')
+  const [reference, setReference] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(1) // 1=elegir, 2=instrucciones, 3=confirmar
+
+  const yappyPhone = (request.technician_whatsapp ?? '').replace(/\D/g, '')
+  const amount = request.agreed_price ?? 0
+
+  const [cashCode, setCashCode] = useState(null) // código de 4 dígitos generado para efectivo
+
+  const handleConfirm = async () => {
+    setLoading(true)
+    try {
+      if (method === 'yappy') {
+        await paymentActions.recordYappy(request.id, user.id, request.technician_id,
+          amount, yappyPhone, reference)
+        onSuccess(method, reference)
+      } else if (method === 'cash') {
+        const { code } = await paymentActions.recordCash(request.id, user.id, request.technician_id, amount)
+        setCashCode(code)
+        setStep(4) // mostrar el código antes de cerrar el modal
+      }
+    } catch (err) {
+      alert('Error al registrar pago: ' + (err?.message ?? ''))
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <Modal title="Realizar pago" onClose={onClose} th={th}>
+      {step === 1 && (
+        <>
+          <p style={{ fontSize: 13, color: th.textSec, margin: '0 0 16px' }}>
+            Monto a pagar: <strong style={{ fontSize: 18, color: th.primary }}>${Number(amount).toFixed(2)}</strong>
+          </p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: th.text, margin: '0 0 10px' }}>Elige método de pago:</p>
+          {[
+            { v: 'yappy', icon: '💚', label: 'Yappy', desc: 'Billetera digital — más rápido y seguro' },
+            { v: 'transfer', icon: '🏦', label: 'Transferencia', desc: 'Transferencia bancaria con comprobante' },
+            { v: 'cash', icon: '💵', label: 'Efectivo', desc: 'Pago en mano al técnico' },
+          ].map(m => (
+            <button key={m.v} onClick={() => setMethod(m.v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px', borderRadius: 14, cursor: 'pointer', marginBottom: 8,
+                border: `2px solid ${method === m.v ? th.primary : th.border}`,
+                background: method === m.v ? th.primaryLight : 'transparent',
+                fontFamily: 'inherit', textAlign: 'left'
+              }}>
+              <span style={{ fontSize: 28 }}>{m.icon}</span>
+              <div>
+                <p style={{
+                  margin: '0 0 2px', fontWeight: 700, fontSize: 14,
+                  color: method === m.v ? th.primaryText : th.text
+                }}>{m.label}</p>
+                <p style={{ margin: 0, fontSize: 12, color: th.textSec }}>{m.desc}</p>
+              </div>
+              {method === m.v && <span style={{ marginLeft: 'auto', color: th.primary, fontSize: 18 }}>✓</span>}
+            </button>
+          ))}
+          <div style={{ height: 8 }} />
+          <Btn onClick={() => setStep(2)}>Continuar →</Btn>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          {method === 'yappy' && (
+            <div>
+              <div style={{
+                background: '#f0fdf4', borderRadius: 14, padding: 16,
+                border: '1px solid #bbf7d0', marginBottom: 16
+              }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#15803d', fontSize: 14 }}>
+                  💚 Instrucciones Yappy
+                </p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: th.verifiedText }}>1. Toca el botón para abrir Yappy</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: th.verifiedText }}>2. El monto y número ya están prellenados</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: th.verifiedText }}>3. Completa el pago en Yappy</p>
+                <p style={{ margin: 0, fontSize: 13, color: th.verifiedText }}>4. Copia la referencia que te da Yappy y pégala aquí</p>
+              </div>
+              <Btn variant="whatsapp" onClick={() => {
+                const link = `yappy://pay?phone=${yappyPhone}&amount=${amount}&description=${encodeURIComponent(request.title)}`
+                window.location.href = link
+                setTimeout(() => window.open(`https://yappy.com.pa/pay?phone=${yappyPhone}&amount=${amount}&description=${encodeURIComponent(request.title)}`, '_blank'), 1500)
+              }}>
+                💚 Abrir Yappy — ${Number(amount).toFixed(2)}
+              </Btn>
+              <div style={{ height: 12 }} />
+              <Input label="Referencia Yappy (ej: YAP-123456)"
+                value={reference} onChange={setReference} placeholder="YAP-XXXXXX" icon="🔢" />
+            </div>
+          )}
+
+          {method === 'transfer' && (
+            <div>
+              <div style={{
+                background: '#eff6ff', borderRadius: 14, padding: 16,
+                border: '1px solid #bfdbfe', marginBottom: 16
+              }}>
+                <p style={{ margin: '0 0 8px', fontWeight: 700, color: th.primary, fontSize: 14 }}>
+                  🏦 Datos bancarios del técnico
+                </p>
+                {request.technician_bank_account ? (
+                  <>
+                    <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: th.primary }}>
+                      {request.technician_bank_account}
+                    </p>
+                    <button onClick={() => {
+                      navigator.clipboard.writeText(request.technician_bank_account)
+                    }} style={{
+                      background: th.primaryLight, color: th.primary, border: 'none',
+                      borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer'
+                    }}>Copiar cuenta</button>
+                  </>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, color: th.primary }}>
+                    El técnico no ha configurado su cuenta bancaria aún.
+                    Contáctalo por WhatsApp para obtener los datos.
+                  </p>
+                )}
+                <p style={{ margin: '12px 0 0', fontSize: 12, color: '#3730a3' }}>
+                  Monto a transferir: <strong>${Number(amount).toFixed(2)}</strong>
+                </p>
+              </div>
+              <Input label="Número de referencia de la transferencia"
+                value={reference} onChange={setReference}
+                placeholder="Ej: 20240525-001234" icon="🔢" />
+              <p style={{ fontSize: 12, color: th.textSec, margin: '0 0 12px' }}>
+                ⚠️ También debes subir la foto del comprobante en la siguiente pantalla.
+              </p>
+            </div>
+          )}
+
+          {method === 'cash' && (
+            <div style={{
+              background: th.yellowLight, borderRadius: 14, padding: 16,
+              border: '1px solid #fde047', marginBottom: 16
+            }}>
+              <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#854d0e', fontSize: 14 }}>
+                💵 Pago en efectivo
+              </p>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: th.yellowText }}>
+                Monto: <strong>${Number(amount).toFixed(2)}</strong>
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: th.yellowText }}>
+                Entrégale el dinero al técnico en persona. Se generará un recibo digital como comprobante para ambas partes.
+              </p>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1 }}>← Atrás</Btn>
+            <Btn onClick={() => setStep(3)} style={{ flex: 2 }}>Confirmar pago →</Btn>
+          </div>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <div style={{ textAlign: 'center', padding: '10px 0 20px' }}>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>
+              {method === 'yappy' ? '💚' : method === 'transfer' ? '🏦' : '💵'}
+            </div>
+            <p style={{ fontWeight: 800, fontSize: 18, color: th.text, margin: '0 0 6px' }}>
+              Confirmar pago de ${Number(amount).toFixed(2)}
+            </p>
+            <p style={{ fontSize: 13, color: th.textSec, margin: 0 }}>
+              {method === 'yappy' && `Método: Yappy${reference ? ` · Ref: ${reference}` : ''}`}
+              {method === 'transfer' && `Método: Transferencia bancaria${reference ? ` · Ref: ${reference}` : ''}`}
+              {method === 'cash' && 'Método: Efectivo en mano'}
+            </p>
+          </div>
+          <div style={{
+            background: th.yellowLight, borderRadius: 12, padding: 12,
+            border: '1px solid #fde68a', marginBottom: 16
+          }}>
+            <p style={{ margin: 0, fontSize: 13, color: th.yellowText }}>
+              {method === 'cash'
+                ? '⚠️ Recibirás un código de 4 dígitos. Muéstraselo al técnico cuando le entregues el dinero — sin ese código no podrá confirmar el pago y no se marcará como pagado.'
+                : '⚠️ Al confirmar declaras que realizaste el pago. El técnico debe verificarlo antes de generarse el recibo final.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }}>← Atrás</Btn>
+            <Btn onClick={handleConfirm} loading={loading} style={{ flex: 2 }}>
+              {method === 'cash' ? 'Generar código' : 'Confirmar pago'}
+            </Btn>
+          </div>
+        </>
+      )}
+
+      {/* Step 4: mostrar código de 4 dígitos para efectivo */}
+      {step === 4 && cashCode && (
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>💵</div>
+          <p style={{ fontWeight: 800, fontSize: 16, color: th.text, margin: '0 0 6px' }}>
+            Tu código de confirmación
+          </p>
+          <p style={{ fontSize: 13, color: th.textSec, margin: '0 0 16px', lineHeight: 1.5 }}>
+            Muéstrale este código al técnico cuando le entregues los ${Number(amount).toFixed(2)}.
+            Él debe ingresarlo en su app para confirmar que recibió el pago.
+          </p>
+          <div style={{
+            fontSize: 44, fontWeight: 900, letterSpacing: 10,
+            color: th.primaryText, background: th.primaryLight,
+            borderRadius: 16, padding: '20px 0', marginBottom: 16,
+            border: `2px dashed ${th.primary}`,
+          }}>
+            {cashCode}
+          </div>
+          <div style={{
+            background: th.yellowLight, borderRadius: 12, padding: 12,
+            border: '1px solid #fde68a', marginBottom: 16, textAlign: 'left'
+          }}>
+            <p style={{ margin: 0, fontSize: 12, color: th.yellowText, lineHeight: 1.5 }}>
+              Este código existe para proteger a ambas partes: el técnico solo puede
+              marcar el servicio como pagado si tú le compartes este código en persona.
+              No lo compartas por chat antes de entregar el dinero.
+            </p>
+          </div>
+          <Btn onClick={() => onSuccess('cash', null)}>Listo, entendido</Btn>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL: SUBIR COMPROBANTE
+// ─────────────────────────────────────────────────────────────
+function ProofModal({ request, user, th, onClose, onSuccess }) {
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [reference, setReference] = useState('')
+  const [amount, setAmount] = useState(String(request.agreed_price ?? ''))
+  const [loading, setLoading] = useState(false)
+
+  const handleFile = (e) => {
+    const f = e.target.files[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+
+  const handleUpload = async () => {
+    if (!file) { alert('Selecciona una foto del comprobante'); return }
+    setLoading(true)
+    try {
+      const proof = await paymentActions.uploadTransferProof(
+        request.id, user.id, file, amount, reference)
+      onSuccess(proof)
+    } catch (err) {
+      alert('Error al subir: ' + (err?.message ?? ''))
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <Modal title="📎 Subir comprobante" onClose={onClose} th={th}>
+      <p style={{ fontSize: 13, color: th.textSec, margin: '0 0 16px' }}>
+        Sube la foto del comprobante de transferencia bancaria. El técnico la verificará.
+      </p>
+      <label style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 10, padding: '20px',
+        background: preview ? 'transparent' : th.surface2, borderRadius: 14,
+        border: `2px dashed ${th.border}`, cursor: 'pointer', marginBottom: 14
+      }}>
+        {preview
+          ? <img src={preview} alt="comprobante"
+            style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'contain' }} />
+          : <>
+            <span style={{ fontSize: 36 }}>📷</span>
+            <span style={{ fontSize: 13, color: th.textSec, fontWeight: 600 }}>
+              Toca para elegir foto del comprobante
+            </span>
+          </>
+        }
+        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      </label>
+      <Input label="Número de referencia (opcional)"
+        value={reference} onChange={setReference} placeholder="Ej: TXN-20240525" icon="🔢" />
+      <Input label="Monto transferido ($)"
+        value={amount} onChange={setAmount} type="number" icon="💲" />
+      <Btn onClick={handleUpload} loading={loading} disabled={!file}>
+        📤 Subir comprobante
+      </Btn>
+    </Modal>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL: FOTO DE TRABAJO
+// ─────────────────────────────────────────────────────────────
+function PhotoUploadModal({ request, user, th, onClose, onSuccess }) {
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [photoType, setPhotoType] = useState('after')
+  const [caption, setCaption] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleFile = (e) => {
+    const f = e.target.files[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+
+  const handleUpload = async () => {
+    if (!file) { alert('Selecciona una foto'); return }
+    setLoading(true)
+    try {
+      const photo = await requestActions.uploadJobPhoto(
+        request.id, user.id, file, photoType, caption)
+      onSuccess(photo)
+    } catch (err) {
+      alert('Error al subir: ' + (err?.message ?? ''))
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <Modal title="📸 Subir foto del trabajo" onClose={onClose} th={th}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[['before', '🔴 Antes'], ['progress', '🔵 Progreso'], ['after', '🟢 Después']].map(([v, label]) => (
+          <button key={v} onClick={() => setPhotoType(v)}
+            style={{
+              flex: 1, padding: '8px 0', borderRadius: 10, cursor: 'pointer',
+              border: `2px solid ${photoType === v ? th.primary : th.border}`,
+              background: photoType === v ? th.primaryLight : 'transparent',
+              color: photoType === v ? th.primaryText : th.textSec,
+              fontSize: 12, fontWeight: 600, fontFamily: 'inherit'
+            }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <label style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 10, padding: '20px',
+        background: preview ? 'transparent' : th.surface2, borderRadius: 14,
+        border: `2px dashed ${th.border}`, cursor: 'pointer', marginBottom: 14
+      }}>
+        {preview
+          ? <img src={preview} alt="trabajo"
+            style={{ width: '100%', borderRadius: 12, maxHeight: 220, objectFit: 'contain' }} />
+          : <>
+            <span style={{ fontSize: 36 }}>📷</span>
+            <span style={{ fontSize: 13, color: th.textSec, fontWeight: 600 }}>Toca para elegir foto</span>
+          </>
+        }
+        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      </label>
+      <Input label="Descripción (opcional)" value={caption} onChange={setCaption}
+        placeholder="Ej: Instalación terminada, probado y funcionando" />
+      <Btn onClick={handleUpload} loading={loading} disabled={!file}>
+        📤 Subir foto
+      </Btn>
+    </Modal>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL: DISPUTA
+// ─────────────────────────────────────────────────────────────
+function DisputeModal({ request, user, th, onClose, onSuccess }) {
+  const REASONS = [
+    'El técnico no se presentó',
+    'El trabajo no quedó bien terminado',
+    'Se cobró más de lo acordado',
+    'El técnico causó daños adicionales',
+    'El cliente no quiere pagar',
+    'El cliente no facilita el acceso',
+    'Otro motivo',
+  ]
+  const [reason, setReason] = useState('')
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleOpen = async () => {
+    if (!reason) { alert('Selecciona un motivo'); return }
+    setLoading(true)
+    try {
+      const d = await disputeActions.open(request.id, user.id, reason, description)
+      onSuccess(d)
+    } catch (err) {
+      alert('Error: ' + (err?.message ?? ''))
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <Modal title="⚠️ Abrir disputa" onClose={onClose} th={th}>
+      <div style={{
+        background: '#fff7ed', borderRadius: 12, padding: 14,
+        border: '1px solid #fed7aa', marginBottom: 16
+      }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#9a3412' }}>
+          Al abrir una disputa el equipo de soporte de TECNIFIX revisará el caso y tomará una decisión.
+          El pago quedará congelado hasta resolución.
+        </p>
+      </div>
+      <p style={{ fontSize: 13, fontWeight: 600, color: th.text, margin: '0 0 10px' }}>Motivo de la disputa:</p>
+      {REASONS.map(r => (
+        <button key={r} onClick={() => setReason(r)}
+          style={{
+            width: '100%', padding: '10px 14px', marginBottom: 8, borderRadius: 12,
+            border: `1.5px solid ${reason === r ? '#ef4444' : th.border}`,
+            background: reason === r ? '#fee2e2' : 'transparent',
+            color: reason === r ? '#991b1b' : th.text,
+            fontSize: 13, fontWeight: reason === r ? 700 : 400,
+            cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit'
+          }}>
+          {reason === r ? '● ' : '○ '}{r}
+        </button>
+      ))}
+      <div style={{ height: 8 }} />
+      <Input label="Descripción adicional (opcional)" value={description} onChange={setDescription}
+        placeholder="Explica en detalle lo que ocurrió..." rows={3} />
+      <Btn onClick={handleOpen} loading={loading} disabled={!reason} variant="danger">
+        ⚠️ Abrir disputa formalmente
+      </Btn>
+    </Modal>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL: RECIBO COMPLETO
+// ─────────────────────────────────────────────────────────────
+function ReceiptDetailModal({ receipt, th, onClose, onDownload }) {
+  const METHOD = { yappy: '💚 Yappy', transfer: '🏦 Transferencia bancaria', cash: '💵 Efectivo' }
+  return (
+    <Modal title="Recibo de pago" onClose={onClose} th={th}>
+      <div style={{
+        background: '#f0fdf4', borderRadius: 14, padding: 16,
+        border: '1px solid #bbf7d0', marginBottom: 16
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', marginBottom: 14,
+          paddingBottom: 14, borderBottom: '1px solid #bbf7d0'
+        }}>
+          <div>
+            <p style={{ margin: '0 0 2px', fontWeight: 800, fontSize: 16, color: '#15803d' }}>
+              {receipt.receipt_number}
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: th.verifiedText }}>
+              {new Date(receipt.issued_at).toLocaleString('es-PA')}
+            </p>
+          </div>
+          <span style={{
+            background: th.verifiedLight, color: th.verifiedText, fontSize: 12,
+            fontWeight: 700, padding: '4px 12px', borderRadius: 20, alignSelf: 'flex-start'
+          }}>
+            ✓ Pagado
+          </span>
+        </div>
+        {[
+          ['Servicio', receipt.service_title],
+          ['Descripción', receipt.service_description || '—'],
+          ['Cliente', receipt.client_name],
+          ['Técnico', receipt.technician_name],
+          ['Método de pago', METHOD[receipt.payment_method] ?? receipt.payment_method],
+          ['Referencia', receipt.payment_reference || '—'],
+        ].map(([label, val]) => (
+          <div key={label} style={{
+            display: 'flex', justifyContent: 'space-between',
+            padding: '6px 0', borderBottom: '1px solid #d1fae5'
+          }}>
+            <span style={{ fontSize: 13, color: th.verifiedText }}>{label}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#15803d', maxWidth: '60%', textAlign: 'right' }}>{val}</span>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, marginTop: 4 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#15803d' }}>Total pagado</span>
+          <span style={{ fontWeight: 900, fontSize: 22, color: '#15803d' }}>
+            ${Number(receipt.amount).toFixed(2)}
+          </span>
+        </div>
+      </div>
+      <p style={{ fontSize: 10, color: th.textSec, margin: '0 0 16px', wordBreak: 'break-all' }}>
+        Firma digital: {receipt.signature_hash?.slice(0, 40)}...
+      </p>
+      <Btn onClick={onDownload}>Descargar PDF</Btn>
+    </Modal>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Modal genérico (reutiliza el de UI.jsx pero inline aquí)
+// ─────────────────────────────────────────────────────────────
+function Modal({ title, children, onClose, th }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+    }}
+      onClick={onClose}>
+      <div style={{
+        background: th.surface, borderRadius: '20px 20px 0 0',
+        padding: '20px 20px 40px', width: '100%', maxWidth: 430,
+        maxHeight: '88vh', overflowY: 'auto', animation: 'slideUp 0.3s ease'
+      }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
+          <h3 style={{ flex: 1, margin: 0, fontSize: 17, fontWeight: 800, color: th.text }}>{title}</h3>
+          <button onClick={onClose} style={{
+            background: th.surface2, border: 'none',
+            borderRadius: 20, width: 32, height: 32, fontSize: 18, cursor: 'pointer',
+            color: th.textSec, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHAT SECTION — mensajería interna entre cliente y técnico
+// ─────────────────────────────────────────────────────────────
+function ChatSection({ request, user, isClient, th, lang }) {
+  const [messages, setMessages] = useState([])
+  const [text, setText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const scrollRef = useRef(null)
+
+  const otherName = isClient ? request.technician_name : request.client_name
+
+  // Cargar mensajes + marcar leídos
+  useEffect(() => {
+    if (!request?.id) return
+    chatApi.list(request.id)
+      .then(setMessages)
+      .catch(() => { })
+      .finally(() => setLoading(false))
+    chatApi.markRead(request.id, user.id).catch(() => { })
+  }, [request?.id])
+
+  // Suscripción realtime a nuevos mensajes
+  useEffect(() => {
+    if (!request?.id) return
+    const unsub = chatApi.subscribe(request.id, (msg) => {
+      setMessages(prev => [...prev, msg])
+      if (msg.sender_id !== user.id) {
+        chatApi.markRead(request.id, user.id).catch(() => { })
+      }
+    })
+    return unsub
+  }, [request?.id, user.id])
+
+  // Auto-scroll al fondo cuando llegan mensajes nuevos
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages.length])
+
+  const handleSend = async () => {
+    const body = text.trim()
+    if (!body || sending) return
+    setSending(true)
+    setText('')
+    try {
+      const msg = await chatApi.send(request.id, user.id, body)
+      // Optimista: ya llegará también por realtime, pero evita duplicar visualmente
+      setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
+    } catch {
+      setText(body) // restaurar si falla
+    } finally { setSending(false) }
+  }
+
+  const formatTime = (iso) => new Date(iso).toLocaleTimeString('es-PA', {
+    hour: '2-digit', minute: '2-digit',
+  })
+
+  const formatDateSep = (iso) => new Date(iso).toLocaleDateString('es-PA', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  })
+
+  // Agrupar por día para mostrar separadores de fecha
+  let lastDate = null
+
+  return (
+    <Section title={`💬 ${lang === 'en' ? 'Chat with' : 'Chat con'} ${otherName}`} th={th}>
+      {/* Aviso informativo */}
+      <div style={{
+        background: '#eff6ff', borderRadius: 10, padding: '8px 10px',
+        marginBottom: 10, border: '1px solid #bfdbfe'
+      }}>
+        <p style={{ margin: 0, fontSize: 11, color: th.primary, lineHeight: 1.5 }}>
+          ℹ️ {lang === 'en'
+            ? 'Messages are kept as evidence for this service request.'
+            : 'Los mensajes quedan registrados como evidencia de esta solicitud.'}
+        </p>
+      </div>
+
+      {/* Lista de mensajes */}
+      <div ref={scrollRef} style={{
+        maxHeight: 320, overflowY: 'auto', display: 'flex',
+        flexDirection: 'column', gap: 6, marginBottom: 10,
+        padding: '4px 2px',
+      }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
+            <Spinner />
+          </div>
+        ) : messages.length === 0 ? (
+          <p style={{ textAlign: 'center', fontSize: 13, color: th.textSec, padding: '16px 0' }}>
+            {lang === 'en'
+              ? 'No messages yet. Say hello! 👋'
+              : 'Sin mensajes aún. ¡Saluda! 👋'}
+          </p>
+        ) : (
+          messages.map(m => {
+            const mine = m.sender_id === user.id
+            const dateLabel = formatDateSep(m.created_at)
+            const showDateSep = dateLabel !== lastDate
+            lastDate = dateLabel
+
+            return (
+              <div key={m.id}>
+                {showDateSep && (
+                  <div style={{ textAlign: 'center', margin: '8px 0 4px' }}>
+                    <span style={{
+                      fontSize: 10, color: th.textSec,
+                      background: th.surface2, padding: '2px 10px', borderRadius: 20
+                    }}>
+                      {dateLabel}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '78%', padding: '8px 12px', borderRadius: 14,
+                    background: mine ? th.primary : th.surface2,
+                    color: mine ? '#fff' : th.text,
+                    borderBottomRightRadius: mine ? 4 : 14,
+                    borderBottomLeftRadius: mine ? 14 : 4,
+                  }}>
+                    <p style={{
+                      margin: 0, fontSize: 13, lineHeight: 1.4,
+                      wordBreak: 'break-word', whiteSpace: 'pre-wrap'
+                    }}>
+                      {m.body}
+                    </p>
+                    <p style={{
+                      margin: '3px 0 0', fontSize: 10,
+                      textAlign: 'right',
+                      color: mine ? 'rgba(255,255,255,0.7)' : th.textSec
+                    }}>
+                      {formatTime(m.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Input de mensaje */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+          placeholder={lang === 'en' ? 'Type a message...' : 'Escribe un mensaje...'}
+          style={{
+            flex: 1, padding: '10px 14px', borderRadius: 20,
+            border: `1.5px solid ${th.inputBorder}`, background: th.inputBg,
+            color: th.text, fontSize: 14, outline: 'none', fontFamily: 'inherit'
+          }}
+        />
+        <button onClick={handleSend} disabled={!text.trim() || sending}
+          style={{
+            width: 42, height: 42, borderRadius: 21, border: 'none',
+            background: text.trim() ? th.primary : th.border,
+            color: '#fff', fontSize: 18, cursor: text.trim() ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, fontFamily: 'inherit'
+          }}>
+          {sending ? <Spinner size={16} /> : '➤'}
+        </button>
+      </div>
+    </Section>
+  )
+}

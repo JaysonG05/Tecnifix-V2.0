@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { registerServiceWorker, showLocalNotification, listenNotificationClicks } from '../lib/pushNotifications.js'
 import { supabase, auth, profiles, favorites as favoritesApi, notifications } from '../lib/supabase.js'
+import { assertRunningOnAllowedOrigin } from '../lib/security.js'
+
+// Verificar origen una sola vez al cargar el módulo (antes de montar nada)
+assertRunningOnAllowedOrigin()
 
 const AppContext = createContext(null)
 export const useApp = () => useContext(AppContext)
@@ -14,7 +19,7 @@ export function AppProvider({ children }) {
 
   // ── Sesión / Usuario ───────────────────────────────────
   const [session, setSession] = useState(null)
-  const [user, setUser] = useState(null)   // fila de profiles
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // ── Favoritos ──────────────────────────────────────────
@@ -27,6 +32,11 @@ export function AppProvider({ children }) {
   // ── Navegación ─────────────────────────────────────────
   const [screen, setScreen] = useState('home')
 
+  // ── Registrar Service Worker para notificaciones push ──────
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
+
   // ── Detección de tamaño de pantalla (responsive desktop/mobile) ──
   const [isDesktop, setIsDesktop] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= 900 : false
@@ -36,74 +46,68 @@ export function AppProvider({ children }) {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
   const [selectedTech, setSelectedTech] = useState(null)
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [history, setHistory] = useState(['home'])
 
+  // ── navigate: pushea al historial del navegador ─────────────
+  // Esto garantiza que el botón Back físico de Android/iOS
+  // llame a popstate en vez de salir completamente de la app.
   const navigate = useCallback((s) => {
+    window.history.pushState({ tfScreen: s }, '', window.location.pathname)
     setHistory(h => [...h, s])
     setScreen(s)
-    // Empuja una entrada al historial del navegador para que el botón
-    // "atrás" del navegador funcione de forma nativa.
-    if (typeof window !== 'undefined') window.history.pushState({ cpScreen: s }, '')
   }, [])
 
+  // ── goBack: retrocede en el stack interno ───────────────────
   const goBack = useCallback(() => {
     setHistory(h => {
-      // Si hay historial dentro de la app, delega en el navegador
-      // (dispara popstate, que actualiza la pantalla). Si no, va a home.
-      if (h.length <= 1) {
-        setScreen('home')
-        return ['home']
-      }
-      if (typeof window !== 'undefined') window.history.back()
-      return h
+      const prev = h.length <= 1 ? 'home' : h[h.length - 2]
+      setScreen(prev)
+      return h.length <= 1 ? ['home'] : h.slice(0, -1)
     })
   }, [])
 
-  // ── Sincronización con el historial del navegador ──────
+  // ── Interceptar botón Back del dispositivo (Android / iOS PWA)
+  // Se añade una entrada "dummy" al historial del navegador para que
+  // el back físico dispare popstate en vez de cerrar/salir de la app.
   useEffect(() => {
-    window.history.replaceState({ cpScreen: 'home' }, '')
-    const onPop = (e) => {
-      const s = e.state?.cpScreen || 'home'
-      setScreen(s)
-      setHistory(h => (h.length > 1 ? h.slice(0, -1) : ['home']))
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
+    // Seed inicial: asegura que siempre haya al menos una entrada "antes"
+    window.history.pushState({ tfScreen: 'home' }, '', window.location.pathname)
 
-  // ── Cargar sesión inicial ──────────────────────────────
+    const handlePopState = () => {
+      // Reempuja para mantener el ciclo (no dejar historial vacío)
+      window.history.pushState({ tfScreen: 'keep' }, '', window.location.pathname)
+      // Ejecuta el back interno de la app
+      goBack()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [goBack])
+
+  // ── Cargar sesión inicial ───────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
-      if (s) loadProfile(s.user.id, s.user)
+      if (s) loadProfile(s.user.id)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
-      if (s) loadProfile(s.user.id, s.user)
+      if (s) loadProfile(s.user.id)
       else { setUser(null); setFavoriteIds([]); setNotifs([]); setLoading(false) }
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  const profileFromAuth = (authUser) => ({
-    id: authUser.id,
-    full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuario Tecnifix',
-    email: authUser.email,
-    role: authUser.user_metadata?.role || 'user',
-    avatar_url: authUser.user_metadata?.avatar_url || null,
-  })
-
-  const loadProfile = async (userId, authUser = null) => {
+  const loadProfile = async (userId) => {
     try {
-      const profile = authUser
-        ? await profiles.ensureFromAuth(authUser).catch(() => profileFromAuth(authUser))
-        : await profiles.get(userId)
-      setUser(profile.email ? profile : { ...profile, email: authUser?.email })
+      const profile = await profiles.get(userId)
+      setUser(profile)
       // Cargar favoritos
       const fids = await favoritesApi.list(userId)
       setFavoriteIds(fids)
@@ -124,19 +128,40 @@ export function AppProvider({ children }) {
     } catch { }
   }
 
-  // ── Suscripción tiempo real a notificaciones ───────────
+  // ── Suscripción tiempo real a notificaciones ────────────────
   useEffect(() => {
     if (!user?.id) return
     const channel = notifications.subscribe(user.id, (newNotif) => {
       setNotifs(prev => [newNotif, ...prev])
       setUnreadCount(c => c + 1)
-      // Vibrar si el navegador lo soporta
       if ('vibrate' in navigator) navigator.vibrate(200)
+      let data = {}
+      try { data = typeof newNotif.data === 'string' ? JSON.parse(newNotif.data) : (newNotif.data || {}) } catch { }
+      const requestId = data.request_id
+      showLocalNotification({
+        title: newNotif.title,
+        body: newNotif.body || '',
+        tag: `notif-${newNotif.type}`,
+        url: requestId ? `/?screen=request-detail&request=${requestId}` : '/',
+      })
     })
     return () => supabase.removeChannel(channel)
   }, [user?.id])
 
-  // ── Toggle favorito ────────────────────────────────────
+  // ── Manejar clic en notificación del sistema ────────────────
+  useEffect(() => {
+    const unsub = listenNotificationClicks((url) => {
+      try {
+        const params = new URL(url, window.location.origin).searchParams
+        const target = params.get('screen')
+        if (target === 'request-detail') setScreen('notifications')
+        else if (target) setScreen(target)
+      } catch { }
+    })
+    return unsub
+  }, [])
+
+  // ── Toggle favorito ─────────────────────────────────────────
   const toggleFavorite = useCallback(async (techId) => {
     if (!user) { navigate('login'); return }
     const isFav = favoriteIds.includes(techId)
@@ -153,17 +178,13 @@ export function AppProvider({ children }) {
 
   // ── Refresh user ───────────────────────────────────────
   const refreshUser = useCallback(async () => {
-    const authUser = session?.user || await auth.getUser().catch(() => null)
-    if (!authUser?.id) return
-    const profile = await profiles.ensureFromAuth(authUser).catch(() => profileFromAuth(authUser))
+    if (!session?.user?.id) return
+    const profile = await profiles.get(session.user.id)
     setUser(profile)
   }, [session])
 
   // ── Tema (colores) ─────────────────────────────────────
-  // El landing (home) replica la plantilla DEWATT en tema CLARO, así que se
-  // fuerza claro en esa pantalla aunque el usuario tenga el modo oscuro
-  // activado. El resto de pantallas respeta el toggle normalmente.
-  const th = buildTheme(darkMode && screen !== 'home')
+  const th = buildTheme(darkMode)
 
   const value = {
     // Auth
@@ -189,42 +210,88 @@ export function AppProvider({ children }) {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: th.bg, flexDirection: 'column', gap: 16 }}>
-      <div style={{ width: 48, height: 48, borderRadius: 24, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🔧</div>
-      <div style={{ width: 32, height: 4, borderRadius: 2, background: '#e2e8f0', overflow: 'hidden' }}>
-        <div style={{ width: '60%', height: '100%', background: '#2563eb', animation: 'slideIn 1s infinite' }} />
+    <div style={{
+      position: 'fixed', inset: 0, background: '#00214D',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32
+    }}>
+
+      {/* Logo TECNIFIX animado */}
+      <div style={{ textAlign: 'center', animation: 'tfFadeIn 0.6s ease forwards' }}>
+        {/* Ícono: llave inglesa + rayo (SVG inline) */}
+        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}>
+          <img src="./favicon.png" alt="TECNIFIX" width="72" height="72" style={{ borderRadius: 18, objectFit: 'cover' }} />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 1 }}>
+          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, color: '#FFFFFF', letterSpacing: -1 }}>TECNI</span>
+          <span style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 36, color: '#FFD600', letterSpacing: -1 }}>FIX</span>
+        </div>
+        <p style={{ margin: '6px 0 0', fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, textTransform: 'uppercase' }}>
+          Técnicos en todo Panamá
+        </p>
       </div>
+
+      {/* Barra de carga minimalista */}
+      <div style={{ width: 160, height: 2, background: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ height: '100%', background: '#FFD600', borderRadius: 2, animation: 'tfProgress 1.6s ease infinite' }} />
+      </div>
+      <style>{`
+        @keyframes tfFadeIn { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes tfProgress {
+          0%   { width: 0%;   margin-left: 0 }
+          50%  { width: 70%;  margin-left: 0 }
+          100% { width: 0%;   margin-left: 100% }
+        }
+      `}</style>
     </div>
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
 
+// ============================================================
+//  Sistema de diseño TECNIFIX — Profesional · Panamá
+//  Navy profundo (#00214D) + Amarillo acento (#FFD600)
+//  + Verde confianza (#00C47D) + Blanco puro
+// ============================================================
 function buildTheme(dark) {
+  const shared = {
+    fontDisplay: "'Space Grotesk','Inter',system-ui,sans-serif",
+    fontBody: "'Inter',system-ui,-apple-system,sans-serif",
+    fontMono: "'JetBrains Mono','SFMono-Regular',monospace",
+    whatsapp: '#25D366',
+    // ── Amarillo TECNIFIX ──
+    yellow: '#FFD600',
+    yellowDark: '#E0BC00',
+    yellowLight: dark ? '#2A2400' : '#FFFAD6',
+    yellowText: dark ? '#FFE55C' : '#7A5E00',
+    brass: '#FFD600',
+    // ── Verde TECNIFIX ──
+    verified: '#00C47D',
+    verifiedLight: dark ? '#003626' : '#D6F7EC',
+    verifiedText: dark ? '#5FFCC0' : '#00704A',
+    // ── Rojo / azul ──
+    red: dark ? '#FF6B6B' : '#E5282D',
+    blue: dark ? '#5EA3FF' : '#1E6FFF',
+  }
+  if (dark) return {
+    ...shared,
+    bg: '#06101A', surface: '#0D1E2D', surface2: '#122334',
+    border: '#1A3347', ink: '#F0F6FF', paper: '#06101A',
+    text: '#F0F6FF', textSec: '#6A8DA3',
+    primary: '#00B4D8', primaryDark: '#009ABD', primaryLight: '#00243A', primaryText: '#5CDEFF',
+    accent: '#00B4D8', accentDark: '#009ABD', accentLight: '#00243A', accentText: '#5CDEFF',
+    navBg: '#0D1E2D', inputBg: '#122334', inputBorder: '#1F3D54',
+    shadow: '0 16px 40px rgba(0,0,0,0.55)', shadowSm: '0 4px 16px rgba(0,0,0,0.40)',
+  }
   return {
-    bg: dark ? '#0f172a' : '#f8fafc',
-    surface: dark ? '#1e293b' : '#ffffff',
-    surface2: dark ? '#334155' : '#f1f5f9',
-    border: dark ? '#334155' : '#e2e8f0',
-    text: dark ? '#f1f5f9' : '#0f172a',
-    textSec: dark ? '#94a3b8' : '#64748b',
-    primary: '#2563eb',
-    primaryDark: '#1d4ed8',
-    primaryLight: dark ? '#1e3a8a' : '#dbeafe',
-    primaryText: dark ? '#93c5fd' : '#1e40af',
-    red: dark ? '#f87171' : '#ef4444',
-    yellow: '#fbbf24',
-    blue: dark ? '#60a5fa' : '#3b82f6',
-    navBg: dark ? '#1e293b' : '#ffffff',
-    inputBg: dark ? '#334155' : '#ffffff',
-    inputBorder: dark ? '#475569' : '#d1d5db',
-    whatsapp: '#25d366',
-    // Sombras en capas para mayor profundidad y realismo
-    shadow: dark
-      ? '0 1px 2px rgba(0,0,0,0.5), 0 6px 20px rgba(0,0,0,0.35)'
-      : '0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.07)',
-    shadowLg: dark
-      ? '0 8px 32px rgba(0,0,0,0.55)'
-      : '0 12px 32px rgba(15,23,42,0.12)',
+    ...shared,
+    bg: '#F0F5FA', surface: '#FFFFFF', surface2: '#E8F1F8',
+    border: '#D1E0ED', ink: '#00214D', paper: '#F0F5FA',
+    text: '#00214D', textSec: '#4A6A8A',
+    primary: '#0053A0', primaryDark: '#003F80', primaryLight: '#DDEEFF', primaryText: '#00214D',
+    accent: '#0053A0', accentDark: '#003F80', accentLight: '#DDEEFF', accentText: '#00214D',
+    navBg: '#FFFFFF', inputBg: '#FFFFFF', inputBorder: '#C5D8EC',
+    shadow: '0 12px 32px rgba(0,33,77,0.12)', shadowSm: '0 4px 14px rgba(0,33,77,0.07)',
   }
 }
