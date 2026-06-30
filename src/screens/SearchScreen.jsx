@@ -94,7 +94,7 @@ export function SearchScreen() {
   const [province, setProvince] = useState(selectedCategory?.province || 'all')
   const [sort, setSort] = useState('average_rating')
   const [onlyAvailable, setOnlyAvailable] = useState(false)
-  const [onlyVerified, setOnlyVerified] = useState(false)
+  const [onlyVerified, setOnlyVerified] = useState(true)
   const [maxPrice, setMaxPrice] = useState(100)
   const [minRating, setMinRating] = useState(0)
   const [emergency, setEmergency] = useState(selectedCategory?.emergency || false)
@@ -139,6 +139,9 @@ export function SearchScreen() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     return results.filter(tech => {
+      const status = String(tech.verification_status || 'unverified').toLowerCase()
+      const isPublicVerified = status === 'verified' || tech.is_verified === true || tech.verified === true
+      if (!isPublicVerified) return false
       if (maxPrice < 100 && Number(tech.min_price ?? 0) > maxPrice) return false
       if (minRating > 0 && Number(tech.average_rating ?? 0) < minRating) return false
       if (province !== 'all' && (tech.province || '') !== province) return false
@@ -176,7 +179,7 @@ export function SearchScreen() {
   }, [visible, sort, intent])
 
   const openTech = (tech) => { setSelectedTech(tech); navigate('tech-profile') }
-  const clearAll = () => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(false); setMaxPrice(100); setMinRating(0); setQuery(''); setProvince('all'); setEmergency(false); setCompanyOnly(false) }
+  const clearAll = () => { setFilter('all'); setOnlyAvailable(false); setOnlyVerified(true); setMaxPrice(100); setMinRating(0); setQuery(''); setProvince('all'); setEmergency(false); setCompanyOnly(false) }
 
   // ------------------------------------------------------------------
   // UI COMPONENTS
@@ -199,7 +202,7 @@ export function SearchScreen() {
         <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#102840' }}>Confianza</h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <input type="checkbox" checked={onlyVerified} onChange={e => setOnlyVerified(e.target.checked)} style={{ width: 18, height: 18, accentColor: NAVY }} />
+            <input type="checkbox" checked={onlyVerified} onChange={() => setOnlyVerified(true)} style={{ width: 18, height: 18, accentColor: NAVY }} />
             <span style={{ fontSize: 14, fontWeight: 500, color: '#334155' }}>Solo verificados</span>
           </label>
         </div>
@@ -257,7 +260,7 @@ export function SearchScreen() {
   )
 
   return (
-    <div style={{ background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ background: '#F8FAFC', minHeight: '100dvh', fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { scrollbar-width: none; }
@@ -377,7 +380,7 @@ export function SearchScreen() {
             <button onClick={() => setSort('average_rating')} style={{
               flexShrink: 0, padding: '8px 16px', borderRadius: 99, background: sort === 'average_rating' ? '#f1f5f9' : '#fff', border: `1px solid ${sort === 'average_rating' ? '#cbd5e1' : '#e2e8f0'}`, color: sort === 'average_rating' ? '#0f172a' : '#475569', fontWeight: 600, fontSize: 14
             }}>⭐ Mejor calificados</button>
-            <button onClick={() => setOnlyVerified(v => !v)} style={{
+            <button onClick={() => setOnlyVerified(true)} style={{
               flexShrink: 0, padding: '8px 16px', borderRadius: 99, background: onlyVerified ? '#dbeafe' : '#fff', border: `1px solid ${onlyVerified ? '#bfdbfe' : '#e2e8f0'}`, color: onlyVerified ? '#1e40af' : '#475569', fontWeight: 600, fontSize: 14
             }}>✓ Verificados</button>
             <button onClick={() => setOnlyAvailable(v => !v)} style={{
@@ -387,7 +390,7 @@ export function SearchScreen() {
           
           {/* Contador de resultados */}
           <div style={{ color: '#475569', fontSize: 14, fontWeight: 600 }}>
-            {loading ? 'Buscando...' : `${visible.length} técnicos encontrados`}
+            {loading ? 'Buscando...' : `${visible.length} técnicos verificados encontrados`}
           </div>
         </div>
 
@@ -429,7 +432,7 @@ export function SearchScreen() {
                   <EmptyState 
                     emoji="🧭" 
                     title="No encontramos técnicos con esos filtros"
-                    sub="Prueba cambiando la provincia, el oficio o los filtros avanzados."
+                    sub="Solo mostramos técnicos aprobados por el dueño. Prueba cambiando la provincia, el oficio o los filtros avanzados."
                     action={<button onClick={clearAll} style={{ background: NAVY, color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Limpiar filtros</button>} 
                   />
                 </div>

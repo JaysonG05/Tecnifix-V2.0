@@ -503,7 +503,7 @@ export function HomeScreen() {
     <main className="dewatt-home">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Inter+Tight:wght@600;700;800;900&display=swap');
-        .dewatt-home{ --navy:${NAVY}; --navy-dark:${NAVY_DARK}; --gold:${GOLD}; --text:${TEXT}; --wrap:min(91.2vw,1340px); background:#fff; color:var(--navy); font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; min-height:100vh; overflow:hidden; }
+        .dewatt-home{ --navy:${NAVY}; --navy-dark:${NAVY_DARK}; --gold:${GOLD}; --text:${TEXT}; --wrap:min(91.2vw,1340px); background:#fff; color:var(--navy); font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; min-height:100dvh; overflow:hidden; }
         .dewatt-home *{ box-sizing:border-box; letter-spacing:0; }
         .dewatt-wrap{ width:var(--wrap); margin:0 auto; }
         .dw-title h2{ margin:0; font-family:'Inter Tight',Inter,sans-serif; font-size:clamp(46px,4.2vw,72px); font-weight:700; line-height:.98; color:var(--navy); }
@@ -685,7 +685,7 @@ export function HomeScreen() {
           .dw-play{ width:78px; height:78px; border-width:5px; }
           .dw-play svg{ width:32px; height:32px; }
 
-          .dw-hero{ height:min(860px,calc(100vh - 84px)); min-height:720px; }
+          .dw-hero{ height:min(860px,calc(100dvh - 84px)); min-height:720px; }
           .dw-hero-content{ padding:70px 0 24px; }
           .dw-hero h1{ font-size:clamp(48px,4.1vw,76px); }
           .dw-hero-actions{ margin-top:38px; gap:28px; }
@@ -990,7 +990,7 @@ export function HomeScreen() {
         .dw-emergency b{ font-weight:900; }
         .dw-emergency-ping{ position:absolute; inset:0; border-radius:999px; border:2px solid #e11d2a; animation:dwPing 1.8s ease-out infinite; pointer-events:none; }
         @keyframes dwPing{ 0%{ transform:scale(1); opacity:.7 } 100%{ transform:scale(1.35); opacity:0 } }
-        @media (max-width:760px){ .dw-emergency{ bottom:84px; right:14px; padding:13px 18px; font-size:14px; } .dw-emergency-txt b{ } }
+        @media (max-width:760px){ .dw-emergency{ bottom:calc(84px + env(safe-area-inset-bottom, 0px)); right:14px; padding:13px 18px; font-size:14px; } .dw-emergency-txt b{ } }
       `}</style>
 
       <HeroSection navigate={navigate} user={user} />
@@ -1276,7 +1276,7 @@ export function HomeScreen() {
             </a>
           </div>
           {(!user || user.role === 'user') && (
-            <p style={{ marginTop: 36, color: GOLD, fontSize: 20, fontWeight: 700, cursor: 'pointer' }} onClick={() => navigate(user ? 'edit-tech-profile' : 'register')}>
+            <p style={{ marginTop: 36, color: GOLD, fontSize: 20, fontWeight: 700, cursor: 'pointer' }} onClick={() => navigate(user?.role === 'technician' ? 'verification-center' : 'register')}>
               ¿Eres técnico? Regístrate aquí
             </p>
           )}
@@ -1307,7 +1307,7 @@ export function HomeScreen() {
                 ['Urgencias', runEmergency],
                 ['Empresas', () => scrollHomeSection('business')],
                 ['Garantía', () => scrollHomeSection('guarantee')],
-                ['Soy técnico', () => navigate(user ? 'edit-tech-profile' : 'register')],
+                ['Soy técnico', () => navigate(user?.role === 'technician' ? 'verification-center' : 'register')],
                 ['Contacto', () => scrollHomeSection('contact')],
               ].map(([label, action]) => <li key={label} onClick={action}>{label}</li>)}
             </ul>

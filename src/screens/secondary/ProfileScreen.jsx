@@ -87,7 +87,7 @@ export function ProfileScreen() {
       })
       navigate('tech-profile')
     } catch {
-      navigate('edit-tech-profile')
+      navigate('verification-center')
     } finally {
       setOpeningPublicProfile(false)
     }
@@ -196,7 +196,7 @@ export function ProfileScreen() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 12, fontWeight: 900, color: '#f8db13' }}>{techStatusLabel} · {techProgress}%</span>
-                  <button onClick={() => navigate('edit-tech-profile')} style={{
+                  <button onClick={() => navigate('verification-center')} style={{
                     border: 0,
                     borderRadius: 12,
                     background: '#f8db13',
@@ -260,7 +260,7 @@ export function ProfileScreen() {
               }}>
                 {openingPublicProfile ? 'Abriendo...' : 'Ver mi perfil público'}
               </button>
-              <button onClick={() => navigate('edit-tech-profile')} style={{
+              <button onClick={() => navigate('verification-center')} style={{
                 padding: '11px 10px',
                 borderRadius: 12,
                 border: `1px solid ${th.border}`,
@@ -271,7 +271,7 @@ export function ProfileScreen() {
                 cursor: 'pointer',
                 fontFamily: 'inherit',
               }}>
-                Editar postulación
+                Centro de verificación
               </button>
             </div>
           </div>
@@ -283,7 +283,7 @@ export function ProfileScreen() {
             { icon: '✏️', label: t.editProfile, screen: 'edit-profile' },
             { icon: '🧾', label: 'Mis recibos', screen: 'my-receipts' },
             ...(user.role === 'technician' ? [
-              { icon: '🛡️', label: 'Centro de Verificación', screen: 'edit-tech-profile' },
+              { icon: '🛡️', label: 'Centro de Verificación', screen: 'verification-center' },
               { icon: '👁️', label: 'Ver mi perfil público', onClick: openPublicProfile },
               { icon: '📈', label: 'Insights IA de mi perfil', screen: 'tech-insights' },
               { icon: '🛠️', label: t.editProfProfile, screen: 'edit-tech-profile' },
@@ -430,7 +430,7 @@ function VerifiedTechnicianPanel({ user, th, t, myTech, requests, unreadCount, o
             <button onClick={openPublicProfile} disabled={openingPublicProfile}>
               {openingPublicProfile ? 'Abriendo...' : 'Ver perfil'}
             </button>
-            <button onClick={() => navigate('edit-tech-profile')}>Editar</button>
+            <button onClick={() => navigate('verification-center')}>Verificación</button>
           </div>
           <button className="tf-logout-link" onClick={handleLogout}>Cerrar sesión</button>
         </aside>
@@ -517,7 +517,7 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
               </p>
             </div>
             <div className="tf-pending-actions">
-              <button onClick={() => navigate('edit-tech-profile')}>{myTech ? 'Abrir centro de verificación' : 'Completar verificación'}</button>
+              <button onClick={() => navigate('verification-center')}>{myTech ? 'Abrir centro de verificación' : 'Completar verificación'}</button>
               <button onClick={() => window.location.reload()}>Actualizar estado</button>
             </div>
           </section>

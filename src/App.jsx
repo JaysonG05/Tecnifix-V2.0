@@ -106,7 +106,7 @@ function Router() {
   // (landing y formularios principales) no deben quedar dentro del contenedor centrado.
   const fullBleed = [
     'home', 'search', 'map', 'tech-profile', 'favorites',
-    'profile', 'login', 'register', 'edit-tech-profile',
+    'profile', 'login', 'register', 'edit-tech-profile', 'verification-center',
   ].includes(screen)
   // Pantallas principales que muestran el navbar superior compartido.
   // 'home' se excluye: el nuevo HeroSection trae su propia navbar (fondo blanco).
@@ -115,7 +115,7 @@ function Router() {
   return (
     <div style={{
       maxWidth: 'none',
-      margin: 0, minHeight: '100vh',
+      margin: 0, minHeight: '100dvh',
       background: th.bg, position: 'relative',
       fontFamily: "'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
     }}>
@@ -134,17 +134,33 @@ function Router() {
         *,*::before,*::after{ box-sizing:border-box; }
         *{ -webkit-tap-highlight-color:transparent; }
         ::-webkit-scrollbar{ display:none; }
+        html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
         body{
           margin:0;
           font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
           -webkit-font-smoothing:antialiased;
           -moz-osx-font-smoothing:grayscale;
           letter-spacing:0;
+          /* Evita el rebote de scroll-chaining en móvil sin matar el pull-to-refresh */
+          overscroll-behavior-y:contain;
         }
+        /* Imágenes y multimedia nunca desbordan el ancho del móvil */
+        img,svg,video{ max-width:100%; height:auto; }
+        /* Excepción: Leaflet posiciona sus tiles con tamaños propios */
+        .leaflet-container img,.leaflet-container svg{ max-width:none; height:auto; }
         input,select,button,textarea{ font-family:inherit; }
+        /* Móvil: 16px mínimo en campos evita el auto-zoom de iOS al enfocar
+           (cubre también los inputs con estilos propios de login/registro). */
+        @media (max-width:768px){
+          input,select,textarea{ font-size:16px !important; }
+        }
         /* Transiciones suaves y feedback táctil en elementos interactivos */
         button, [role="button"], a{ transition:transform .12s ease, box-shadow .18s ease, background-color .18s ease, opacity .18s ease; }
         button:active, [role="button"]:active{ transform:scale(.97); }
+        /* Móvil: respuesta táctil inmediata (sin retardo de 300ms) y sin
+           selección de texto / callout al tocar o mantener pulsado un control. */
+        button, [role="button"], a, label, summary{ touch-action:manipulation; }
+        button, [role="button"]{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
         /* Accesibilidad: anillo de foco visible solo con teclado */
         :focus-visible{ outline:2px solid #2563eb; outline-offset:2px; border-radius:6px; }
         h1,h2,h3{ letter-spacing:0; }
@@ -156,13 +172,15 @@ function Router() {
       {showTopNav && <TopNav />}
 
       <div style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         maxWidth: isDesktop ? (fullBleed ? '100%' : 880) : '100%',
         margin: isDesktop && !fullBleed ? '0 auto' : 0,
         // Un solo `padding` para no mezclar shorthand con paddingBottom (evita warning de React)
+        // En móvil sumamos el safe-area inset para que el contenido no quede tapado
+        // por la barra inferior ni por el home indicator del iPhone.
         padding: isDesktop
           ? (fullBleed ? 0 : '24px 24px 40px')
-          : `0 0 ${(!noNav.includes(screen)) ? 70 : 0}px`,
+          : `0 0 calc(${(!noNav.includes(screen)) ? 70 : 0}px + env(safe-area-inset-bottom, 0px))`,
       }}>
         <Suspense fallback={<ScreenLoader th={th} />}>
           {SCREENS[screen] ?? <HomeScreen />}
@@ -187,7 +205,7 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.error) return (
       <div style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', padding: 32,
         background: '#f8fafc', fontFamily: 'system-ui,sans-serif', maxWidth: 430, margin: '0 auto'
       }}>

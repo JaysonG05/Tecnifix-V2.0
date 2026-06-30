@@ -9,7 +9,7 @@ const NAV = [
   { label: 'Servicios', to: 'search' },
   { label: 'Técnicos', action: 'technician' },
   { label: 'Cómo funciona', section: 'how-it-works' },
-  { label: 'Verificación', to: 'certificates' },
+  { label: 'Verificación', action: 'verification' },
   { label: 'Soporte', section: 'support' },
 ]
 
@@ -69,6 +69,19 @@ export function TopNav() {
     setIsMenuOpen(false)
     if (item.action === 'technician') {
       navigate('search')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    if (item.action === 'verification') {
+      if (!user) {
+        navigate('login')
+      } else if (user.role === 'admin') {
+        navigate('admin')
+      } else if (user.role === 'technician') {
+        navigate('verification-center')
+      } else {
+        navigate('register')
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
