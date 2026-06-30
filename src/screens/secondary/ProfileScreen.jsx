@@ -41,7 +41,7 @@ export function ProfileScreen() {
   }, [user])
 
   if (!user) return (
-    <div style={{ background: th.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+    <div style={{ background: th.bg, minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
       <div style={{ fontSize: 72, marginBottom: 16 }}>👤</div>
       <p style={{ fontSize: 20, fontWeight: 800, color: th.text, margin: '0 0 8px' }}>{t.login}</p>
       <p style={{ fontSize: 14, color: th.textSec, margin: '0 0 28px', textAlign: 'center' }}>{t.loginRequired}</p>
@@ -95,7 +95,7 @@ export function ProfileScreen() {
 
   if (user.role === 'technician' && techLoading) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 82px)', display: 'grid', placeItems: 'center', background: '#f4f6fb' }}>
+      <div style={{ minHeight: 'calc(100dvh - 82px)', display: 'grid', placeItems: 'center', background: '#f4f6fb' }}>
         <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 20px 50px rgba(0,0,0,.18)' }}>
           <Spinner />
         </div>
@@ -135,7 +135,7 @@ export function ProfileScreen() {
   }
 
   return (
-    <div style={{ background: th.bg, minHeight: '100vh', paddingBottom: 90 }}>
+    <div style={{ background: th.bg, minHeight: '100dvh', paddingBottom: 90 }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)', padding: '28px 20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -444,8 +444,8 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
   const statusText = status === 'rejected'
     ? 'Tu postulación fue rechazada. Corrige tus datos y vuelve a enviarla.'
     : ['pending', 'pending_review', 'under_review'].includes(status)
-      ? 'Tu postulación está en revisión. Los dueños deben aprobarte para abrir el panel.'
-      : 'Completa tu postulación para que los dueños puedan revisarte y darte acceso.'
+      ? 'Tu cuenta ya está marcada como técnico. La verificación queda pendiente hasta que el dueño/admin apruebe tu postulación.'
+      : 'Tu cuenta es de técnico, pero falta completar el Centro de Verificación para que los dueños puedan revisarte.'
   const steps = [
     {
       n: '1',
@@ -486,9 +486,15 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
               <h1>Panel técnico pendiente de aprobación</h1>
               <p>{statusText}</p>
             </div>
-            <div className="tf-pending-status">
-              <span>Estado actual</span>
-              <strong>{techStatusLabel}</strong>
+            <div className="tf-pending-status-stack">
+              <div className="tf-pending-status">
+                <span>Tipo de cuenta</span>
+                <strong>Técnico</strong>
+              </div>
+              <div className="tf-pending-status">
+                <span>Estado actual</span>
+                <strong>{techStatusLabel}</strong>
+              </div>
             </div>
           </section>
 
@@ -504,11 +510,14 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
 
           <section className="tf-pending-actions-card">
             <div>
-              <strong>Tu cuenta está iniciada</strong>
-              <p>Cuando el dueño te apruebe, esta misma pantalla cambia automáticamente al panel azul de trabajo.</p>
+              <strong>¿Dónde se verifica?</strong>
+              <p>
+                Tú completas o editas tus datos en el Centro de Verificación. Después el dueño entra al Panel Admin,
+                abre Postulaciones y presiona Admitir en el sitio.
+              </p>
             </div>
             <div className="tf-pending-actions">
-              <button onClick={() => navigate('edit-tech-profile')}>{myTech ? 'Editar postulación' : 'Completar postulación'}</button>
+              <button onClick={() => navigate('edit-tech-profile')}>{myTech ? 'Abrir centro de verificación' : 'Completar verificación'}</button>
               <button onClick={() => window.location.reload()}>Actualizar estado</button>
             </div>
           </section>
@@ -518,7 +527,11 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
           <h2>{user.full_name}</h2>
           <p>{user.email}</p>
           <div className="tf-pending-card-status">
-            <span>Acceso</span>
+            <span>Cuenta</span>
+            <strong>Técnico</strong>
+          </div>
+          <div className="tf-pending-card-status">
+            <span>Verificación</span>
             <strong>Pendiente</strong>
           </div>
           <button onClick={handleLogout}>Cerrar sesión</button>
@@ -530,7 +543,7 @@ function TechnicianPendingPanel({ user, th, myTech, techStatusLabel, navigate, h
 
 const techDashboardCss = `
   .tf-techdash-page{
-    min-height:calc(100vh - 82px);
+    min-height:calc(100dvh - 82px);
     width:100%;
     background:#f4f6fb;
     padding:0;
@@ -540,7 +553,7 @@ const techDashboardCss = `
   .tf-techdash-shell,
   .tf-pending-shell{
     width:100%;
-    min-height:calc(100vh - 82px);
+    min-height:calc(100dvh - 82px);
     background:#f4f6fb;
     border-radius:0;
     box-shadow:none;
@@ -561,7 +574,7 @@ const techDashboardCss = `
     box-shadow:0 22px 54px rgba(25,80,187,.24);
     position:sticky;
     top:22px;
-    height:calc(100vh - 126px);
+    height:calc(100dvh - 126px);
     min-height:620px;
   }
   .tf-side-icon{
@@ -890,6 +903,12 @@ const techDashboardCss = `
   }
   .tf-pending-main h1{ color:${TECH_PANEL_BLUE}; font-size:32px; }
   .tf-pending-main p{ color:#64748b; line-height:1.6; font-weight:800; margin:0 0 22px; }
+  .tf-pending-status-stack{
+    position:relative;
+    z-index:1;
+    display:grid;
+    gap:12px;
+  }
   .tf-pending-status{
     position:relative;
     z-index:1;
@@ -981,9 +1000,9 @@ const techDashboardCss = `
     .tf-pending-actions-card,.tf-pending-hero{ grid-template-columns:1fr; }
   }
   @media (max-width:760px){
-    .tf-techdash-page{ min-height:100vh; padding-bottom:80px; }
+    .tf-techdash-page{ min-height:100dvh; padding-bottom:80px; }
     .tf-techdash-shell,.tf-pending-shell{
-      min-height:100vh;
+      min-height:100dvh;
       border-radius:0;
       grid-template-columns:1fr;
       gap:18px;
